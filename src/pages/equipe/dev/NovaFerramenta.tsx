@@ -44,7 +44,7 @@ const NovaFerramenta = () => {
         title: 'Solicitação enviada',
         description: 'A ideia foi registrada e entra no backlog do Digital Dev.',
       });
-      navigate('/equipe/dev');
+      navigate('/equipe/tax/work');
     },
     onError: (error) => {
       toast({
@@ -81,7 +81,7 @@ const NovaFerramenta = () => {
       title="Solicitar nova ferramenta"
       subtitle="Registre uma ideia para entrar no backlog do Digital Dev"
       headerActions={
-        <Button variant="outline" onClick={() => navigate('/equipe/dev')}>
+        <Button variant="outline" onClick={() => navigate('/equipe/tax/work')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
@@ -175,7 +175,7 @@ const NovaFerramenta = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/equipe/dev')}
+                  onClick={() => navigate('/equipe/tax/work')}
                 >
                   Cancelar
                 </Button>

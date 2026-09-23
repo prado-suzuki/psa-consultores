@@ -29,7 +29,7 @@ export function AttachmentButton({
     <button
       type="button"
       onClick={() => onOpen(attachment)}
-      className="group flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
+      className="group flex min-w-0 items-center gap-2 rounded-md border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
     >
       {isImage ? (
         <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
@@ -103,7 +103,7 @@ export function OrgEntityAttachments({
     return (
       <div
         className={cn(
-          'flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground',
+          'flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground',
           className,
         )}
       >

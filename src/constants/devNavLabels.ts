@@ -14,7 +14,12 @@ import { TELAS_DO_DEV } from '@/config/telasDoDigitalDev';
  */
 export const DEV_NAV_LABELS = {
   // Top-level
-  inicio: TELAS_DO_DEV.inicio.titulo,
+  //
+  // O `inicio` saiu em 22/09/2026 e o motivo importa: o primeiro item da barra
+  // passou a ser "Início", com ícone de casa, como nas outras três áreas. Ele
+  // deixou de ser um nome de tela e virou navegação, então não tem mais o que
+  // espelhar daqui. O `TELAS_DO_DEV.inicio` continua vivo e segue alimentando o
+  // H1 da página, que é "Ferramentas Tax Work".
   novaFerramenta: TELAS_DO_DEV.novaFerramenta.titulo,
   consultaXmls: TELAS_DO_DEV.consultaXmls.titulo,
 

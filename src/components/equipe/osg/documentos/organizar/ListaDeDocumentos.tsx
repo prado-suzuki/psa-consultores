@@ -1,10 +1,10 @@
 import { Download, Link2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
 import { FileIcon } from '@/components/equipe/osg/documentos/organizar/pecasArvore';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /** Um bloco da lista: os documentos de uma categoria da pasta aberta. */
 export interface GrupoDeCategoria {
@@ -76,14 +76,20 @@ export function ListaDeDocumentos({
                   <FileIcon nome={d.nome_original} mime={d.mime} />
                   <div className="min-w-0 flex-1">
                     {isPreviavel(d.nome_original, d.mime) ? (
-                      <button
-                        type="button"
-                        onClick={() => acoes.prever(d)}
-                        className="block w-full min-w-0 truncate text-left font-medium text-foreground hover:text-osg-700 hover:underline"
-                        title="Pré-visualizar"
-                      >
-                        {d.nome_original}
-                      </button>
+                      // SEM `aria-label` AQUI. O botão já tem texto visível — o nome do
+                      // arquivo —, e `aria-label` substitui o conteúdo: com ele, as 40 linhas
+                      // da pasta viram 40 "Pré-visualizar" no leitor de tela, e some a única
+                      // coisa que distingue uma da outra. O balão fica porque a descoberta
+                      // visual ajuda: só arquivo previsível vira botão.
+                      <ButtonTooltip text="Pré-visualizar">
+                        <button
+                          type="button"
+                          onClick={() => acoes.prever(d)}
+                          className="block w-full min-w-0 truncate text-left font-medium text-foreground hover:text-osg-700 hover:underline"
+                        >
+                          {d.nome_original}
+                        </button>
+                      </ButtonTooltip>
                     ) : (
                       <p className="truncate font-medium text-foreground">{d.nome_original}</p>
                     )}
@@ -94,43 +100,40 @@ export function ListaDeDocumentos({
                       {new Date(d.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => acoes.renomear(d)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Renomear o nome exibido</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => acoes.vincular(d)}>
-                        <Link2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Vincular a pessoa, matrícula ou bem</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => acoes.baixar(d)}>
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Baixar o arquivo</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => acoes.excluir(d)}
-                        disabled={acoes.excluindo}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Excluir o documento e o arquivo</TooltipContent>
-                  </Tooltip>
+                  {/* OS QUATRO SÃO BOTÃO SÓ DE ÍCONE, e o degrau 0 do padrão pede as duas
+                      coisas: nome acessível e balão. Eram `<Tooltip>` cru, sem `aria-label`
+                      nenhum — quem navega por leitor de tela ouvia "botão" quatro vezes por
+                      linha. A conversão do lote 2 não os alcançou porque ela procurava
+                      `title=`, e estes nunca foram `title`. O `ButtonTooltip` faz os dois.
+                      Os rótulos encurtaram para caber no teto de 30: o que saiu de
+                      "Vincular a pessoa, matrícula ou bem" está listado dentro do modal que
+                      o botão abre, e a consequência de excluir está na confirmação. */}
+                  <ButtonTooltip text="Renomear">
+                    <Button variant="ghost" size="icon" aria-label="Renomear" onClick={() => acoes.renomear(d)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </ButtonTooltip>
+                  <ButtonTooltip text="Vincular documento">
+                    <Button variant="ghost" size="icon" aria-label="Vincular documento" onClick={() => acoes.vincular(d)}>
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </ButtonTooltip>
+                  <ButtonTooltip text="Baixar">
+                    <Button variant="ghost" size="icon" aria-label="Baixar" onClick={() => acoes.baixar(d)}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </ButtonTooltip>
+                  <ButtonTooltip text="Excluir documento">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Excluir documento"
+                      onClick={() => acoes.excluir(d)}
+                      disabled={acoes.excluindo}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </ButtonTooltip>
                 </li>
               ))}
             </ul>

@@ -26,6 +26,7 @@ import { escopoDaRota, rotaDoEscopo, rotuloDoEscopo } from '@/lib/agenteEscopos'
 import {
   useAgenteNotificacoes, useMarcarNotificacao, type NotificacaoAgente,
 } from '@/hooks/useDomainAgenteNotificacoes';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Quantos cartões ao mesmo tempo. Dois: o terceiro empilhado cobriria meia
@@ -147,10 +148,10 @@ function Cartao({
             {notificacao.escopoRotulo} · {quando}
           </div>
         </div>
-        <button
+        <ButtonTooltip text="Dispensar">
+          <button
           type="button"
           onClick={onDispensar}
-          title="Dispensar"
           aria-label="Dispensar notificação"
           style={{
             background: 'none', border: 'none', cursor: 'pointer', color: INK3,
@@ -159,6 +160,7 @@ function Cartao({
         >
           <X style={{ width: 14, height: 14 }} />
         </button>
+        </ButtonTooltip>
       </div>
 
       <p style={{ fontSize: 12, color: INK2, lineHeight: 1.5, margin: '8px 0 0' }}>

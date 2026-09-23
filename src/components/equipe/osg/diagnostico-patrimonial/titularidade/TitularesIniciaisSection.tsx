@@ -182,7 +182,7 @@ function Balde({
                   onValueChange={(id) => onLinha(linha.key, { titular_pessoa_id: id })}
                 >
                   <SelectTrigger aria-label="Titular" className={fieldCls}>
-                    <SelectValue placeholder="Selecione..." />
+                    <SelectValue placeholder="Selecione…" />
                   </SelectTrigger>
                   <SelectContent>
                     {pessoas.map((pessoa) => (
@@ -202,7 +202,7 @@ function Balde({
                   max="100"
                   value={linha.fracao}
                   onChange={(event) => onLinha(linha.key, { fracao: clampFracaoInput(event.target.value) })}
-                  placeholder="ex: 50"
+                  placeholder="Ex: 50"
                   aria-label="Fração (%)"
                   className={`${fieldCls} font-mono`}
                 />

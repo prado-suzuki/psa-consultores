@@ -3,15 +3,16 @@ import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
+import TaxWorkIcon from '@/components/equipe/fiscal/TaxWorkIcon';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import {
-  LayoutDashboard,
+  Home,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Menu,
   Plus,
   ArrowLeft,
@@ -62,34 +63,26 @@ interface NavItem {
   matchPaths?: string[];
 }
 
-interface HubSidebarSectionProps {
-  label: string;
-  /**
-   * Ícone do hub. Ele NÃO vem de `DEV_HUBS`: lá só as opções internas têm
-   * ícone, o hub em si nunca teve — a barra desenhava rótulo puro. No trilho
-   * de 80px o rótulo não cabe e o ícone é a única coisa que sobra, então cada
-   * hub precisou do seu, escolhido aqui.
-   */
-  icon: LucideIcon;
-  landingPath: string;
-  items: NavItem[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  active: boolean;
-  currentPath: string;
-  navigate: (path: string) => void;
-  /** Barra recolhida: sobra o ícone, e o grupo não abre. */
-  trilho: boolean;
-}
-
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: '/equipe/dev' },
-  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/dev/nova-ferramenta' },
+  /*
+    "Início", e não o nome da tela, É O PADRÃO DAS OUTRAS TRÊS ÁREAS: a barra da
+    Tax Projects, a da OSG Projects e a da OSG Work abrem todas com um item
+    `Início` de ícone de casa. Esta era a única fora, mostrando o título comprido
+    ("Ferramentas Tax Work") como primeiro item do menu. Apontado pela
+    consultoria em 22/09/2026.
+
+    Isso ABRE EXCEÇÃO à regra do `telasDoDigitalDev`, que manda o rótulo do menu
+    ser o mesmo nome que a página exibe. A regra existe para NOME DE TELA, e é
+    onde ela vale. "Início" não é nome de tela, é palavra de NAVEGAÇÃO, e as
+    outras três áreas já a tratam assim.
+  */
+  { icon: Home, label: 'Início', path: '/equipe/tax/work' },
+  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/tax/work/nova-ferramenta' },
   // `FileCode2` e não `LayoutDashboard`: os dois itens vinham com o MESMO
   // ícone, e enquanto a barra não tinha trilho isso não aparecia — o ícone
   // sequer era desenhado. No trilho de 80px sobra só o ícone, e dois botões
   // idênticos não se distinguem.
-  { icon: FileCode2, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/dev/consulta-xmls' },
+  { icon: FileCode2, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/tax/work/consulta-xmls' },
 ];
 
 const spedSubItems: NavItem[] = DEV_HUBS.consultaSped.options.map((option) => ({
@@ -134,90 +127,15 @@ const navItemsAfterGroups: NavItem[] = [
   {
     icon: Calculator,
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
-    path: '/equipe/dev/calculadora-ibs-cbs',
+    path: '/equipe/tax/work/calculadora-ibs-cbs',
   },
   {
     icon: FileText,
     label: DEV_NAV_LABELS.controleBalancetes,
-    path: '/equipe/dev/controle-balancetes',
+    path: '/equipe/tax/work/controle-balancetes',
   },
-  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: '/equipe/dev/procedimentos' },
+  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: '/equipe/tax/work/procedimentos' },
 ];
-
-const HubSidebarSection = ({
-  label,
-  icon: Icon,
-  landingPath,
-  items,
-  open,
-  onOpenChange,
-  active,
-  currentPath,
-  navigate,
-  trilho,
-}: HubSidebarSectionProps) => (
-  <Collapsible open={open} onOpenChange={onOpenChange}>
-    <div
-      className={cn(
-        // O hub é PAI: quem acende cheio é a página aberta. Ver `ancestral`.
-        classesItemDaBarra({ ativo: false, ancestral: active, trilho }),
-        !trilho && 'h-auto gap-1 py-1',
-      )}
-    >
-      <button
-        type="button"
-        className={cn(
-          'flex flex-1 items-center py-1.5',
-          trilho ? 'justify-center px-0' : 'gap-3 px-0 text-left',
-        )}
-        onClick={() => {
-          onOpenChange(true);
-          navigate(landingPath);
-        }}
-        title={trilho ? label : undefined}
-      >
-        <Icon className="h-4 w-4 flex-shrink-0" />
-        {!trilho && <span className="min-w-0 truncate">{label}</span>}
-      </button>
-
-      {/* No trilho o grupo não abre: os filhos não teriam onde caber, e a seta
-          ao lado de um ícone centralizado tira o ícone do centro. Clicar no
-          hub continua indo para a página dele. */}
-      {!trilho && (
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-8 w-8 flex-shrink-0 ${
-              active
-                ? 'text-primary hover:bg-primary/10 hover:text-primary'
-                : 'text-foreground hover:bg-muted hover:text-primary'
-            }`}
-          >
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-            />
-          </Button>
-        </CollapsibleTrigger>
-      )}
-    </div>
-
-    {!trilho && (
-      <CollapsibleContent className="mt-0.5 space-y-0.5 pl-4">
-        {items.map((item) => (
-          <Button
-            key={item.path}
-            variant="ghost"
-            className={classesItemDaBarra({ ativo: currentPath === item.path, trilho, sub: true })}
-            onClick={() => navigate(item.path)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </CollapsibleContent>
-    )}
-  </Collapsible>
-);
 
 export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutProps) => {
   const { title, subtitle } = resolverCabecalhoDoDev(cabecalho);
@@ -238,35 +156,19 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
   // 16rem e desliza para fora da tela com os rótulos montados.
   const trilho = collapsed && !emGaveta;
 
-  const [spedOpen, setSpedOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.consultaSped.landingPath ||
-      spedSubItems.some((item) => location.pathname === item.path),
-  );
-  const [pisCofinsOpen, setPisCofinsOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.levantamentoPisCofins.landingPath ||
-      pisCofinsSubItems.some((item) => location.pathname === item.path),
-  );
-  const [analiseIcmsOpen, setAnaliseIcmsOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.analiseIcms.landingPath ||
-      analiseIcmsSubItems.some((item) => location.pathname === item.path),
-  );
-  const [perdcompOpen, setPerdcompOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.perdcomp.landingPath ||
-      perdcompSubItems.some((item) => location.pathname === item.path),
-  );
-  const [planejamentoTributarioOpen, setPlanejamentoTributarioOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.planejamentoTributario.landingPath ||
-      planejamentoTributarioSubItems.some((item) => location.pathname === item.path),
-  );
-  const [gerenciarDadosOpen, setGerenciarDadosOpen] = useState(
-    () =>
-      location.pathname === DEV_HUBS.gerenciarDados.landingPath ||
-      gerenciarDadosSubItems.some((item) => location.pathname === item.path),
+  /*
+    As classes do rótulo no recolhimento, iguais às da OSG: `opacity-0` sozinho
+    não basta, porque invisível não é o mesmo que SEM ESPAÇO. O item recolhido é
+    uma caixa de 40px com `justify-center`, e um rótulo transparente que continua
+    ocupando largura faz o flex centralizar ÍCONE + RÓTULO, tirando o ícone do
+    centro. Por isso `w-0 overflow-hidden` junto.
+
+    Passar sempre por ÚLTIMO no `cn()`: o `twMerge` dá a vitória a quem vem
+    depois, e um `w-4` posterior ao `w-0` devolveria a largura.
+  */
+  const rotuloCls = cn(
+    'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
+    trilho ? 'w-0 overflow-hidden opacity-0' : 'opacity-100',
   );
 
   const isItemActive = (item: NavItem) =>
@@ -311,15 +213,17 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
       >
         {/* `max-md:hidden`: na gaveta quem abre é o hambúrguer do cabeçalho e
             quem fecha é o fundo escuro — aqui o botão pousaria fora da tela. */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
-          onClick={() => setCollapsed(!collapsed)}
-          title={trilho ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </Button>
+        <ButtonTooltip text={trilho ? 'Expandir menu' : 'Recolher menu'} side="right">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={trilho ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          </Button>
+        </ButtonTooltip>
 
         <aside className="h-full w-full border-r border-border/60 bg-card flex flex-col overflow-x-hidden overflow-y-auto scrollbar-hide">
             {/* Cabeçalho. No trilho sobra um SELO, que esta barra não tinha: o
@@ -334,17 +238,25 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
             >
               {trilho ? (
                 <div className="flex justify-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center">
+                    <TaxWorkIcon size={40} className="block h-full w-full" />
                   </div>
                 </div>
               ) : (
+                // O SELO É O DA ÁREA, não um ícone de biblioteca dentro de um
+                // quadrado tingido. Era um `LayoutDashboard` sobre `bg-primary/10`,
+                // enquanto as duas barras da OSG mostram o selo hexagonal delas e
+                // a Tax Projects mostra o porquinho. Apontado pela consultoria em
+                // 22/09/2026. A caixa tingida saiu junto: o selo já tem forma e
+                // fundo próprios, e o quadrado atrás dele criava uma moldura que
+                // nenhuma outra área tem.
+                //
                 // O selo entra também aberta. Sem ele o cabeçalho era só texto
                 // e fechava 92px contra os 88 das outras oito — 4px que faziam
                 // a linha divisória pular ao trocar de área.
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                    <TaxWorkIcon size={40} className="block h-full w-full" />
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
@@ -355,108 +267,116 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
             </div>
 
             <nav className="space-y-1 p-4">
+              {/*
+                `<button>` NATIVO, e não o `Button` do shadcn. O componente traz
+                `justify-center`, `gap-2` e `px-4` próprios, que brigavam com o
+                `gap-2.5 px-2.5` do `classesItemDaBarra`: os itens simples
+                nasciam deslocados alguns pixels à direita dos cabeçalhos de
+                grupo, que já usam `<button>` nativo. Na barra aberta isso lia
+                como texto centralizado no meio de uma lista alinhada à esquerda.
+                Apontado pela consultoria em 22/09/2026, com print.
+
+                O rótulo em `<span>` com `rotuloCls` é o mesmo do `GrupoDaBarra`:
+                ele desbota e ZERA a largura no trilho, em vez de sumir de
+                estalo — e sem zerar a largura o flex centraliza ícone + rótulo e
+                tira o ícone do centro.
+              */}
               {navItems.map((item) => (
-                <Button
-                  key={item.path}
-                  variant="ghost"
-                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
-                  onClick={() => navigate(item.path)}
-                  title={trilho ? item.label : undefined}
-                >
-                  <item.icon className={cn('h-4 w-4 flex-shrink-0', !trilho && 'mr-3')} />
-                  {!trilho && item.label}
-                </Button>
+                <ButtonTooltip key={item.path} text={trilho ? item.label : undefined} side="right">
+                  <button
+                    type="button"
+                    className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
+                    onClick={() => navigate(item.path)}
+                    aria-label={trilho ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
+                      {item.label}
+                    </span>
+                  </button>
+                </ButtonTooltip>
               ))}
 
-              <HubSidebarSection
-                label={DEV_HUBS.consultaSped.label}
-                icon={FileSearch}
-                landingPath={DEV_HUBS.consultaSped.landingPath}
-                items={spedSubItems}
-                open={spedOpen}
-                onOpenChange={setSpedOpen}
-                active={isSpedActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={FileSearch}
+                rotulo={DEV_HUBS.consultaSped.label}
+                ativo={isSpedActive}
+                itens={spedSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.consultaSped.landingPath)}
               />
 
-              <HubSidebarSection
-                label={DEV_HUBS.levantamentoPisCofins.label}
-                icon={Percent}
-                landingPath={DEV_HUBS.levantamentoPisCofins.landingPath}
-                items={pisCofinsSubItems}
-                open={pisCofinsOpen}
-                onOpenChange={setPisCofinsOpen}
-                active={isPisCofinsActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={Percent}
+                rotulo={DEV_HUBS.levantamentoPisCofins.label}
+                ativo={isPisCofinsActive}
+                itens={pisCofinsSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.levantamentoPisCofins.landingPath)}
               />
 
-              <HubSidebarSection
-                label={DEV_HUBS.analiseIcms.label}
-                icon={Truck}
-                landingPath={DEV_HUBS.analiseIcms.landingPath}
-                items={analiseIcmsSubItems}
-                open={analiseIcmsOpen}
-                onOpenChange={setAnaliseIcmsOpen}
-                active={isAnaliseIcmsActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={Truck}
+                rotulo={DEV_HUBS.analiseIcms.label}
+                ativo={isAnaliseIcmsActive}
+                itens={analiseIcmsSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.analiseIcms.landingPath)}
               />
 
-              <HubSidebarSection
-                label={DEV_HUBS.perdcomp.label}
-                icon={ArrowLeftRight}
-                landingPath={DEV_HUBS.perdcomp.landingPath}
-                items={perdcompSubItems}
-                open={perdcompOpen}
-                onOpenChange={setPerdcompOpen}
-                active={isPerdcompActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={ArrowLeftRight}
+                rotulo={DEV_HUBS.perdcomp.label}
+                ativo={isPerdcompActive}
+                itens={perdcompSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.perdcomp.landingPath)}
               />
 
               {navItemsAfterGroups.map((item) => (
-                <Button
-                  key={item.path}
-                  variant="ghost"
-                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
-                  onClick={() => navigate(item.path)}
-                  title={trilho ? item.label : undefined}
-                >
-                  <item.icon className={cn('h-4 w-4 flex-shrink-0', !trilho && 'mr-3')} />
-                  {!trilho && item.label}
-                </Button>
+                <ButtonTooltip key={item.path} text={trilho ? item.label : undefined} side="right">
+                  <button
+                    type="button"
+                    className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
+                    onClick={() => navigate(item.path)}
+                    aria-label={trilho ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
+                      {item.label}
+                    </span>
+                  </button>
+                </ButtonTooltip>
               ))}
 
-              <HubSidebarSection
-                label={DEV_HUBS.planejamentoTributario.label}
-                icon={Target}
-                landingPath={DEV_HUBS.planejamentoTributario.landingPath}
-                items={planejamentoTributarioSubItems}
-                open={planejamentoTributarioOpen}
-                onOpenChange={setPlanejamentoTributarioOpen}
-                active={isPlanejamentoTributarioActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={Target}
+                rotulo={DEV_HUBS.planejamentoTributario.label}
+                ativo={isPlanejamentoTributarioActive}
+                itens={planejamentoTributarioSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.planejamentoTributario.landingPath)}
               />
 
-              <HubSidebarSection
-                label={DEV_HUBS.gerenciarDados.label}
-                icon={Database}
-                landingPath={DEV_HUBS.gerenciarDados.landingPath}
-                items={gerenciarDadosSubItems}
-                open={gerenciarDadosOpen}
-                onOpenChange={setGerenciarDadosOpen}
-                active={isGerenciarDadosActive}
-                currentPath={location.pathname}
+              <GrupoDaBarra
+                icone={Database}
+                rotulo={DEV_HUBS.gerenciarDados.label}
+                ativo={isGerenciarDadosActive}
+                itens={gerenciarDadosSubItems}
                 trilho={trilho}
-                navigate={navigate}
+                rotuloCls={rotuloCls}
+                classeDaBorda="border-border"
+                aoClicarNoCabecalho={() => navigate(DEV_HUBS.gerenciarDados.landingPath)}
               />
             </nav>
 
@@ -466,18 +386,20 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                   nome. O componente compartilhado traz os dois de graca. */}
               <SidebarCartaoUsuario area="dev" collapsed={trilho} />
 
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
-                  trilho ? 'justify-center px-2' : 'justify-start px-3',
-                )}
-                onClick={() => navigate('/equipe/digital')}
-                title={trilho ? 'Voltar para Digital' : undefined}
-              >
-                <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
-                {!trilho && 'Voltar para Digital'}
-              </Button>
+              <ButtonTooltip text={trilho ? 'Voltar para Tax' : undefined} side="right">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
+                    trilho ? 'justify-center px-2' : 'justify-start px-3',
+                  )}
+                  onClick={() => navigate('/equipe/tax')}
+                  aria-label={trilho ? 'Voltar para Tax' : undefined}
+                >
+                  <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                  {!trilho && 'Voltar para Tax'}
+                </Button>
+              </ButtonTooltip>
 
             </div>
         </aside>
@@ -541,7 +463,19 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          {/*
+            `flex-shrink-0` AQUI É O CONSERTO DA TELA ESTREITA. Sem ele este bloco
+            se recusava a encolher e roubava a largura do título, que era o único
+            vizinho com `min-w-0`: em meia tela ou no celular, "Análise de ICMS"
+            quebrava letra por letra numa coluna de uns 40px. Reportado pela
+            consultoria em 22/09/2026, com print.
+
+            A causa é só desta área: a OSG e a Tax Projects têm o mesmo cabeçalho
+            e não quebram porque não têm o botão do manual, que é o elemento a
+            mais. Ele fica, porque é o que a Tax tem de melhor aqui; o que cede é
+            o RÓTULO dele, abaixo de `sm`.
+          */}
+          <div className="flex flex-shrink-0 items-center gap-3">
             {/* O manual sai do SUBTÍTULO e vira ação do cabeçalho. Antes ele era
                 apêndice da frase ("... | Acessar SOP desta ferramenta"), o que
                 misturava ação de interface com a explicação da tela — e só
@@ -549,13 +483,22 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                 pelo mesmo registro que o catálogo usa, então o botão nasce no
                 mesmo lugar em toda ferramenta que tenha manual. */}
             {manualDestaTela && (
-              <Button variant="outline" size="sm" asChild className="gap-1.5">
-                <a href={manualDestaTela} target="_blank" rel="noopener noreferrer">
-                  <BookOpen className="h-4 w-4" />
-                  Acessar manual
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Button>
+              <ButtonTooltip text="Acessar manual">
+                <Button variant="outline" size="sm" asChild className="gap-1.5">
+                  <a
+                    href={manualDestaTela}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Acessar manual"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {/* O rótulo some no estreito e o botão vira só ícone; o nome
+                        segue no `aria-label` e no tooltip. */}
+                    <span className="hidden sm:inline">Acessar manual</span>
+                    <ExternalLink className="hidden h-3.5 w-3.5 sm:inline" />
+                  </a>
+                </Button>
+              </ButtonTooltip>
             )}
             {/* SEM espelho: "chamados dos clientes desta área" não se aplica ao
                 Digital, que não tem clientes. Ver o bloco `ESPELHO` em

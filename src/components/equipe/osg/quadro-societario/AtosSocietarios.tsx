@@ -4,6 +4,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { FileCheck2, History, Loader2, Undo2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useReverterAto } from '@/hooks/useMovimentacaoQuotas';
 import type { AtoParaProcedencia, MovimentoDoLedger } from '@/lib/osg/projecaoQuadro';
 import { SecaoRecolhivel } from './SecaoRecolhivel';
@@ -50,7 +51,7 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
           Esta lista reúne atos agrupados, inclusive os que criaram apenas ônus. Movimentos avulsos
           não aparecem aqui.
         </p>
-        {atos.map((ato) => {
+        {atos.map((ato, i) => {
           const doAto = movimentos.filter((m) => m.atoId === ato.id);
           const formalizado = doAto.some((m) => m.documentoGeradoId);
           const quando = dataBR(ato.data);
@@ -59,7 +60,12 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
           return (
             <div
               key={ato.id}
-              className="flex items-center gap-3 rounded-md border border-osg-200/80 bg-card p-3"
+              style={{ animationDelay: `${i * 45}ms` }}
+              className={cn(
+                'flex items-center gap-3 rounded-md border border-osg-200/80 bg-card p-3',
+                'animate-osg-rise [animation-duration:320ms] motion-reduce:animate-none',
+                'transition-[border-color,box-shadow] hover:border-osg-300 hover:shadow-[0_1px_3px_rgba(16,24,40,0.07)]',
+              )}
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{nome}</p>
@@ -71,14 +77,19 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
                 </p>
               </div>
               {formalizado ? (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-osg-200/70 bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
                   <FileCheck2 className="h-3.5 w-3.5" />
                   Formalizado em documento
                 </span>
               ) : (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="h-8 shrink-0 gap-1.5" disabled={reverter.isPending}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 shrink-0 gap-1.5 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      disabled={reverter.isPending}
+                    >
                       {reverter.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (

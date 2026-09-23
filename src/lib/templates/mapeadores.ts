@@ -190,6 +190,8 @@ export interface ContextoInstrumento {
   capitalDelta?: number | null;
   /** Forma coletiva concordada com quantidade e gênero do quadro societário. */
   tituloColetivoSocios?: string;
+  /** Idem para a administração: "seus administradores", "sua diretora". */
+  tituloColetivoAdministradores?: string;
 }
 
 /** Capital social e total de quotas da sociedade — calculados, não digitados. */
@@ -307,6 +309,7 @@ export function mapearSociedade(
   // na alteração seguinte: quem conta os elos da sucessão é a tela Gerar.
   set('numeroAlteracao', instrumento?.numeroAlteracao ?? 0);
   set('tituloColetivoSocios', instrumento?.tituloColetivoSocios);
+  set('tituloColetivoAdministradores', instrumento?.tituloColetivoAdministradores);
   set('razaoSocial', row.denominacao);
   set('nomeFantasia', row.nome_fantasia);
   set('cnpj', row.cpf_cnpj);
@@ -349,6 +352,7 @@ export function mapearSociedade(
   marcarSintetizados(campos, [
     'quotaValorNominal', 'quotaValorNominalExtenso', 'numeroAlteracao', 'tituloInstrumento',
     'tituloColetivoSocios',
+    'tituloColetivoAdministradores',
   ]);
   return comOrigem(campos, { tipo: 'sociedade', id: row.id });
 }
@@ -748,7 +752,18 @@ export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
   set('membrosMaximo', row.membros_maximo);
   set('mandatoAnos', row.mandato_anos);
   set('cargos', prosaDeLista(row.cargos_do_orgao));
-  return comOrigem(derivarCampos('orgaoGovernanca', out), { tipo: 'orgaoGovernanca', id: row.id });
+  /*
+   * `publicarOpcionais` antes de derivar: campo do catálogo que o cadastro não
+   * tem sai como '' em vez de sumir. Sumir tem dois efeitos ruins e silenciosos
+   * — o placeholder do bloco lança "não resolvido", e o seletor de uma família
+   * acusa "classificação ausente" em vez de escolher a redação sem o dado. O
+   * `nome` é obrigatório e por isso NÃO é completado: sem ele o documento tem
+   * de falhar alto.
+   */
+  return comOrigem(
+    derivarCampos('orgaoGovernanca', publicarOpcionais('orgaoGovernanca', out)),
+    { tipo: 'orgaoGovernanca', id: row.id },
+  );
 }
 
 /** "A", "A e B", "A, B e C" — a juntura que a cláusula usa. */
@@ -767,7 +782,25 @@ export interface CompetenciaParaMapear {
   papeis: string[];
   /** Os mesmos papéis no infinitivo, do catálogo. Vazio cai no `papeis`. */
   papeisInfinitivo?: string[];
+  /**
+   * Os GRUPOS dos papéis desta célula (`papel_governanca.grupo`), sem repetir.
+   * É o que vira as condicionais que o seletor da família lê — ver
+   * `CONDICIONAL_DO_GRUPO`.
+   */
+  grupos?: string[];
   alcada?: string | null;
+  /**
+   * A alçada em PEÇAS: o número do teto, a unidade, a base em prosa e o piso
+   * derivado da escada da linha (ver `pisosDaLinha`). É o que permite a alínea
+   * do meio da escada escrever "superior a X e até Y" e o extenso de cada
+   * valor — coisas que a frase pronta de `alcada` não sabe fazer.
+   */
+  alcadaValor?: number | null;
+  /** 'moeda' ou 'percentual', como o cadastro guarda. */
+  alcadaUnidade?: string | null;
+  /** Já em prosa ("do orçamento aprovado"), como a alínea escreve. */
+  alcadaBase?: string | null;
+  alcadaPiso?: number | null;
   sobePara?: string | null;
   /** "ao" ou "à", pelo gênero do órgão de destino. */
   sobeParaAo?: string | null;
@@ -775,6 +808,37 @@ export interface CompetenciaParaMapear {
   /** A célula inteira em uma linha, para a grade. Ver `lib/matrizAlcadas.ts`. */
   resumo?: string | null;
 }
+
+/**
+ * UMA CONDICIONAL POR GRUPO DE PAPEL.
+ *
+ * A diferença entre a alínea do Conselho e a da Diretoria, na mesma linha da
+ * Matriz, é REDAÇÃO, e ela pertence ao bloco: "Deliberar sobre a contratação"
+ * contra "Submeter ao Conselho a contratação". O motor já sabe escolher redação
+ * por item (a família de variantes, `familia.ts`); o que faltava era algo em que
+ * o seletor pudesse pegar, porque `papeis` chega como prosa concatenada
+ * ("Aprova, Monitora") e o seletor compara igualdade de string.
+ *
+ * Os cinco grupos são os do catálogo (32 papéis em 06/09/2026: 5 de Decisão, 7
+ * de Análise, 6 de Preparação, 5 de Negociação e 9 de Execução). Grupo que não
+ * está aqui (papel criado por um cliente, que `papel_governanca.cliente_id`
+ * permite) simplesmente não acende condicional nenhuma: é melhor a variante
+ * padrão escrever a alínea genérica do que o motor inventar uma categoria.
+ *
+ * O seletor da família aceita '' como valor esperado, então "decide E NÃO
+ * analisa" se escreve {"competencia.decide":"sim","competencia.analisa":""} e
+ * não precisa de negação no motor.
+ */
+const CONDICIONAL_DO_GRUPO: Record<string, string> = {
+  'Decisão': 'decide',
+  'Análise': 'analisa',
+  'Preparação': 'prepara',
+  'Negociação': 'negocia',
+  'Execução': 'executa',
+};
+
+/** Os ids das cinco condicionais, para o vocabulário declarar as mesmas. */
+export const CONDICIONAIS_DE_GRUPO = Object.values(CONDICIONAL_DO_GRUPO);
 
 /**
  * Uma competência da Matriz de Alçadas.
@@ -796,12 +860,32 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
   set('papeisInfinitivo', prosaDeLista(
     row.papeisInfinitivo?.length ? row.papeisInfinitivo : row.papeis,
   ));
+  for (const grupo of row.grupos ?? []) {
+    const condicional = CONDICIONAL_DO_GRUPO[grupo];
+    if (condicional) set(condicional, 'sim');
+  }
   set('alcada', row.alcada);
+  /*
+   * DUAS DECIMAIS E VÍRGULA, como o capital, e não o número cru.
+   *
+   * `paraNumeroBR` (vocabulario.ts) lê "1.234" como 1,234 quando não há vírgula
+   * — defeito conhecido e registrado. Formatar na origem é o que mantém esse
+   * defeito restrito à edição manual no painel: o valor que o mapeador emite
+   * sempre tem a vírgula, então o extenso derivado dele sempre confere.
+   */
+  set('alcadaValor', row.alcadaValor === null || row.alcadaValor === undefined
+    ? null : formatarValor(row.alcadaValor));
+  set('alcadaUnidade', row.alcadaUnidade);
+  set('alcadaBase', row.alcadaBase);
+  set('alcadaPiso', row.alcadaPiso === null || row.alcadaPiso === undefined
+    ? null : formatarValor(row.alcadaPiso));
   set('sobePara', row.sobePara);
   set('sobeParaAo', row.sobeParaAo);
   set('foraDaPolitica', row.foraDaPolitica ? 'sim' : '');
   set('resumo', row.resumo);
-  return comOrigem(derivarCampos('competenciaMatriz', out), {
+  // Mesma razão do órgão: a alínea da faixa cita o piso, e a célula que não tem
+  // piso precisa dele como '' para a condicional decidir — não ausente.
+  return comOrigem(derivarCampos('competenciaMatriz', publicarOpcionais('competenciaMatriz', out)), {
     tipo: 'competenciaMatriz',
     id: row.id,
   });
@@ -814,7 +898,7 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
  * concorrência, e o motor tem de escrever cada um desses documentos sem inventar
  * resposta. Campo ausente vira condicional apagada, e a cláusula não sai.
  *
- * As PROSAS (`ordemPreferencia`, `objetosPreferencia`) chegam prontas de quem
+ * A PROSA (`objetosPreferencia`) chega pronta de quem
  * traduz o banco, e não se montam aqui: os rótulos em português moram no
  * cadastro (`lib/acordoGrupos`), e o motor não deve depender da tela.
  */
@@ -828,7 +912,6 @@ export interface AcordoParaMapear {
 
   // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
   // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
-  temSociedadesRelacionadas?: boolean;
   temRamos?: boolean;
   /** Quantos ramos, para a definição que abre contando ("os dois grupos"). */
   quantosRamos?: number | null;
@@ -837,7 +920,6 @@ export interface AcordoParaMapear {
   reuniaoPreviaObrigatoria?: boolean;
 
   // Preferência
-  ordemPreferencia?: string | null;
   objetosPreferencia?: string | null;
   objetosPreferenciaChaves?: string[] | null;
 
@@ -860,7 +942,6 @@ export interface AcordoParaMapear {
   // Opções de compra e venda
   opcaoCompraPrevista?: boolean;
   opcaoCompraQuem?: string | null;
-  opcaoCompraPreco?: string | null;
   opcaoVendaPrevista?: boolean;
   jurosValorSubscrito?: string | null;
 
@@ -873,8 +954,6 @@ export interface AcordoParaMapear {
   // Representação
   representanteNome?: string | null;
   representanteGenero?: string | null;
-  substitutoRepresentanteNome?: string | null;
-  substitutoRepresentanteGenero?: string | null;
   foroEleitoComarca?: string | null;
   foroEleitoEstado?: string | null;
 }
@@ -914,12 +993,10 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
 
-  condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
   condicional('temRamos', entrada.temRamos);
   set('quantosRamos', entrada.quantosRamos);
   condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
 
-  set('ordemPreferencia', entrada.ordemPreferencia);
   set('objetosPreferencia', entrada.objetosPreferencia);
   set('objetosPreferenciaChaves', chaves(entrada.objetosPreferenciaChaves));
   set('mecanismos', chaves(entrada.mecanismos));
@@ -948,7 +1025,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   condicional('opcaoCompraPrevista', entrada.opcaoCompraPrevista);
   set('opcaoCompraQuem', entrada.opcaoCompraQuem);
-  set('opcaoCompraPreco', entrada.opcaoCompraPreco);
   condicional('opcaoVendaPrevista', entrada.opcaoVendaPrevista);
   set('jurosValorSubscrito', entrada.jurosValorSubscrito);
 
@@ -958,8 +1034,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   set('representanteNome', entrada.representanteNome);
   set('representanteGenero', entrada.representanteGenero);
-  set('substitutoRepresentanteNome', entrada.substitutoRepresentanteNome);
-  set('substitutoRepresentanteGenero', entrada.substitutoRepresentanteGenero);
   set('foroEleitoComarca', entrada.foroEleitoComarca);
   set('foroEleitoEstado', entrada.foroEleitoEstado);
 
@@ -1035,6 +1109,43 @@ export function tituloColetivoDosSocios(socios: SocioParaMapear[]): string {
   );
   if (socios.length === 1) return todosFemininos ? 'Única sócia' : 'Único sócio';
   return todosFemininos ? 'Únicas sócias' : 'Únicos sócios';
+}
+
+/**
+ * "seus administradores", "seu diretor", "suas administradoras".
+ *
+ * O modelo escreve "neste ato representada por seus administradores MARCELO,
+ * ROMERO e FLÁVIO", e a AgroAliança faz igual. A Perci diz "seus diretores" e a
+ * Utida "pelo Diretor Executivo": a palavra acompanha o CARGO do cadastro, e não
+ * é uma constante do bloco. Sem ela a frase saía "representada por Íris Pires e
+ * Karina Teixeira", que nenhum dos sete acordos escreve.
+ *
+ * Cargo divergente entre eles cai em "administradores", o termo que o Código
+ * Civil usa para o gênero da função e que cobre diretor, gerente e sócio-gerente.
+ */
+export function tituloColetivoDosAdministradores(
+  admins: AdministradorParaMapear[],
+): string {
+  if (admins.length === 0) return '';
+  const todosFemininos = admins.every(
+    ({ pessoa }) => generoDeConcordancia(
+      pessoa.genero === 'F' || pessoa.genero === 'M' ? pessoa.genero : null,
+      pessoa.tipo_pessoa,
+    ) === 'F',
+  );
+  const cargos = new Set(
+    admins.map((a) => (a.cargo ?? '').trim().toLocaleLowerCase('pt-BR')).filter(Boolean),
+  );
+  const unico = cargos.size === 1 ? [...cargos][0] : '';
+  // Só o cargo de uma palavra vira a palavra da frase: "Diretor Presidente" não
+  // pluraliza bem e o modelo, nesses casos, volta ao termo genérico.
+  const base = unico && !unico.includes(' ') ? unico : (todosFemininos ? 'administradora' : 'administrador');
+  const concordado = todosFemininos ? base.replace(/or$/, 'ora') : base;
+  if (admins.length === 1) return `${todosFemininos ? 'sua' : 'seu'} ${concordado}`;
+  // "administrador" pluraliza em "administradores", e não em "administradors":
+  // palavra terminada em r ou z leva "es".
+  const plural = /[rz]$/.test(concordado) ? `${concordado}es` : `${concordado}s`;
+  return `${todosFemininos ? 'suas' : 'seus'} ${plural}`;
 }
 
 export function mapearSocio(s: SocioParaMapear): ItemLista {

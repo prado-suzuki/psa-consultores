@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, EyeOff, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import type { OnboardingDocument } from '@/lib/onboarding';
@@ -15,6 +16,7 @@ import {
   type ItemSolicitacao,
   type NovoItemManual,
   type ProdutosPorDocumento,
+  type SolicitacaoStatus,
 } from '@/lib/solicitacao';
 import { ProdutoRail } from './ProdutoRail';
 import {
@@ -49,6 +51,7 @@ interface OnboardingWorkspaceProps {
    * topo da página.
    */
   somenteLeitura?: boolean;
+  status: SolicitacaoStatus | null;
   onAdicionarDoCatalogo: (catalogo: CatalogoDocumento, estrutura?: EstruturaDoItem) => void;
   onAdicionarManual: (entrada: NovoItemManual) => void;
   onEditar: (id: string, edicao: EdicaoItem) => void;
@@ -94,6 +97,7 @@ export function OnboardingWorkspace({
   produtosContratados,
   produtosPorDocumento,
   somenteLeitura = false,
+  status,
   onAdicionarDoCatalogo,
   onAdicionarManual,
   onEditar,
@@ -253,6 +257,7 @@ export function OnboardingWorkspace({
             </div>
           </div>
           {!somenteLeitura && (
+            <ButtonTooltip text="Adiciona um documento a esta solicitação, escolhido do catálogo ou criado à mão.">
             <Button
               size="sm"
               variant="outline"
@@ -262,20 +267,20 @@ export function OnboardingWorkspace({
                  escolher do catálogo é o caminho comum, criar à mão é a exceção.
                  O "manualmente" do texto da Patrícia (10/09/2026) esconderia o
                  principal, então virou a segunda metade da frase. */
-              title="Adiciona um documento a esta solicitação, escolhido do catálogo ou criado à mão."
             >
               <Plus className="h-4 w-4" />
               Adicionar documento
             </Button>
+            </ButtonTooltip>
           )}
         </div>
 
         <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-osg-moss/70" />
           <span>
-            Cada alteração é <strong className="font-semibold text-osg-700">salva na
-            hora</strong> e vale apenas para esta solicitação — o catálogo de documentos
-            não muda. O cliente só vê a lista depois que ela for enviada.
+            Cada alteração é salva automaticamente e vale apenas para esta solicitação.
+            O catálogo de documentos não será alterado.
+            {status === 'rascunho' && ' O cliente só vê a lista depois que ela for enviada.'}
           </span>
         </p>
 

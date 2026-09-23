@@ -29,6 +29,7 @@ import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -475,9 +476,11 @@ export default function TabC170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <span className={`text-xs truncate block ${isChanged ?'text-status-alerta font-bold':''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <ElementTooltip text={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+            <span className={`text-xs truncate block ${isChanged ?'text-status-alerta font-bold':''}`}>
             {item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}
           </span>
+          </ElementTooltip>
         );
       }
 
@@ -546,7 +549,7 @@ export default function TabC170({
   const totalNotas = new Set(filtered.map((i) => i.chv_nfe)).size;
 
   return (
-    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
+    <Card variant="tabela" className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
@@ -606,14 +609,15 @@ export default function TabC170({
                       <span className="flex items-center gap-1">NCM (0200)<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM declarado na EFD. Como o Registro C170 não possui campo de NCM, este dado é trazido do Registro 0200 correspondente ao item.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_NCM" uniqueValues={cascadingUniqueValues['COD_NCM'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_NCM'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span>
                       <Popover open={regraPopoverOpen} onOpenChange={(o) => { setRegraPopoverOpen(o); if (o) setRegraSearch(''); }}>
                         <PopoverTrigger asChild>
-                          <button
+                          <ButtonTooltip text={regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.desc_cst ?? 'Regra selecionada') : 'Filtrar por regra MAPA'}>
+                            <button aria-label={regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.desc_cst ?? 'Regra selecionada') : 'Filtrar por regra MAPA'}
                             className={`mt-0.5 flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-normal transition-colors max-w-[96px] truncate ${regraFilterId ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                             onPointerDown={(e) => e.stopPropagation()}
-                            title={regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.desc_cst ?? 'Regra selecionada') : 'Filtrar por regra MAPA'}
                           >
                             <Search className="h-3 w-3 shrink-0" />
                             <span className="truncate">{regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.cod_ncm ?? 'Regra') : 'Regra MAPA'}</span>
                           </button>
+                          </ButtonTooltip>
                         </PopoverTrigger>
                         <PopoverContent align="start" side="bottom" className="w-72 p-0" onPointerDown={(e) => e.stopPropagation()}>
                           <div className="border-b px-3 py-2">

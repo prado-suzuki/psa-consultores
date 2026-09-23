@@ -1,9 +1,14 @@
-import { render, screen, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { render as renderComTeste, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ArquivoDaLinha, LinhaChecklist } from '@/lib/checklistDerivado';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
 import { ChecklistPendentes } from './ChecklistPendentes';
+import { TooltipProvider } from '@/components/ui/tooltip';
+
+const render = (componente: ReactElement) =>
+  renderComTeste(componente, { wrapper: TooltipProvider });
 
 /**
  * O que estes testes protegem: a ÚNICA escrita da tela do consultor.
@@ -110,7 +115,7 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
     expect(screen.getByRole('button', { name: 'Trazer para o checklist' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Comprovante de recebimento/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Notificar pendências/ })).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/Buscar pessoa, imóvel ou documento/)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Buscar…')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Ver os documentos de João/ })).not.toBeInTheDocument();
 
     mocks.status = 'em_checklist';
@@ -119,7 +124,7 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
     expect(screen.queryByRole('button', { name: 'Trazer para o checklist' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Comprovante de recebimento/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Notificar pendências/ })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Buscar pessoa, imóvel ou documento/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Ver os documentos de João/ })).toBeInTheDocument();
   });
 

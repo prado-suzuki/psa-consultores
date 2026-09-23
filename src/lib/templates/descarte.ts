@@ -32,7 +32,9 @@ export type MotivoDescarte =
   /** O render inteiro saiu em branco. */
   | 'render-em-branco'
   /** O parágrafo perdeu a cláusula que o governava durante o descarte em cascata. */
-  | 'clausula-descartada';
+  | 'clausula-descartada'
+  /** A cláusula com título perdeu todos os itens e sobrou só o cabeçalho. */
+  | 'clausula-sem-corpo';
 
 /** Os tipos que se numeram a partir da cláusula anterior, e sem ela não existem. */
 const SUBORDINADOS = ['paragrafo', 'item', 'subitem', 'alinea', 'inciso'];
@@ -74,6 +76,35 @@ export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
      * anterior na volta do laço e continua subordinado a ela.
      */
     return !['alinea', 'inciso'].includes(bloco.tipo as string);
+  });
+}
+
+/**
+ * A CLÁUSULA QUE FICOU SEM CORPO.
+ *
+ * É o espelho de `paragrafosOrfaos`, e nasceu com os mecanismos. A cláusula com
+ * título sobrevive ao render vazio de propósito (ela É só o título; o corpo
+ * começa no item seguinte). Mas quando TODOS os itens dela saem, por flag
+ * desligada ou por descarte, sobra o cabeçalho anunciando um capítulo que não
+ * existe: "CLÁUSULA DÉCIMA – Do direito de preferência" seguido da cláusula
+ * seguinte.
+ *
+ * Só vale para cláusula COM título: a do contrato social ("CLÁUSULA PRIMEIRA:")
+ * traz o texto no próprio bloco e some pelas regras normais.
+ *
+ * O laço de ponto fixo em `gerarComposicao` faz o resto: a cláusula sai numa
+ * volta, as seguintes se renumeram na outra.
+ */
+export function clausulasSemCorpo(blocos: Bloco[]): boolean[] {
+  return blocos.map((bloco, i) => {
+    if (bloco.tipo !== 'clausula' || !bloco.tituloDocumento?.trim()) return false;
+    for (let s = i + 1; s < blocos.length; s += 1) {
+      const tipo = blocos[s].tipo;
+      if (tipo === 'clausula' || tipo === 'capitulo') break;
+      // Qualquer bloco entre esta cláusula e a próxima é corpo dela.
+      return false;
+    }
+    return true;
   });
 }
 

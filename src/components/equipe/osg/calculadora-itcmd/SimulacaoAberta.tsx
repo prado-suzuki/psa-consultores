@@ -212,7 +212,7 @@ function Corpo({
           <TabsList>
             <TabsTrigger value="doacao">Doação</TabsTrigger>
             <TabsTrigger value="usufruto">Usufruto</TabsTrigger>
-            <TabsTrigger value="itcd">Cálculo do ITCD</TabsTrigger>
+            <TabsTrigger value="itcd">Cálculo do ITCMD</TabsTrigger>
           </TabsList>
         </div>
 
@@ -377,7 +377,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
   const origemDasQuotas = (x: { quotasDoAporte: string }) =>
     (BigInt(x.quotasDoAporte) > 0n
       ? `Inclui ${quotasDeBigint(BigInt(x.quotasDoAporte))} quotas compradas pelo `
-        + 'aporte em moeda. Essas não pagam ITCD: quem aportou pagou por elas.'
+        + 'aporte em moeda. Essas não pagam ITCMD: quem aportou pagou por elas.'
       : undefined);
 
   return (
@@ -402,7 +402,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
             {/* O APORTE só ganha coluna quando houve um: é hipótese de cenário, e
                 uma coluna de zeros em toda simulação sem aporte seria ruído. */}
             {temAporte && (
-              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou nos três cenários pelo valor de face, sem ITCD.">
+              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou nos três cenários pelo valor de face, sem ITCMD.">
                 Aporte (R$)
               </Th>
             )}
@@ -414,7 +414,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
             <Th dica="Quotas recebidas da parte LEGÍTIMA, a metade reservada aos herdeiros necessários.">
               Legítima
             </Th>
-            <Th dica="Quotas recebidas da parte DISPONÍVEL. Com a legítima, compõem uma base única no ITCD.">
+              <Th dica="Quotas recebidas da parte DISPONÍVEL. Com a legítima, compõem uma base única no ITCMD.">
               Disponível
             </Th>
             <Th dica="Com quantas quotas a pessoa terminou o ato.">Quotas final</Th>
@@ -817,7 +817,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
         ))}
 
         <Secao>
-          {porGuia ? 'Simulação do ITCD, por guia' : 'Simulação do valor de ITCD'}
+          {porGuia ? 'Simulação do ITCMD, por guia' : 'Simulação do valor de ITCMD'}
         </Secao>
         {simulacao.gias.map((g) => (
           <LinhaDeValor
@@ -843,7 +843,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
               />
             ))}
             <LinhaDeValor
-              rotulo="ITCD da doação"
+              rotulo="ITCMD da doação"
               valor={brlDeDecimal(simulacao.impostoPorCenario[cenario])}
             />
           </>

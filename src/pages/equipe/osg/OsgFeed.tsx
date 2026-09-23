@@ -8,6 +8,8 @@ const OsgFeed = () => {
   return (
     <OsgLayout
       tela="feed"
+      // Mesmo motivo da Tax: só a lista do feed rola.
+      rolagemNoConteudo
     >
       <FeedComentarios area="osg" />
     </OsgLayout>

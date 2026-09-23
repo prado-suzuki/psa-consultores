@@ -13,16 +13,17 @@ import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
-import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import { fraseExcluidosPorFlag, nomeLegivelDoBloco } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const SecaoPainel = ({ icone, titulo, contagem, children }: { icone: ReactNode; titulo: string; contagem?: number; children: ReactNode }) => (
   <div className="space-y-2.5"><div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>{titulo}{contagem != null && <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">{contagem}</span>}</div>{children}</div>
 );
 const AvisoPendencia = ({ children, acao, onAcao }: { children: ReactNode; acao?: string; onAcao?: () => void }) => (
-  <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-warning/40 bg-white text-sm text-warning hover:bg-warning/20" onClick={onAcao}>{acao}</Button>}</div>
+  <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-warning/40 bg-card text-sm text-warning hover:bg-warning/20" onClick={onAcao}>{acao}</Button>}</div>
 );
 
 const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
@@ -45,7 +46,7 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
     ) : (
       <ul className="space-y-2">
         {linhas.map((linha) => (
-          <li key={linha.key} className="rounded-md border border-osg-200/60 bg-white px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
+          <li key={linha.key} className="rounded-md border border-osg-200/60 bg-card px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
             <p className="leading-snug text-foreground">
               {linha.action === 'field' ? <><span className="font-semibold text-foreground">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
             </p>
@@ -202,9 +203,11 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                     <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
-                                    <span className="min-w-0 flex-1 truncate" title={s.pessoa.denominacao}>
+                                    <ElementTooltip text={s.pessoa.denominacao}>
+                                      <span className="min-w-0 flex-1 truncate">
                                       {s.pessoa.denominacao}
                                     </span>
+                                    </ElementTooltip>
                                     {s.quotas != null && (
                                       <span className="shrink-0 tabular-nums text-muted-foreground">
                                         {fmtInt.format(s.quotas)} quotas
@@ -248,9 +251,11 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                     <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
-                                    <span className="min-w-0 flex-1 truncate" title={a.pessoa.denominacao}>
+                                    <ElementTooltip text={a.pessoa.denominacao}>
+                                      <span className="min-w-0 flex-1 truncate">
                                       {a.pessoa.denominacao}
                                     </span>
+                                    </ElementTooltip>
                                     {a.cargo && (
                                       <span className="shrink-0 text-muted-foreground">{a.cargo}</span>
                                     )}
@@ -281,12 +286,13 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                     <span className="shrink-0 tabular-nums text-muted-foreground">
                                       Matr. {m.numero ?? 's/ nº'}
                                     </span>
-                                    <span
+                                    <ElementTooltip text={m.bem?.denominacao ?? undefined}>
+                                      <span
                                       className="min-w-0 flex-1 truncate"
-                                      title={m.bem?.denominacao ?? undefined}
                                     >
                                       {m.bem?.denominacao ?? ''}
                                     </span>
+                                    </ElementTooltip>
                                   </li>
                                 ))}
                               </ul>
@@ -313,6 +319,32 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                   blocosExcluidosPorPerfil.map((b) => nomePorBlocoId.get(b.id) ?? b.id),
                                 )}
                               </p>
+                              {/*
+                                AS CLÁUSULAS VÃO EM LISTA, uma por linha, e não
+                                separadas por vírgula num parágrafo corrido. O nome
+                                de cada bloco é um trecho do próprio texto dele, com
+                                dezenas de caracteres, e emendados por vírgula não
+                                dava para ver onde uma acabava e a outra começava.
+                                O balão guarda o nome cru, para quem precisar
+                                casar com o bloco na Biblioteca.
+                              */}
+                              {blocosExcluidosPorPerfil.length > 0 && (
+                                <ul className="space-y-1 pt-0.5">
+                                  {blocosExcluidosPorPerfil.map((b) => {
+                                    const nome = nomePorBlocoId.get(b.id) ?? b.id;
+                                    return (
+                                      <li key={b.id} className="flex gap-1.5 text-muted-foreground">
+                                        <span aria-hidden className="text-osg-600">
+                                          ·
+                                        </span>
+                                        <ElementTooltip text={nome}>
+                                          <span>{nomeLegivelDoBloco(nome)}</span>
+                                        </ElementTooltip>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
                           )
                         )}
@@ -357,8 +389,30 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 cidade". Placeholder que ninguém declarou continua aparecendo
                                 pelo id, que é o que permite a quem montou o modelo achá-lo.
                               */}
-                              <Label className={cn(labelCls, 'text-sm')}>
+                              {/*
+                                `flex items-center` no rótulo, e não texto solto.
+                                O preflight do Tailwind põe `display: block` em todo
+                                `svg`, então o ícone de ajuda caía para a LINHA DE
+                                BAIXO do rótulo em vez de ficar ao lado dele. É a
+                                mesma gramática que o `MatrizLinhaModal` já usa.
+
+                                E o aviso de obrigatório é o MESMO dos campos de
+                                binding, logo abaixo nesta tela, e não uma marca
+                                nova: a Data da assinatura declara `obrigatorio`
+                                desde sempre em `CAMPOS_MANUAIS`, mas só o bloco de
+                                binding mostrava, e quem preenchia descobria a
+                                obrigatoriedade ao tentar baixar. Dois idiomas de
+                                obrigatoriedade na mesma janela seria pior que
+                                nenhum.
+                              */}
+                              <Label className={cn(labelCls, 'flex items-center gap-1.5 text-sm')}>
                                 {campoManual(ph)?.label ?? ph}
+                                {campoManual(ph)?.obrigatorio && !(valoresLivres[ph] ?? '').trim() && (
+                                  <span className="inline-flex items-center gap-1 text-warning">
+                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                    obrigatório
+                                  </span>
+                                )}
                                 {campoManual(ph)?.ajuda && (
                                   <AjudaDoCampo texto={campoManual(ph)!.ajuda!} />
                                 )}
@@ -425,9 +479,32 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                   // sociedade.objeto): não preenche do cadastro — avisar
                                   // em vez de deixar vazio em silêncio.
                                   const foraDoCatalogo = !campoDaEntidade(b.tipo, c.id);
+                                  /*
+                                   * CAMPO OBRIGATÓRIO VAZIO SE ANUNCIA AQUI, e não
+                                   * só na hora de baixar.
+                                   *
+                                   * O nome fantasia da empresa é obrigatório porque o
+                                   * Acordo o repete 189 vezes, e sem ele o documento
+                                   * sai com 189 lacunas. Mas a tela o mostrava igual a
+                                   * qualquer outro, e só o diálogo do download contava
+                                   * que faltava: a pessoa descobria depois de pedir o
+                                   * arquivo. Quem sabe o que é obrigatório é o
+                                   * vocabulário, então o aviso sai de lá e vale para
+                                   * qualquer campo, de qualquer documento.
+                                   */
+                                  const faltaObrigatorio =
+                                    !!campoDaEntidade(b.tipo, c.id)?.obrigatorio && !valor.trim();
                                   return (
                                     <div key={c.id} className="space-y-1">
-                                      <Label className={cn(labelCls, 'text-sm')}>{c.label}</Label>
+                                      <Label className={cn(labelCls, 'text-sm')}>
+                                        {c.label}
+                                        {faltaObrigatorio && (
+                                          <span className="ml-1.5 inline-flex items-center gap-1 text-warning">
+                                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                            obrigatório
+                                          </span>
+                                        )}
+                                      </Label>
                                       {c.tipo === 'textarea' ? (
                                         <Textarea
                                           value={valor}

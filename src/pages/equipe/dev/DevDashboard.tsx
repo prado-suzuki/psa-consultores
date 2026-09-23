@@ -33,6 +33,7 @@ import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 import { MANUAIS_AVULSOS } from "@/constants/devManuais";
 import { KpiHero } from "@/components/dashboard/momentum";
 import { useToolsCounts } from "@/hooks/useToolsCounts";
+import { ButtonTooltip } from "@/components/ui/button-tooltip";
 
 /** Id de âncora da seção da categoria no catálogo, para o chip "Categorias" rolar até ela. */
 const toAnchorId = (label: string) =>
@@ -72,14 +73,14 @@ const buildHubTools = (hub: (typeof DEV_HUBS)[keyof typeof DEV_HUBS]): ToolEntry
 const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.consultaXmls,
-    landingPath: "/equipe/dev/consulta-xmls",
+    landingPath: "/equipe/tax/work/consulta-xmls",
     landingDescription: "Consulte e baixe XMLs de NFe e CT-e por cliente e período.",
     landingIcon: FileCode2,
     tools: [
       {
         name: DEV_NAV_LABELS.consultaXmls,
         description: "Consulte e baixe XMLs de NFe e CT-e por cliente e período.",
-        path: "/equipe/dev/consulta-xmls",
+        path: "/equipe/tax/work/consulta-xmls",
         icon: FileCode2,
         sopUrl: MANUAIS_AVULSOS.consultaXmls,
       },
@@ -111,7 +112,7 @@ const toolGroups: ToolGroup[] = [
   },
   {
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
-    landingPath: "/equipe/dev/calculadora-ibs-cbs",
+    landingPath: "/equipe/tax/work/calculadora-ibs-cbs",
     landingDescription: "Compare a carga tributária antes e depois da reforma.",
     landingIcon: Percent,
     landingSopUrl: MANUAIS_AVULSOS.calculadoraIbsCbs,
@@ -119,7 +120,7 @@ const toolGroups: ToolGroup[] = [
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
         description: "Compare a carga tributária antes e depois da reforma.",
-        path: "/equipe/dev/calculadora-ibs-cbs",
+        path: "/equipe/tax/work/calculadora-ibs-cbs",
         icon: Percent,
         sopUrl: MANUAIS_AVULSOS.calculadoraIbsCbs,
       },
@@ -135,7 +136,7 @@ const toolGroups: ToolGroup[] = [
   },
   {
     label: DEV_NAV_LABELS.controleBalancetes,
-    landingPath: "/equipe/dev/controle-balancetes",
+    landingPath: "/equipe/tax/work/controle-balancetes",
     landingDescription: "Envie, consulte e acompanhe balancetes contábeis.",
     landingIcon: Scale,
     landingSopUrl: MANUAIS_AVULSOS.controleBalancetes,
@@ -143,7 +144,7 @@ const toolGroups: ToolGroup[] = [
       {
         name: DEV_NAV_LABELS.controleBalancetes,
         description: "Envie, consulte e acompanhe balancetes contábeis.",
-        path: "/equipe/dev/controle-balancetes",
+        path: "/equipe/tax/work/controle-balancetes",
         icon: Scale,
         sopUrl: MANUAIS_AVULSOS.controleBalancetes,
       },
@@ -339,18 +340,19 @@ const DevDashboard = () => {
                       {!isSingleton && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {group.tools.map((tool) => (
-                            <button
-                              key={tool.path}
+                            <ButtonTooltip key={tool.path} text={`Abrir ${tool.name}`}>
+                              <button aria-label={`Abrir ${tool.name}`}
+                             
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 navigate(tool.path);
                               }}
-                              title={`Abrir ${tool.name}`}
                               className="rounded-full border border-primary-foreground/15 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:border-primary-foreground/40 hover:bg-primary-foreground/15 hover:text-primary-foreground"
                             >
                               {tool.name}
                             </button>
+                            </ButtonTooltip>
                           ))}
                         </div>
                       )}
@@ -466,7 +468,7 @@ const DevDashboard = () => {
             </div>
             <Button
               size="sm"
-              onClick={() => navigate("/equipe/dev/nova-ferramenta")}
+              onClick={() => navigate("/equipe/tax/work/nova-ferramenta")}
               className="shrink-0 gap-1.5"
             >
               Solicitar nova ferramenta

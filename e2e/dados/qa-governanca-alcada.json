@@ -1,0 +1,49 @@
+{
+  "rodada": "2026-09-17 escada de alcada no capitulo de governanca",
+  "branch": "feat/alcada-em-pecas (cherry-pick de feat/ac-governanca-contrato-social sobre develop)",
+  "servidor": "http://localhost:8099 (worktree alcada-pecas), banner: Supabase https://vgzomuwnsdgrxbkyoavq.supabase.co (.env.sandbox (branch feat/alcada-em-pecas))",
+  "cliente": "[TESTE] Agricola Zamo Governanca (d651ff68-3777-4b0a-80c2-f2ff50fc0e4d)",
+  "documento": "Contrato Social - (Participacoes), 1a alteracao, rascunho, papel alterador, substitui a peca registrada 5550676e",
+  "o_que_mudou_no_codigo": [
+    "43006c85 (Frente A): a alcada em pecas + pisosDaLinha em matrizAlcadas.ts",
+    "4c2bb9ec (Frente B): a condicional por grupo de papel + atividadeMinuscula",
+    "ec77df20 (Frente D): os 42 blocos do capitulo, atividadeMinuscula e naoSobe no vocabulario",
+    "estadoProposto.ts (5.2): LISTAS_DE_GOVERNANCA declara orgaosComCompetencia como materia do evento_governanca"
+  ],
+  "medicao": {
+    "folha_antes_do_resync": {
+      "chars": 35582,
+      "ocorrencias_de_RS": 3,
+      "clausula_de_competencia_da_matriz": false,
+      "observacao": "a folha vinha do snapshot salvo, composto antes destas mudancas"
+    },
+    "folha_depois_do_resync": {
+      "chars": 38631,
+      "ocorrencias_de_RS": 22,
+      "clausula_de_competencia_da_matriz": true,
+      "alineas_com_faixa_ou_teto": 12
+    }
+  },
+  "a_escada_do_zamo": {
+    "cadastro": "Contratacao de prestadores de servicos: Gestao 500 mil -> Diretoria; Diretoria 5 MM -> Conselho; Conselho 15 MM -> Reuniao de Socios",
+    "gerado_diretoria": "c) Autorizar contratacao de prestadores de servicos, em valor superior a R$ 500.000,00 (quinhentos mil reais) e ate R$ 5.000.000,00 (cinco milhoes de reais), submetendo ao Conselho de Administracao o que exceder este limite;",
+    "zamo_registrado_diretoria": "Autorizar a contratacao de prestadores de servicos cujo valor seja superior a R$ 500.000,00 (quinhentos mil reais) e ate o valor de R$ 5.000.000,00 (cinco milhoes de reais);",
+    "veredito": "o piso derivado da escada, o teto, o extenso e o degrau batem; a redacao do conector e a do modelo da casa, nao a do Zamo, que e uma das tres redacoes do acervo"
+  },
+  "extenso_conferido": "os 6 valores presentes nos dois documentos (30 mil, 500 mil, 1 MM, 5 MM, 15 MM e 1 real) escrevem o MESMO extenso nos dois lados; zero divergencia",
+  "contagem_contra_o_corpus": {
+    "metodo": "linhas com valor em R$ junto de palavra de faixa, mesma regex nos dois lados",
+    "Zamo_registrado": 12,
+    "gerado": 12,
+    "AgroFerragens": 3,
+    "Perci_9a": 2,
+    "VF_5a": 2,
+    "Perci_5a_pdf": 2,
+    "Horita": "0 pela regex; o documento tem 2 linhas com a redacao de alcada, mas os valores estao anonimizados como 'R$ [...]'",
+    "BelaVista": 0,
+    "VF_Modelo": 0
+  },
+  "achados_fora_do_escopo": [
+    "a concatenacao papel-infinitivo + atividade produz 'Eleger e destituir eleger Administradores e Representantes' (verbo repetido) e 'Elaborar a proposta orcamento de Custos e Investimentos' / 'Aprovar planejamento Estrategico' (preposicao faltando). E do CADASTRO: o catalogo guarda umas atividades como sintagma nominal e outras comecando por verbo. Nao e defeito do motor nem desta mudanca."
+  ]
+}

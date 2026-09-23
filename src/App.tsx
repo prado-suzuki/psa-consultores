@@ -15,6 +15,7 @@ import { LiderRoute } from "@/components/auth/LiderRoute";
 
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { RedirecionaChamadoAntigo } from "./components/auth/RedirecionaChamadoAntigo";
+import { RedirecionaDevParaTaxWork } from "./components/auth/RedirecionaDevParaTaxWork";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGate";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -123,6 +124,7 @@ const IcmsSaidas = lazy(() => import("./pages/equipe/dev/IcmsSaidas"));
 
 // Equipe > Fiscal / Tax
 const FiscalBoasVindas = lazy(() => import("./pages/equipe/fiscal/FiscalBoasVindas"));
+const TaxAreaSelector = lazy(() => import("./pages/equipe/fiscal/TaxAreaSelector"));
 const FiscalDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalDashboard"));
 const FiscalFeed = lazy(() => import("./pages/equipe/fiscal/FiscalFeed"));
 const FiscalProjetosCadastro = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosCadastro"));
@@ -167,9 +169,11 @@ const CalculadoraItcmd = lazy(() => import("./pages/equipe/osg/CalculadoraItcmd"
 const DocumentosCliente = lazy(() => import("./pages/equipe/osg/DocumentosCliente"));
 const ChecklistsDocumentos = lazy(() => import("./pages/equipe/osg/ChecklistsDocumentos"));
 const Relatorios = lazy(() => import("./pages/equipe/osg/Relatorios"));
+const BibliotecaApresentacoes = lazy(() => import("./pages/equipe/osg/BibliotecaApresentacoes"));
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
 const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
 const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
+const ProtocoloDeRemuneracao = lazy(() => import('./pages/equipe/osg/ProtocoloDeRemuneracao'));
 const AcordoDeQuotistas = lazy(() => import('./pages/equipe/osg/AcordoDeQuotistas'));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
@@ -276,37 +280,43 @@ const App = () => (
               <Route path="/equipe/backlog" element={<PageAccessGate pagePath="/equipe/backlog"><EquipeBacklog /></PageAccessGate>} />
               <Route path="/equipe/digital" element={<ProtectedRoute><DigitalAreaSelector /></ProtectedRoute>} />
               <Route path="/equipe/digital/mapa/*" element={<ProtectedRoute><MapaRoutes /></ProtectedRoute>} />
-              <Route path="/equipe/dev" element={<PageAccessGate pagePath="/equipe/dev"><DevDashboard /></PageAccessGate>} />
-              <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
-              <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-xmls" element={<PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-sped" element={<PageAccessGate pagePath="/equipe/dev/consulta-sped"><ConsultaSpedHub /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-efd" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-ecd" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate>} />
-              <Route path="/equipe/dev/consulta-ecf" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate>} />
-              <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDadosHub /></PageAccessGate>} />
-              <Route path="/equipe/dev/carregar-dados" element={<PageAccessGate pagePath="/equipe/dev/carregar-dados"><GerenciarDados /></PageAccessGate>} />
-              <Route path="/equipe/dev/gerenciar-dados/dashboards" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/dashboards"><GerenciarDadosDashboards /></PageAccessGate>} />
-              <Route path="/equipe/dev/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
-              <Route path="/equipe/dev/perdcomp" element={<PageAccessGate pagePath="/equipe/dev/perdcomp"><PerdcompHub /></PageAccessGate>} />
-              <Route path="/equipe/dev/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/dev/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />
-              <Route path="/equipe/dev/analise-icms" element={<PageAccessGate pagePath="/equipe/dev/analise-icms"><AnaliseIcmsHub /></PageAccessGate>} />
-              <Route path="/equipe/dev/processo-difal" element={<PageAccessGate pagePath="/equipe/dev/processo-difal"><ProcessoDifal /></PageAccessGate>} />
-              <Route path="/equipe/dev/controle-perdcomp" element={<PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate>} />
-              <Route path="/equipe/dev/controle-balancetes" element={<PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate>} />
+              <Route path="/equipe/tax/work" element={<PageAccessGate pagePath="/equipe/tax/work"><DevDashboard /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/tax/work/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/tax/work/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-xmls" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-xmls"><ConsultaXMLs /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-sped" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-sped"><ConsultaSpedHub /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-efd" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-efd"><ConsultaEFD /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-ecd" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-ecd"><ConsultaECD /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/consulta-ecf" element={<PageAccessGate pagePath="/equipe/tax/work/consulta-ecf"><ConsultaECF /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/tax/work/gerenciar-dados"><GerenciarDadosHub /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/carregar-dados" element={<PageAccessGate pagePath="/equipe/tax/work/carregar-dados"><GerenciarDados /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/gerenciar-dados/dashboards" element={<PageAccessGate pagePath="/equipe/tax/work/gerenciar-dados/dashboards"><GerenciarDadosDashboards /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/tax/work/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/perdcomp" element={<PageAccessGate pagePath="/equipe/tax/work/perdcomp"><PerdcompHub /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/tax/work/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/analise-icms" element={<PageAccessGate pagePath="/equipe/tax/work/analise-icms"><AnaliseIcmsHub /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/processo-difal" element={<PageAccessGate pagePath="/equipe/tax/work/processo-difal"><ProcessoDifal /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/controle-perdcomp" element={<PageAccessGate pagePath="/equipe/tax/work/controle-perdcomp"><ControlePerdcomp /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/controle-balancetes" element={<PageAccessGate pagePath="/equipe/tax/work/controle-balancetes"><ControleBalancetes /></PageAccessGate>} />
               {/* Redirect legacy route */}
-              <Route path="/equipe/dev/gestao-clientes" element={<PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate>} />
-              <Route path="/equipe/dev/calculadora-ibs-cbs" element={<PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate>} />
-              <Route path="/equipe/dev/apuracao-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate>} />
-              <Route path="/equipe/dev/mapa-ncm-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate>} />
-              <Route path="/equipe/dev/cruzamento-dados" element={<PageAccessGate pagePath="/equipe/dev/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate>} />
-              <Route path="/equipe/dev/correcoes-sped" element={<PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate>} />
-              <Route path="/equipe/dev/procedimentos" element={<PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate>} />
-              <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
-                    <Route path="/equipe/dev/planejamento-tributario" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario"> <PlanejamentoTributarioHub /> </PageAccessGate> } />
-                    <Route path="/equipe/dev/planejamento-tributario/papel-de-trabalho" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/papel-de-trabalho"> <PapelDeTrabalho /> </PageAccessGate> } />
-                    <Route path="/equipe/dev/planejamento-tributario/gerador-de-slides" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/gerador-de-slides"> <GeradorDeSlides /> </PageAccessGate> } />
+              <Route path="/equipe/tax/work/gestao-clientes" element={<PageAccessGate pagePath="/equipe/tax/work/gestao-clientes"><GestaoClientes /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/calculadora-ibs-cbs" element={<PageAccessGate pagePath="/equipe/tax/work/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/apuracao-pis-cofins" element={<PageAccessGate pagePath="/equipe/tax/work/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/mapa-ncm-pis-cofins" element={<PageAccessGate pagePath="/equipe/tax/work/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/cruzamento-dados" element={<PageAccessGate pagePath="/equipe/tax/work/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/correcoes-sped" element={<PageAccessGate pagePath="/equipe/tax/work/correcoes-sped"><CorrecoesSped /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/procedimentos" element={<PageAccessGate pagePath="/equipe/tax/work/procedimentos"><ProcedimentosDev /></PageAccessGate>} />
+              <Route path="/equipe/tax/work/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/tax/work/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
+                    <Route path="/equipe/tax/work/planejamento-tributario" element={ <PageAccessGate pagePath="/equipe/tax/work/planejamento-tributario"> <PlanejamentoTributarioHub /> </PageAccessGate> } />
+                    <Route path="/equipe/tax/work/planejamento-tributario/papel-de-trabalho" element={ <PageAccessGate pagePath="/equipe/tax/work/planejamento-tributario/papel-de-trabalho"> <PapelDeTrabalho /> </PageAccessGate> } />
+                    <Route path="/equipe/tax/work/planejamento-tributario/gerador-de-slides" element={ <PageAccessGate pagePath="/equipe/tax/work/planejamento-tributario/gerador-de-slides"> <GeradorDeSlides /> </PageAccessGate> } />
+
+              {/* Caminho antigo do Digital Dev. Existe para link salvo, favorito
+                  e notificação anterior a 22/09/2026, e leva a pessoa ao mesmo
+                  lugar no endereço novo, com filtro da URL intacto. */}
+              <Route path="/equipe/dev" element={<RedirecionaDevParaTaxWork />} />
+              <Route path="/equipe/dev/*" element={<RedirecionaDevParaTaxWork />} />
               <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
@@ -329,7 +339,11 @@ const App = () => (
               <Route path="/gestao/acessos" element={<Navigate to="/equipe/acessos" replace />} />
 
               {/* Tax (Fiscal) Routes */}
-              <Route path="/equipe/tax" element={<ProtectedRoute><FiscalBoasVindas /></ProtectedRoute>} />
+              {/* `/equipe/tax` virou a escolha entre as duas portas, no desenho
+                  que a OSG ja usa, e as boas-vindas desceram para `/inicio` —
+                  mesma manobra do `/equipe/osg/inicio`. */}
+              <Route path="/equipe/tax" element={<ProtectedRoute><TaxAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/tax/inicio" element={<ProtectedRoute><FiscalBoasVindas /></ProtectedRoute>} />
               <Route path="/equipe/tax/dashboard" element={<PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
@@ -402,8 +416,10 @@ const App = () => (
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/apresentacoes" element={<ProtectedRoute><BibliotecaApresentacoes /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
                 <Route path="/equipe/osg/work/governanca/matriz" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/matriz"> <MatrizDeAlcadas /> </PageAccessGate> } />
+                <Route path="/equipe/osg/work/governanca/protocolo" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/protocolo"> <ProtocoloDeRemuneracao /> </PageAccessGate> } />
                 <Route path="/equipe/osg/work/governanca/acordo" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/acordo"> <AcordoDeQuotistas /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje

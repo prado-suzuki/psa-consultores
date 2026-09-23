@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useDominioListas';
 import { useSnapshots } from '@/hooks/useSnapshots';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const fmtBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
@@ -245,15 +246,16 @@ export default function SetorEvolucaoPage() {
           <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         </div>
         <button className="dashv2-filter-clear" onClick={limparFiltros}>Limpar</button>
-        <button
+        <ButtonTooltip text="Exportar relatório (usa Imprimir do navegador)">
+          <button
           className="dashv2-filter-clear"
           onClick={handleExportarPdf}
           style={{ background: 'hsl(var(--primary))', color: 'white' }}
-          title="Exportar relatório (usa Imprimir do navegador)"
           data-tour="setor-export"
         >
           Exportar relatório do setor
         </button>
+        </ButtonTooltip>
       </div>
 
       {/* Conteúdo */}

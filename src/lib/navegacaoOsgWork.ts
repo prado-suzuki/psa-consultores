@@ -177,10 +177,23 @@ export const TELAS_OSG_WORK = {
     path: '/equipe/osg/work/governanca/acordo',
     label: 'Acordo de Quotistas',
     // A 17ª tela, e a única fora da especificação de 11/09: nasceu na frente
-    // GOV-03, depois. A descrição é a frase que a própria tela já exibia antes
-    // de haver lista, então card e cabeçalho continuam dizendo o mesmo.
-    descricao:
-      'O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto.',
+    // GOV-03, depois.
+    //
+    // A descrição era a frase que a tela exibia antes de haver lista, e descrevia
+    // o documento em 170 caracteres. Na revisão de copy de 18/09 ela voltou para a
+    // forma da área: 15 das 17 telas começam com verbo no imperativo, dizendo o
+    // que a pessoa faz ali, entre 51 e 102 caracteres. Esta e a do Protocolo eram
+    // as duas exceções, e as duas mais longas.
+    descricao: 'Defina o que acontece quando um sócio sai, morre, se separa ou quer vender as quotas.',
+  },
+
+  protocoloRemuneracao: {
+    path: '/equipe/osg/work/governanca/protocolo',
+    label: 'Protocolo de Remuneração',
+    // Começa com verbo, como as outras 15 da área. A lista concreta fica: é como
+    // a consultoria fala do documento na reunião com a família, e é o que
+    // distingue esta tela das outras de governança.
+    descricao: 'Registre o que a família combinou sobre pró-labore, carro, plano de saúde, viagem e estudo.',
   },
 
   bibliotecaModelos: {
@@ -202,7 +215,7 @@ export const TELAS_OSG_WORK = {
     label: 'Gerar Documento',
     // Sem "o documento sai pronto", que a especificação manda remover: o
     // texto tem de preservar a necessidade de revisão.
-    descricao: 'Gere documentos preenchidos automaticamente com os dados cadastrados.',
+    descricao: 'Gere documentos com os dados já cadastrados e revise antes de enviar.',
   },
 
   documentosCliente: {
@@ -229,20 +242,47 @@ export const TELAS_OSG_WORK = {
     descricao: 'Acompanhe os documentos solicitados, recebidos e pendentes de cada cliente.',
   },
 
-  calculadoraItcd: {
+  calculadoraItcmd: {
     path: '/equipe/osg/work/calculadora-itcmd',
-    label: 'Calculadora de ITCD',
-    descricao: 'Simule o ITCD sobre doações de quotas em diferentes cenários de avaliação.',
+    label: 'Calculadora de ITCMD',
+    descricao: 'Simule o ITCMD sobre doações de quotas em diferentes cenários de avaliação.',
   },
 
   relatorios: {
     path: '/equipe/osg/work/relatorios',
+    // "Relatórios", e não "Biblioteca de Slides": a tela virou a lista de
+    // relatórios de tela do cliente, que não viram arquivo — existem para serem
+    // lidos e impressos. A geração do deck saiu para "Apresentações".
     label: 'Relatórios',
-    // AJUSTADA: "relatórios consolidados" é vago, e a tela tem quatro
-    // relatórios nomeáveis — diagnóstico patrimonial, quadro societário/
-    // organograma, abertura de demanda e papéis de trabalho do planejamento
-    // tributário. Ela pede nomear o conteúdo quando for possível.
-    descricao: 'Gere os relatórios de diagnóstico patrimonial, quadro societário e planejamento tributário do cliente.',
+    // O SUBTÍTULO DESCREVIA A OUTRA TELA. Prometia "diagnóstico patrimonial e
+    // quadro societário", que são as duas peças de Apresentações; os relatórios
+    // daqui são as terras exploradas e os produtores por imóvel. Achado da
+    // revisão de textos de 18/09/2026 e da TIP-03 §2, que propunham redações
+    // diferentes: esta junta o verbo de lá ("imprima", a única ação da tela —
+    // não há geração de arquivo aqui) com o conteúdo descrito na revisão, e por
+    // não nomear os relatórios sobrevive ao renome dos dois.
+    descricao: 'Consulte e imprima os imóveis explorados, os produtores responsáveis e a origem da posse.',
+  },
+
+  bibliotecaApresentacoes: {
+    path: '/equipe/osg/work/apresentacoes',
+    // A geração do deck, que antes morava junto dos relatórios de tela: a
+    // "Biblioteca de Slides" virou esta tela, e os relatórios ficaram em
+    // `Relatorios`. A rota é nova — `/equipe/osg/work/apresentacoes`.
+    //
+    // "Apresentações", e não "Biblioteca de Apresentações": DECISÃO DA
+    // COORDENAÇÃO, 18/09/2026, com o critério dela — "slides fazem parte de
+    // apresentações, então você não tá gerando slides, tá gerando apresentação".
+    // O slide é a parte e continua nomeando a COLUNA de contagem da tabela; a
+    // apresentação é a entrega, e é ela que o menu nomeia. "Biblioteca" saiu
+    // também porque já era o nome da Biblioteca de Modelos, na Oficina de
+    // Contratos — duas bibliotecas em menus vizinhos guardando coisas
+    // diferentes. A chave, a rota e o nome do arquivo não acompanham: são
+    // endereço e nome interno.
+    label: 'Apresentações',
+    // Cada peça marcada é um ARQUIVO, não um pedaço de um deck único — o texto
+    // anterior ("gere o deck") prometia um só. Revisão de 18/09/2026.
+    descricao: 'Selecione as apresentações que deseja gerar para o cliente.',
   },
 } satisfies Record<string, TelaOsgWork>;
 
@@ -288,6 +328,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       // contrato. Como a matriz é o que vira as cláusulas de competência dele,
       // ela vem antes.
       TELAS_OSG_WORK.acordoQuotistas,
+      // O protocolo vem por último do grupo porque depende dos outros para fazer
+      // sentido, e não o contrário: ele regra o que os sócios e gestores
+      // recebem, e quem são esses grupos sai da conversa que a matriz e o acordo
+      // já organizaram. Nenhuma outra tela da governança depende dele.
+      TELAS_OSG_WORK.protocoloRemuneracao,
     ],
   },
   {
@@ -316,15 +361,18 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
     // recolhida ao trilho, onde só o ícone aparece.
     icone: Calculator,
     telas: [
-      TELAS_OSG_WORK.calculadoraItcd,
+      TELAS_OSG_WORK.calculadoraItcmd,
     ],
   },
   {
     id: 'relatorios',
-    rotulo: 'Relatórios',
+    // "e Apresentações", não "e Slides": mesma decisão de 18/09/2026 anotada em
+    // `bibliotecaApresentacoes`. O grupo nomeia as duas entregas.
+    rotulo: 'Relatórios e Apresentações',
     icone: FileBarChart2,
     telas: [
       TELAS_OSG_WORK.relatorios,
+      TELAS_OSG_WORK.bibliotecaApresentacoes,
     ],
   },
 ];

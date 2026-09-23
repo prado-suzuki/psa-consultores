@@ -7,6 +7,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestProviders } from '@/test/queryWrapper';
 import { mockSupabaseChain } from '@/test/supabaseMock';
+import { dicaDe } from '@/test/dica';
 import { PROCESSO_OSG_ROW, PROJETO_OSG_ROW, CLUSTER_ROW, ETAPA_ROW } from '@/test/fixtures';
 import ProcessosPage from './ProcessosPage';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,9 @@ describe('ProcessosPage', () => {
     );
 
     // Grupos (projetos) vêm recolhidos: expande para ver seus processos.
-    fireEvent.click(await screen.findByTitle('Expandir processos'));
+    const grupo = await screen.findByRole('button', { name: new RegExp(PROJETO_OSG_ROW.name), expanded: false });
+    expect(dicaDe(grupo)).toBe('Expandir processos');
+    fireEvent.click(grupo);
 
     // O nome do processo aparece após expandir.
     await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i);
@@ -121,7 +124,7 @@ describe('ProcessosPage', () => {
     );
 
     // Expande o grupo para ver o selo de complexidade e as ações do processo.
-    fireEvent.click(await screen.findByTitle('Expandir processos'));
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(PROJETO_OSG_ROW.name), expanded: false }));
 
     expect(await screen.findByText('Média')).toBeInTheDocument();
     expect(screen.queryByText(/^medium$/i)).not.toBeInTheDocument();

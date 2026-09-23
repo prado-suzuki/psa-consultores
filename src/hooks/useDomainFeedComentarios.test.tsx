@@ -32,6 +32,8 @@ const SEM_FILTRO = {
   _author_ids: null,
   _only_mentions: false,
   _since: null,
+  _busca: null,
+  _only_attachments: false,
 };
 
 interface DbResult {
@@ -265,11 +267,33 @@ describe('useDomainFeedComentarios — filtros na chamada do banco', () => {
     expect(parametros()._author_ids).toBeNull();
   });
 
+  it('manda o termo da busca aparado', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, busca: '  balancete  ' }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._busca).toBe('balancete');
+  });
+
+  it('manda NULO quando o campo de busca só tem espaço', async () => {
+    // Senão o feed passaria a filtrar por um termo que ninguém digitou.
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, busca: '   ' }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._busca).toBeNull();
+  });
+
   it('liga o recorte de menções', async () => {
     renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, apenasMencoes: true }));
     await registro().queryFn({ pageParam: null });
 
     expect(parametros()._only_mentions).toBe(true);
+  });
+
+  it('liga o recorte de anexos', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, apenasAnexos: true }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._only_attachments).toBe(true);
   });
 
   it('traduz o preset de período no piso de data', async () => {

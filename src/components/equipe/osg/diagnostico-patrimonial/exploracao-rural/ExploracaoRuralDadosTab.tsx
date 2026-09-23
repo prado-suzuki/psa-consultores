@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
 import { FieldSection, fieldCls, switchBoxCls } from '@/components/equipe/osg/formKit';
 import { formGridCls } from '@/lib/osgFormGrid';
+import { cn } from '@/lib/utils';
 import { clampFracaoInput, FRACAO_STEP } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
-import { Campo } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/CampoComDica';
+import { Campo, Dica } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/CampoComDica';
 import {
   MODALIDADE_PECUARIA_OPCOES,
   statusDaPartilha,
@@ -32,7 +33,7 @@ import {
 //     assinar, vivem em `documento_gerado.snapshot_dados` versionados por minuta, e
 //     a tela real de "Gerar Documento" já os pede no painel "Preencher à mão"
 //     (achados #4/#5 do relatório 13 da ALE-3);
-//   · `declarado_irpf` e `sacas_por_hectare` — as colunas existem e o `FiscalReport`
+//   · `declarado_irpf` e `sacas_por_hectare` — as colunas existem e a `TerrasExploradas`
 //     as lê, mas nenhuma cláusula dos modelos as usa. O IRPF é anual e a coluna é um
 //     sim/não único, então o formato provavelmente está errado; ficou pendente com o
 //     time Fiscal (decisão de 01/09/2026).
@@ -112,7 +113,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
               value={draft.referencia}
               onChange={(e) => set('referencia', e.target.value)}
               className={fieldCls}
-              placeholder="ex: Parceria da Fazenda Boa Vista"
+              placeholder="Ex: Parceria da Fazenda Boa Vista"
             />
           </Campo>
           <Campo
@@ -211,13 +212,15 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
         </FieldSection>
       )}
 
-      {/* Culturas ocupa 2 colunas e os dois switches fecham as outras 2 — a linha de 4
-          fecha exata, sem meia linha vazia no meio da grade. */}
+      {/* Duas linhas que fecham exatas na grade de 4: culturas (3) + o switch do gado
+          (1); modalidades (3) + o switch do penhor (1). Os dois switches ficam na
+          MESMA coluna, um embaixo do outro — antes o do penhor caía solto no meio da
+          lista de modalidades, porque ela é o único campo alto da seção. */}
       <FieldSection number={next()} title="Atividade">
         <div className={`${formGridCls(4)} items-end gap-3`}>
           <Campo
             label="Culturas permitidas"
-            colunas={2}
+            colunas={3}
             dica="O que pode ser plantado ou criado na área. Escreva a lista combinada neste contrato, separada por ponto e vírgula."
           >
             <Input
@@ -249,29 +252,32 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
             <Campo
               label="Modalidades da pecuária"
               campo="pecuaria_modalidades"
-              colunas={2}
+              colunas={3}
               dica="Define o que conta como FRUTO na partilha da Cláusula Quinta, e cada uma mede de um jeito. Marque todas as que este contrato explora."
             >
-              <div className="flex flex-col gap-2 pt-1">
+              {/* Uma linha só, como qualquer outro controle da grade: o que cada
+                  modalidade mede vai no TOOLTIP do item, não embaixo dele. Texto sob
+                  o controle é o que fazia esta célula crescer três linhas e empurrar
+                  o vizinho — a regra está escrita em CampoComDica.tsx. */}
+              <div className={cn(switchBoxCls, 'h-auto min-h-9 flex-wrap gap-x-5 gap-y-1.5 py-1.5')}>
                 {MODALIDADE_PECUARIA_OPCOES.map((o) => {
                   const marcada = draft.pecuaria_modalidades.includes(o.valor);
                   return (
-                    <label key={o.valor} className="flex items-start gap-2 text-sm">
-                      <Checkbox
-                        checked={marcada}
-                        onCheckedChange={(v) => set(
-                          'pecuaria_modalidades',
-                          v
-                            ? [...draft.pecuaria_modalidades, o.valor]
-                            : draft.pecuaria_modalidades.filter((m) => m !== o.valor),
-                        )}
-                        className="mt-0.5"
-                      />
-                      <span>
+                    <span key={o.valor} className="flex items-center gap-1.5">
+                      <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={marcada}
+                          onCheckedChange={(v) => set(
+                            'pecuaria_modalidades',
+                            v
+                              ? [...draft.pecuaria_modalidades, o.valor]
+                              : draft.pecuaria_modalidades.filter((m) => m !== o.valor),
+                          )}
+                        />
                         {o.rotulo}
-                        <span className="block text-xs text-muted-foreground">{o.dica}</span>
-                      </span>
-                    </label>
+                      </label>
+                      <Dica>{o.dica}</Dica>
+                    </span>
                   );
                 })}
               </div>
@@ -383,7 +389,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
                 value={draft.liquidacao_numero_parcelas}
                 onChange={(e) => set('liquidacao_numero_parcelas', e.target.value)}
                 className={`${fieldCls} font-mono`}
-                placeholder="ex: 60"
+                placeholder="Ex: 60"
               />
             </Campo>
           </div>
@@ -428,7 +434,7 @@ function Percentual({ value, onChange }: { value: string; onChange: (v: string) 
       value={value}
       onChange={(e) => onChange(clampFracaoInput(e.target.value))}
       className={`${fieldCls} font-mono`}
-      placeholder="ex: 30"
+      placeholder="Ex: 30"
     />
   );
 }
@@ -449,7 +455,7 @@ function Prazo({
         value={quantidade}
         onChange={(e) => onQuantidade(e.target.value)}
         className={`${fieldCls} font-mono`}
-        placeholder="ex: 3"
+        placeholder="Ex: 3"
       />
       <Select value={unidade} onValueChange={(v: UnidadeDePrazo) => onUnidade(v)}>
         <SelectTrigger className={`${fieldCls} w-28 shrink-0`}><SelectValue /></SelectTrigger>

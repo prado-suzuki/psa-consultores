@@ -58,11 +58,12 @@ import {
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
-import { GrupoDaBarra } from '@/components/equipe/osg/GrupoDaBarra';
+import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
 import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -95,7 +96,7 @@ const OsgWorkClienteBar = () => {
             value={clienteId}
             onChange={setClienteId}
             loading={isLoading}
-            placeholder="Selecione um cliente..."
+            placeholder="Selecione…"
             className={cn(
               'w-full min-w-0 h-10 font-medium',
               semCliente
@@ -127,10 +128,19 @@ const OsgWorkClienteBar = () => {
 type OsgLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
+  /**
+   * A tela é dona da própria rolagem: a área de conteúdo ganha a altura da
+   * janela e não rola, e o filho decide qual pedaço dele rola (no Feed, só a
+   * lista). O padrão da casa é a janela rolar, com a moldura subindo junto.
+   *
+   * Opt-in de propósito: virar o modelo de rolagem para todas as telas da área
+   * é outra conversa, muito maior do que a tela que pediu.
+   */
+  rolagemNoConteudo?: boolean;
 } & TextoDoCabecalho;
 
 export const OsgLayout = (props: OsgLayoutProps) => {
-  const { children, headerActions } = props;
+  const { children, headerActions, rolagemNoConteudo = false } = props;
   // A ÁREA É DO LAYOUT (ver a mesma nota no `FiscalLayout`), e é `osg` fixo —
   // NÃO a apresentação da rota que o `areaLabel` resolve mais abaixo. As três
   // caras da OSG existem para o sobretítulo e para a barra; quem escreve "na
@@ -243,7 +253,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
       // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
       // Oito layouts decidindo isso por conta própria foi como cinco deles
       // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
-      className="min-h-screen flex w-full"
+      className={cn('flex w-full', rolagemNoConteudo ? 'h-screen overflow-hidden' : 'min-h-screen')}
     >
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div
@@ -476,12 +486,12 @@ export const OsgLayout = (props: OsgLayoutProps) => {
                       )}
                     >
                       {gerencialItems.map(({ path, label, icon: Icon }) => (
-                        <button
-                          key={path}
+                        <ButtonTooltip key={path} text={label}>
+                          <button aria-label={label}
+                         
                           onClick={() => navigate(path)}
                           // Rótulo comprido ("Dashboard de Chamados") corta com
                           // reticências em vez de vazar, e o título traz o inteiro.
-                          title={label}
                           className={cn(
                                                         classesItemDaBarra({ ativo: location.pathname === path, trilho, sub: true }),
                           )}
@@ -489,6 +499,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
                           <Icon className="h-4 w-4 flex-shrink-0" />
                           <span className={cn('min-w-0 truncate', rotuloCls)}>{label}</span>
                         </button>
+                        </ButtonTooltip>
                       ))}
                     </div>
                   </div>
@@ -575,8 +586,10 @@ export const OsgLayout = (props: OsgLayoutProps) => {
         {isWork && <OsgWorkClienteBar />}
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6">{children}</div>
+        <div className={rolagemNoConteudo ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto'}>
+          <div className={cn('p-4 md:p-6', rolagemNoConteudo && 'flex h-full flex-col')}>
+            {children}
+          </div>
         </div>
       </main>
     </div>

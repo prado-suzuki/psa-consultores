@@ -33,7 +33,7 @@ export const DEV_HUBS: Record<
 > = {
   consultaSped: {
     label: DEV_NAV_LABELS.consultaSped,
-    landingPath: '/equipe/dev/consulta-sped',
+    landingPath: '/equipe/tax/work/consulta-sped',
     landingDescription:
       'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
     landingIcon: Receipt,
@@ -56,7 +56,7 @@ export const DEV_HUBS: Record<
           'Análise de blocos e exportação em Excel',
         ],
         icon: Receipt,
-        path: '/equipe/dev/consulta-efd',
+        path: '/equipe/tax/work/consulta-efd',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
         title: DEV_NAV_LABELS.efdContribuicoes,
@@ -71,7 +71,7 @@ export const DEV_HUBS: Record<
           'Download, seleção em lote e análise por arquivo',
         ],
         icon: FileText,
-        path: '/equipe/dev/consulta-efd-icms',
+        path: '/equipe/tax/work/consulta-efd-icms',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
         title: TELAS_DO_DEV.efdIcms.titulo,
       },
@@ -85,7 +85,7 @@ export const DEV_HUBS: Record<
           'Download, exportação e análise em tela',
         ],
         icon: BookOpen,
-        path: '/equipe/dev/consulta-ecd',
+        path: '/equipe/tax/work/consulta-ecd',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
         title: DEV_NAV_LABELS.ecd,
       },
@@ -99,7 +99,7 @@ export const DEV_HUBS: Record<
           'Download, exportação e análise em tela',
         ],
         icon: BookText,
-        path: '/equipe/dev/consulta-ecf',
+        path: '/equipe/tax/work/consulta-ecf',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
         title: DEV_NAV_LABELS.ecf,
       },
@@ -107,7 +107,7 @@ export const DEV_HUBS: Record<
   },
   levantamentoPisCofins: {
     label: DEV_NAV_LABELS.levantamentoPisCofins,
-    landingPath: '/equipe/dev/levantamento-pis-cofins',
+    landingPath: '/equipe/tax/work/levantamento-pis-cofins',
     landingDescription:
       'Acesse ferramentas para regras fiscais, apuração, análise cruzada e correções da EFD Contribuições.',
     landingIcon: Calculator,
@@ -130,7 +130,7 @@ export const DEV_HUBS: Record<
           'Consulta, edição e exclusão das regras',
         ],
         icon: Map,
-        path: '/equipe/dev/mapa-ncm-pis-cofins',
+        path: '/equipe/tax/work/mapa-ncm-pis-cofins',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/mapa-ncm/',
         title: TELAS_DO_DEV.mapaNCMs.titulo,
       },
@@ -144,7 +144,7 @@ export const DEV_HUBS: Record<
           'Leitura mensal do saldo de PIS e COFINS',
         ],
         icon: Calculator,
-        path: '/equipe/dev/apuracao-pis-cofins',
+        path: '/equipe/tax/work/apuracao-pis-cofins',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/apuracao-piscofins/',
         title: DEV_NAV_LABELS.apuracaoTributaria,
@@ -159,7 +159,7 @@ export const DEV_HUBS: Record<
           'Identificação de diferenças por período e contribuinte',
         ],
         icon: GitCompare,
-        path: '/equipe/dev/cruzamento-dados',
+        path: '/equipe/tax/work/cruzamento-dados',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/analise-cruzada/',
         title: DEV_NAV_LABELS.analiseCruzada,
@@ -174,7 +174,7 @@ export const DEV_HUBS: Record<
           'Envio e exportação das correções apuradas',
         ],
         icon: Wrench,
-        path: '/equipe/dev/correcoes-sped',
+        path: '/equipe/tax/work/correcoes-sped',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/correcoes-sped/',
         title: TELAS_DO_DEV.correcoesEfdContribuicoes.titulo,
@@ -183,7 +183,7 @@ export const DEV_HUBS: Record<
   },
   analiseIcms: {
     label: DEV_NAV_LABELS.analiseIcms,
-    landingPath: '/equipe/dev/analise-icms',
+    landingPath: '/equipe/tax/work/analise-icms',
     landingDescription:
       'Acesse ferramentas para análise de ICMS das saídas e DIFAL.',
     landingIcon: Truck,
@@ -206,7 +206,7 @@ export const DEV_HUBS: Record<
           'Consulta por contribuinte e período',
         ],
         icon: Truck,
-        path: '/equipe/dev/apuracao-difal/icms-saidas',
+        path: '/equipe/tax/work/apuracao-difal/icms-saidas',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/icms-saidas/',
         title: DEV_NAV_LABELS.icmsSaidas,
       },
@@ -220,7 +220,7 @@ export const DEV_HUBS: Record<
           'Sincronização das decisões e exportação em Excel',
         ],
         icon: Sparkles,
-        path: '/equipe/dev/processo-difal',
+        path: '/equipe/tax/work/processo-difal',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
         title: DEV_NAV_LABELS.difalInteligente,
@@ -229,7 +229,7 @@ export const DEV_HUBS: Record<
   },
   perdcomp: {
     label: DEV_NAV_LABELS.perdcomp,
-    landingPath: '/equipe/dev/perdcomp',
+    landingPath: '/equipe/tax/work/perdcomp',
     landingDescription:
       'Acesse o dashboard e o controle operacional de PERDCOMP.',
     landingIcon: BarChart3,
@@ -252,7 +252,7 @@ export const DEV_HUBS: Record<
           'Leitura executiva do painel',
         ],
         icon: BarChart3,
-        path: '/equipe/dev/perdcomp/dashboard',
+        path: '/equipe/tax/work/perdcomp/dashboard',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/dashboard-perdcomp-faturamento/',
         title: DEV_NAV_LABELS.dashboardPerdcomp,
@@ -267,7 +267,7 @@ export const DEV_HUBS: Record<
           'Atualização de situações e pagamentos',
         ],
         icon: FileStack,
-        path: '/equipe/dev/controle-perdcomp',
+        path: '/equipe/tax/work/controle-perdcomp',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp',
         title: DEV_NAV_LABELS.controlePerdcomp,
@@ -276,7 +276,7 @@ export const DEV_HUBS: Record<
   },
   gerenciarDados: {
     label: DEV_NAV_LABELS.gerenciarDados,
-    landingPath: '/equipe/dev/gerenciar-dados',
+    landingPath: '/equipe/tax/work/gerenciar-dados',
     landingDescription:
       'Área para importar, limpar e gerenciar dados das tabelas de cliente e contribuinte e para acompanhar dashboards ligados a essas rotinas.',
     landingIcon: Database,
@@ -298,7 +298,7 @@ export const DEV_HUBS: Record<
           'Carga complementar de PER/DCOMP e chamados',
         ],
         icon: Upload,
-        path: '/equipe/dev/carregar-dados',
+        path: '/equipe/tax/work/carregar-dados',
         title: DEV_NAV_LABELS.carregarDados,
       },
       {
@@ -311,14 +311,14 @@ export const DEV_HUBS: Record<
           'Suporte futuro a múltiplos dashboards',
         ],
         icon: BarChart3,
-        path: '/equipe/dev/gerenciar-dados/dashboards',
+        path: '/equipe/tax/work/gerenciar-dados/dashboards',
         title: DEV_NAV_LABELS.dashboardsGerenciarDados,
       },
     ],
   },
   planejamentoTributario: {
     label: DEV_NAV_LABELS.planejamentoTributario,
-    landingPath: '/equipe/dev/planejamento-tributario',
+    landingPath: '/equipe/tax/work/planejamento-tributario',
     landingDescription:
       'Área do Planejamento Tributário rural: importar o papel de trabalho preenchido, conferir o que o sistema leu dele, acompanhar as revisões e gerar os slides.',
     landingIcon: Sprout,
@@ -340,7 +340,7 @@ export const DEV_HUBS: Record<
           'Régua da leitura gravada em cada revisão',
         ],
         icon: FileSpreadsheet,
-        path: '/equipe/dev/planejamento-tributario/papel-de-trabalho',
+        path: '/equipe/tax/work/planejamento-tributario/papel-de-trabalho',
         title: DEV_NAV_LABELS.papelDeTrabalho,
       },
       {
@@ -353,7 +353,7 @@ export const DEV_HUBS: Record<
           'Histórico por revisão, para baixar de novo sem regerar',
         ],
         icon: Presentation,
-        path: '/equipe/dev/planejamento-tributario/gerador-de-slides',
+        path: '/equipe/tax/work/planejamento-tributario/gerador-de-slides',
         title: DEV_NAV_LABELS.geradorDeSlides,
       },
     ],

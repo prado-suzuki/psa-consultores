@@ -1,13 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Building2, FileWarning, Info, Landmark, Pencil } from 'lucide-react';
+import { useMemo } from 'react';
+import { Info, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
-import {
-  useRelatorioDP, useUpdateBemCampo,
-  type CampoValidacaoDP, type DPBem, type DPMatricula, type DPTitular,
-} from '@/hooks/useRelatorioDP';
-import { GerarDeckButton } from '@/components/equipe/osg/relatorios/GerarApresentacao';
+import { useRelatorioDP, type DPBem, type DPMatricula, type DPTitular } from '@/hooks/useRelatorioDP';
+import { MolduraDeSlide, NotaDaPrevia } from '@/components/equipe/osg/relatorios/MolduraDeSlide';
+import { nomeDaPeca } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+
+/** O mesmo texto da ficha que abre esta peça — ver `nomeDaPeca`. */
+const NOME_DA_PECA = nomeDaPeca('dp');
+
+/**
+ * SÓ O QUE VIRA SLIDE. Esta peça mostrava também os "imóveis não integralizados",
+ * com três colunas que não existem em template nenhum — ITR/IPTU, Valor de
+ * Mercado e Definições/observações — e duas delas editáveis. Era planilha de
+ * trabalho dentro de uma prévia de apresentação, e a `carregarPatrimonial`
+ * descarta `participa_estruturacao = false` antes de montar o deck: aquele bloco
+ * nunca chegou ao .pptx.
+ *
+ * A passada de validação foi para o Cadastro Patrimonial, que ganhou o filtro
+ * "não integralizados" no mesmo passo — os dois campos editáveis já viviam lá,
+ * no `BemDadosTab`. O que fica aqui é o espelho do template, coluna por coluna.
+ *
+ * O resumo no topo mantém a contagem dos que ficaram de fora. Sem ela, bem fora
+ * do projeto sumiria do relatório sem deixar rastro, e ninguém saberia que o
+ * deck não cobre o patrimônio inteiro.
+ */
 
 // ---------- formatação ----------
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -18,13 +36,6 @@ const fmtPct = (f: number | null): string => {
   const pct = f <= 1 ? f * 100 : f;
   return `${pct.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 };
-const parseMoney = (raw: string): number | null => {
-  const t = raw.trim();
-  if (!t) return null;
-  const n = Number(t.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
-  return Number.isNaN(n) ? null : n;
-};
-
 type Linha = { bem: DPBem; mat: DPMatricula | null };
 const linhasDe = (b: DPBem): Linha[] =>
   b.matriculas.length ? b.matriculas.map((m) => ({ bem: b, mat: m })) : [{ bem: b, mat: null }];
@@ -49,77 +60,28 @@ const valContabil = (l: Linha): number | null => l.mat?.vlr_contabil ?? l.bem.vl
 const somaContabil = (bens: DPBem[]): number =>
   bens.reduce((s, b) => s + linhasDe(b).reduce((ss, l) => ss + (Number(valContabil(l)) || 0), 0), 0);
 
-// ---------- células editáveis (validação manual — só nos não integralizados) ----------
-const editBase =
-  'w-full rounded-md border border-[#efe1bd] bg-[#fffdf6] px-2 py-1 text-[12px] text-muted-foreground outline-none ' +
-  'hover:border-[#e6cf94] focus:border-osg-moss focus:bg-white focus:ring-2 focus:ring-osg-moss/15';
-
-function EditableMoney({ value, onSave }: { value: number | null; onSave: (v: number | null) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [raw, setRaw] = useState('');
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        className={cn(editBase, 'text-right tabular-nums', value === null && 'text-muted-foreground/70')}
-        onClick={() => { setRaw(value === null ? '' : String(value)); setEditing(true); }}
-      >
-        {value === null ? 'a informar' : fmtMoney(value)}
-      </button>
-    );
-  }
-  return (
-    <input
-      autoFocus
-      className={cn(editBase, 'text-right tabular-nums')}
-      value={raw}
-      onChange={(e) => setRaw(e.target.value)}
-      onBlur={() => { setEditing(false); const n = parseMoney(raw); if (n !== value) onSave(n); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-    />
-  );
-}
-
-function EditableText({ value, onSave }: { value: string; onSave: (v: string) => void }) {
-  const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
-  return (
-    <textarea
-      className={cn(editBase, 'min-w-[220px] resize-y leading-snug')}
-      rows={2}
-      value={v}
-      placeholder="a informar"
-      onChange={(e) => setV(e.target.value)}
-      onBlur={() => { if (v !== value) onSave(v); }}
-    />
-  );
-}
-
 // ---------- estilos de tabela ----------
 const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground';
 const td = 'border-t border-osg-100 px-3 py-2 align-top text-muted-foreground';
 
-// Colunas exatamente como no pptx (VF Potrich).
-const HEAD_INT = ['Propriedade de direito', 'Referência do bem', 'Matrícula', 'Município/UF', 'Valor Contábil'];
-const HEAD_FORA = [...HEAD_INT, 'Valor ITR/IPTU', 'Valor de Mercado', 'Definições/observações'];
+/**
+ * As cinco colunas do slide, na ordem dos cinco tokens do template:
+ * `PROP`, `REF`, `MAT`, `MUN`, `VALOR`. Uma sexta faria a tela prometer uma
+ * coluna que o .pptx não tem — foi o que aconteceu enquanto o ITR/IPTU e as
+ * duas colunas de validação moravam aqui.
+ */
+const HEAD = ['Propriedade de direito', 'Referência do bem', 'Matrícula', 'Município/UF', 'Valor Contábil'];
 
-// ---------- bloco: imóveis integralizados (1 por sociedade) — 5 colunas, read-only ----------
-function BlocoIntegralizados({ titulo, meta, bens }: { titulo: string; meta: string; bens: DPBem[] }) {
+// ---------- bloco: imóveis integralizados (1 por sociedade) = 1 slide ----------
+function BlocoIntegralizados({ titulo, meta, bens, numero, total }: { titulo: string; meta: string; bens: DPBem[]; numero: number; total: number }) {
   const linhas = bens.flatMap(linhasDe);
   const rows = linhas.map((l) => [titularTxt(l), l.bem.denominacao ?? '—', matTxt(l), munUfTxt(l), fmtMoney(valContabil(l))]);
   return (
-    <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
-      <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
-        <Building2 className="h-4 w-4 shrink-0 text-osg-600" />
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
-          <p className="text-xs text-muted-foreground">{meta}</p>
-        </div>
-      </header>
-      <div className="overflow-x-auto">
+    <MolduraDeSlide numero={numero} total={total} titulo={titulo} meta={meta}>
+      <div className="-mx-4 -my-3 overflow-x-auto">
         <table className="w-full border-collapse text-[12.5px]">
           <thead>
-            <tr>{HEAD_INT.map((h, i) => <th key={i} className={cn(th, i === 4 && 'text-right')}>{h}</th>)}</tr>
+            <tr>{HEAD.map((h, i) => <th key={i} className={cn(th, i === 4 && 'text-right')}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r, ri) => (
@@ -134,64 +96,7 @@ function BlocoIntegralizados({ titulo, meta, bens }: { titulo: string; meta: str
           </tbody>
         </table>
       </div>
-    </section>
-  );
-}
-
-// ---------- bloco: não integralizados — 8 colunas, com validação manual ----------
-function BlocoForaProjeto({
-  bens, meta, onEdit,
-}: {
-  bens: DPBem[];
-  meta: string;
-  onEdit: (bemId: string, campo: CampoValidacaoDP, valor: string | number | null) => void;
-}) {
-  const titulo = 'Imóveis não integralizados';
-  const linhas = bens.flatMap(linhasDe);
-  return (
-    <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
-      <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
-        <FileWarning className="h-4 w-4 shrink-0 text-osg-600" />
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
-          <p className="text-xs text-muted-foreground">{meta}</p>
-        </div>
-      </header>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[12.5px]">
-          <thead>
-            <tr>
-              {HEAD_FORA.map((h, i) => (
-                <th key={i} className={cn(th, (i === 4 || i === 5 || i === 6) && 'text-right')}>
-                  {h}
-                  {i === 5 && <span title="Aguardando campo (migration)" className="ml-1 text-rose-500">•</span>}
-                  {i === 6 && <Pencil className="ml-1 inline h-3 w-3 text-amber-500" />}
-                  {i === 7 && <Pencil className="ml-1 inline h-3 w-3 text-amber-500" />}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((l, ri) => (
-              <tr key={`${l.bem.id}-${l.mat?.id ?? ri}`} className="hover:bg-osg-50/30">
-                <td className={td}>{titularTxt(l)}</td>
-                <td className={cn(td, 'font-medium text-foreground')}>{l.bem.denominacao || '—'}</td>
-                <td className={td}>{matTxt(l)}</td>
-                <td className={cn(td, 'whitespace-nowrap')}>{munUfTxt(l)}</td>
-                <td className={cn(td, 'whitespace-nowrap text-right tabular-nums')}>{fmtMoney(valContabil(l))}</td>
-                <td className={cn(td, 'text-right text-muted-foreground/70')}>—</td>
-                <td className={cn(td, 'w-[120px]')}>
-                  <EditableMoney value={l.bem.vlr_mercado} onSave={(v) => onEdit(l.bem.id, 'vlr_mercado', v)} />
-                </td>
-                <td className={cn(td, 'min-w-[240px]')}>
-                  <EditableText value={l.bem.motivo_nao_integralizacao ?? ''} onSave={(v) => onEdit(l.bem.id, 'motivo_nao_integralizacao', v)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    </MolduraDeSlide>
   );
 }
 
@@ -199,12 +104,13 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
   const { data: clientes = [] } = useClientesLista();
   const { data: pessoas = [] } = usePessoasByCliente(clienteId);
   const { data: bens = [], isLoading } = useRelatorioDP(clienteId);
-  const editar = useUpdateBemCampo(clienteId);
 
   const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? '';
   const pessoaNome = useMemo(() => new Map(pessoas.map((p) => [p.id, p.denominacao ?? 'Sociedade'])), [pessoas]);
 
-  const { sociedades, fora, totais } = useMemo(() => {
+  // Os não integralizados não viram bloco, mas continuam CONTADOS: é o resumo
+  // que diz que o deck não cobre o patrimônio inteiro.
+  const { sociedades, totais } = useMemo(() => {
     const participa = (b: DPBem) => b.participa_estruturacao !== false;
     const integralizados = bens.filter(participa);
     const foraProjeto = bens.filter((b) => !participa(b));
@@ -222,7 +128,6 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
 
     return {
       sociedades: socArr,
-      fora: foraProjeto,
       totais: {
         lancamentos: bens.length,
         nSoc: socArr.length,
@@ -234,8 +139,19 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
     };
   }, [bens, pessoaNome]);
 
-  const onEdit = (bemId: string, campo: CampoValidacaoDP, valor: string | number | null) =>
-    editar.mutate({ bemId, campo, valor });
+  /**
+   * UM SLIDE POR SOCIEDADE, e só.
+   *
+   * A conta somava o bloco de não integralizados, e estava errada: a
+   * `carregarPatrimonial` da edge function descarta `participa_estruturacao = false`
+   * antes de montar o deck. Aquele bloco nunca chegou ao .pptx — a tela dizia
+   * "Slide 3 de 3" para uma página que o arquivo não tem.
+   *
+   * O agrupamento aqui é por `empresa_destino_pessoa_id` e lá é pelo NOME da
+   * empresa destino. Duas pessoas distintas com a mesma denominação sairiam como
+   * dois blocos aqui e um slide lá; é o único jeito de esta conta divergir.
+   */
+  const totalDeSlides = sociedades.length;
 
   if (isLoading) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Carregando diagnóstico patrimonial…</p>;
@@ -257,53 +173,51 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">
-            Quadro Patrimonial — <span className="text-osg-700">{clienteNome}</span>
+            {NOME_DA_PECA} — <span className="text-osg-700">{clienteNome}</span>
           </h2>
-          {/* O relatório continua se chamando "Diagnóstico Patrimonial" no
-              seletor; a FONTE é a tela de cadastro, que virou "Cadastro
-              Patrimonial". Os dois nomes juntos aqui são o que desfaz a
-              confusão que o renome atacou — não são a mesma coisa. */}
+          {/* O relatório é o "Diagnóstico Patrimonial"; a FONTE é a tela de
+              cadastro, que virou "Cadastro Patrimonial". Os dois nomes juntos
+              aqui são o que desfaz a confusão que o renome atacou — não são a
+              mesma coisa. */}
           <span className="text-xs text-muted-foreground">Espelha os slides de Organização Patrimonial · fonte: módulo Cadastro Patrimonial</span>
         </div>
-        <GerarDeckButton clienteId={clienteId} tipo="patrimonial" label="Gerar deck Patrimonial" />
       </div>
 
       {/* Resumo sóbrio */}
       <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
         <ResumoCel titulo="Sociedades" valor={`${totais.nSoc}`} desc="destino de integralização" first />
         <ResumoCel titulo="Integralizados" valor={`${totais.nInt}`} desc={`${fmtMoney(totais.vInt)} contábil`} dot="bg-status-feito" />
-        <ResumoCel titulo="Não integralizados" valor={`${totais.nFora}`} desc={`${fmtMoney(totais.vFora)} contábil`} dot="bg-status-alerta" />
-        <ResumoCel titulo="Lançamentos" valor={`${totais.lancamentos}`} desc="bens no diagnóstico" dot="bg-status-neutro" />
+        {/* Fora do deck, e a contagem é o que diz isso. Estes bens não têm slide;
+            quem precisa tratá-los vai ao Cadastro Patrimonial, no filtro
+            "Não integralizados". */}
+        <ResumoCel titulo="Não integralizados" valor={`${totais.nFora}`} desc="fora do deck" dot="bg-status-alerta" />
+        <ResumoCel titulo="Lançamentos" valor={`${totais.lancamentos}`} desc="bens no cadastro" dot="bg-status-neutro" />
       </div>
 
-      {/* Uma tabela por sociedade de integralização (= 1 slide no deck) */}
-      {sociedades.map((s) => (
+      {/* Uma tabela por sociedade de integralização = 1 slide no deck. */}
+      {sociedades.map((s, i) => (
         <BlocoIntegralizados
           key={s.nome}
+          numero={i + 1}
+          total={totalDeSlides}
           titulo={`Imóveis integralizados na sociedade patrimonial “${s.nome}”`}
           meta={`${s.bens.flatMap(linhasDe).length} imóveis · ${fmtMoney(somaContabil(s.bens))} contábil`}
           bens={s.bens}
         />
       ))}
 
-      {/* Não integralizados — tabela mais larga com validação manual */}
-      {fora.length > 0 && (
-        <BlocoForaProjeto
-          bens={fora}
-          meta={`${fora.flatMap(linhasDe).length} itens · ${fmtMoney(totais.vFora)} contábil · poderão compor testamento ou aquisição direta pela PJ`}
-          onEdit={onEdit}
-        />
+      {totais.nFora > 0 && (
+        <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+          <span>
+            {totais.nFora === 1 ? 'Um bem não entra' : `${totais.nFora} bens não entram`} na estruturação e por isso
+            {totais.nFora === 1 ? ' não tem' : ' não têm'} slide aqui. Valor de mercado e motivo se preenchem no{' '}
+            <b className="font-semibold text-muted-foreground">Cadastro Patrimonial</b>, filtrando por “Não integralizados”.
+          </span>
+        </div>
       )}
 
-      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span>
-          Colunas idênticas ao pptx de Organização Patrimonial. Integralizados: automáticas (bem · matrícula · titularidade).
-          Não integralizados: <b className="font-semibold text-muted-foreground">Valor de Mercado</b> e <b className="font-semibold text-muted-foreground">Definições/observações</b> são validação manual da OSG (<Pencil className="inline h-3 w-3 text-amber-500" /> salva ao sair do campo);
-          {' '}<b className="font-semibold text-muted-foreground">Valor ITR/IPTU</b> (•) fica em branco até criarmos o campo — pendência de migration.
-          Use <b className="font-semibold text-muted-foreground">Gerar deck Patrimonial</b> para montar os slides no modelo PSA.
-        </span>
-      </div>
+      <NotaDaPrevia deck="Organização Patrimonial" />
     </div>
   );
 }

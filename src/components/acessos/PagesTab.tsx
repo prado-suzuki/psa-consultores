@@ -133,7 +133,7 @@ export const PagesTab = () => {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <Card className="border-border/60 shadow-sm">
+        <Card variant="tabela" className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
             <AbasDeGrupo
               grupos={abas}

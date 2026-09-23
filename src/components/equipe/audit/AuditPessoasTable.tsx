@@ -336,7 +336,7 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
       </div>
 
       {/* Tabela */}
-      <Card>
+      <Card variant="tabela">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

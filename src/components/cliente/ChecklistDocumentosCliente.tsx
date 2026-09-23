@@ -216,7 +216,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
 
   if (pendencias.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/80 bg-white/70 px-6 py-16 text-center shadow-sm">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/80 bg-card/70 px-6 py-16 text-center shadow-sm">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/5 text-primary">
           <ShieldCheck className="h-7 w-7" />
         </span>
@@ -240,7 +240,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
         </p>
       )}
 
-      <div className="space-y-3 rounded-2xl border border-border/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1">
           {FILTROS_GRUPO.map(({ value, label, Icon }) => {
             const ativo = filtroGrupo === value;
@@ -255,7 +255,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   FOCO,
-                  ativo ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  ativo ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
@@ -438,7 +438,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
   return (
     <div
       className={cn(
-        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-border/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
+        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-border/80 bg-card/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
       )}
     >
       <button

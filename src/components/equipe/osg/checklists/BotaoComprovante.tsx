@@ -14,6 +14,7 @@ import { FileDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { useDocumentosByCliente, useUploaderNames } from '@/hooks/useDocumentoArquivo';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
 
@@ -81,6 +82,9 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
 
   return (
     <div className="flex justify-end">
+      <ButtonTooltip text={`Gera um único PDF com a relação dos ${documentos.length} arquivos `
+        + 'recebidos nesta solicitação, com data e quem enviou cada um. '
+        + 'Não envia nada ao cliente.'}>
       <Button
         variant="outline"
         onClick={emitir}
@@ -89,9 +93,6 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
            número ao lado conta os ARQUIVOS que entram nele — não comprovantes.
            A dúvida é da Patrícia (11/09/2026) e se resolve aqui, sem pluralizar
            um botão que gera um PDF. */
-        title={`Gera um único PDF com a relação dos ${documentos.length} arquivos `
-          + 'recebidos nesta solicitação, com data e quem enviou cada um. '
-          + 'Não envia nada ao cliente.'}
       >
         {emitindo
           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -99,6 +100,7 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
         Comprovante de recebimento
         {documentos.length > 0 && ` (${documentos.length})`}
       </Button>
+      </ButtonTooltip>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import {
   ROTULOS_DE_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
+  pessoasDoEvento,
+  pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 
@@ -67,5 +69,83 @@ describe('corpoDoEvento', () => {
   it('evento da GES-03 passa inteiro, não tem prefixo a remover', () => {
     const body = 'A lista de documentos foi enviada ao cliente e o acesso ao portal foi liberado.';
     expect(corpoDoEvento({ kind: 'documentos_solicitados', body })).toBe(body);
+  });
+});
+
+describe('pessoasDoEvento', () => {
+  it('nomeia quem enviou e para quem, lendo o destinatário do prefixo do corpo', () => {
+    expect(
+      pessoasDoEvento({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar x coisa',
+        author_name: 'Patricia Melo',
+      }),
+    ).toBe('Patricia Melo para Anne Strini');
+  });
+
+  it('lê o destinatário da reatribuição, que grava o nome em outro formato', () => {
+    expect(
+      pessoasDoEvento({
+        kind: 'assignment_changed',
+        body: 'Tarefa reatribuída para Eduardo Nogueira. Motivo: férias',
+        author_name: 'Patricia Melo',
+      }),
+    ).toBe('Patricia Melo para Eduardo Nogueira');
+  });
+
+  it('evento sem destinatário gravado mostra só quem agiu', () => {
+    expect(
+      pessoasDoEvento({
+        kind: 'review_adjustments',
+        body: 'Devolvido para ajustes: Ajuste de layout.',
+        author_name: 'Anne Strini',
+      }),
+    ).toBe('Anne Strini');
+  });
+
+  it('envio sem o prefixo (acervo antigo) não inventa destinatário', () => {
+    expect(
+      pessoasDoEvento({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão: revisar x coisa',
+        author_name: 'Patricia Melo',
+      }),
+    ).toBe('Patricia Melo');
+  });
+
+  it('sem autor gravado não sobra segmento nenhum', () => {
+    expect(
+      pessoasDoEvento({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar',
+        author_name: '',
+      }),
+    ).toBe('');
+  });
+
+  it('comentário humano não tem segmento de evento', () => {
+    expect(pessoasDoEvento({ kind: 'comment', body: 'oi', author_name: 'Patricia Melo' })).toBe('');
+  });
+});
+
+describe('pessoasDoEventoPartes', () => {
+  it('entrega autor e destinatário separados, que a tela dá peso a cada nome', () => {
+    expect(
+      pessoasDoEventoPartes({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar x coisa',
+        author_name: 'Patricia Melo',
+      }),
+    ).toEqual({ autor: 'Patricia Melo', destinatario: 'Anne Strini' });
+  });
+
+  it('sem autor gravado não sobra nome nenhum para desenhar', () => {
+    expect(
+      pessoasDoEventoPartes({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar',
+        author_name: '',
+      }),
+    ).toEqual({ autor: '', destinatario: '' });
   });
 });

@@ -9,6 +9,8 @@ const FiscalFeed = () => {
   return (
     <FiscalLayout
       tela="feed"
+      // Só a lista do feed rola; moldura, filtros e barra lateral ficam parados.
+      rolagemNoConteudo
     >
       <FeedComentarios area="tax" />
     </FiscalLayout>

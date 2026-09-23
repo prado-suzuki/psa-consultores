@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  aoTrocarDeCliente,
   aplicarFiltrosNaUrl,
   contarFiltrosAtivos,
   desdeDoPeriodo,
   filtrosDaUrl,
   FILTROS_VAZIOS,
+  projetosDoCliente,
   temFiltroAtivo,
+  termoDaBusca,
+  textoCasaBusca,
   type FeedFiltros,
+  type ProjetoDoFiltro,
 } from '@/lib/feedFiltros';
 
 /** Meia-noite local, que é onde os presets de período ancoram. */
@@ -51,16 +56,23 @@ describe('contarFiltrosAtivos', () => {
     expect(temFiltroAtivo(FILTROS_VAZIOS)).toBe(false);
   });
 
-  it('conta um por filtro ligado, período incluído', () => {
+  it('conta um por filtro ligado, período e busca incluídos', () => {
     const filtros: FeedFiltros = {
       clienteId: 'cli-1',
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '7d',
+      busca: 'balancete',
     };
-    expect(contarFiltrosAtivos(filtros)).toBe(5);
+    expect(contarFiltrosAtivos(filtros)).toBe(7);
     expect(temFiltroAtivo(filtros)).toBe(true);
+  });
+
+  it('busca só com espaço não é filtro ligado', () => {
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, busca: '   ' })).toBe(0);
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, busca: 'nota' })).toBe(1);
   });
 
   it('trata o período padrão como filtro desligado', () => {
@@ -74,16 +86,18 @@ describe('filtrosDaUrl', () => {
     expect(filtrosDaUrl(new URLSearchParams())).toEqual(FILTROS_VAZIOS);
   });
 
-  it('lê os cinco filtros', () => {
+  it('lê os sete filtros', () => {
     const params = new URLSearchParams(
-      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&periodo=30d',
+      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&anexos=1&periodo=30d&busca=balancete+de+marco',
     );
     expect(filtrosDaUrl(params)).toEqual({
       clienteId: 'cli-1',
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '30d',
+      busca: 'balancete de marco',
     });
   });
 
@@ -136,8 +150,110 @@ describe('aplicarFiltrosNaUrl', () => {
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '30d',
+      busca: 'balancete',
     };
     expect(filtrosDaUrl(aplicarFiltrosNaUrl(new URLSearchParams(), filtros))).toEqual(filtros);
+  });
+
+  it('escreve o termo aparado, e tira da URL a busca que virou só espaço', () => {
+    const params = aplicarFiltrosNaUrl(new URLSearchParams(), {
+      ...FILTROS_VAZIOS,
+      busca: '  nota fiscal  ',
+    });
+    expect(params.get('busca')).toBe('nota fiscal');
+    expect(aplicarFiltrosNaUrl(params, { ...FILTROS_VAZIOS, busca: '   ' }).has('busca')).toBe(
+      false,
+    );
+  });
+});
+
+describe('termoDaBusca', () => {
+  it('apara as pontas e trata só-espaço como ausência de busca', () => {
+    expect(termoDaBusca({ ...FILTROS_VAZIOS, busca: '  darf  ' })).toBe('darf');
+    expect(termoDaBusca({ ...FILTROS_VAZIOS, busca: '   ' })).toBeNull();
+    expect(termoDaBusca(FILTROS_VAZIOS)).toBeNull();
+  });
+});
+
+describe('textoCasaBusca', () => {
+  const texto = 'Balancete de março conferido com a Ana';
+
+  it('busca vazia passa tudo', () => {
+    expect(textoCasaBusca(texto, '')).toBe(true);
+    expect(textoCasaBusca(texto, '   ')).toBe(true);
+  });
+
+  it('acha pedaço de palavra e ignora maiúscula', () => {
+    expect(textoCasaBusca(texto, 'BALANC')).toBe(true);
+  });
+
+  it('exige TODAS as palavras, em qualquer ordem', () => {
+    expect(textoCasaBusca(texto, 'ana balancete')).toBe(true);
+    expect(textoCasaBusca(texto, 'balancete abril')).toBe(false);
+  });
+});
+
+const PROJETOS: ProjetoDoFiltro[] = [
+  { id: 'proj-1', name: 'Recuperação', external_client_id: 'cli-1' },
+  { id: 'proj-2', name: 'Diagnóstico', external_client_id: 'cli-1' },
+  { id: 'proj-3', name: 'Sucessão', external_client_id: 'cli-2' },
+  { id: 'proj-sem-dono', name: 'Interno', external_client_id: null },
+];
+
+describe('projetosDoCliente', () => {
+  it('oferece a lista inteira quando não há cliente no recorte', () => {
+    expect(projetosDoCliente(PROJETOS, null)).toEqual(PROJETOS);
+  });
+
+  it('oferece só os projetos do cliente escolhido', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-1').map((projeto) => projeto.id)).toEqual([
+      'proj-1',
+      'proj-2',
+    ]);
+  });
+
+  it('deixa de fora o projeto sem cliente quando há cliente escolhido', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-2').map((projeto) => projeto.id)).toEqual(['proj-3']);
+  });
+
+  it('devolve lista vazia para cliente sem projeto nenhum', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-9')).toEqual([]);
+  });
+});
+
+describe('aoTrocarDeCliente', () => {
+  it('derruba o projeto que é de outro cliente', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, 'cli-2', PROJETOS)).toEqual({
+      ...FILTROS_VAZIOS,
+      clienteId: 'cli-2',
+      projetoId: null,
+    });
+  });
+
+  it('mantém o projeto que é do cliente escolhido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, projetoId: 'proj-2' };
+    expect(aoTrocarDeCliente(filtros, 'cli-1', PROJETOS).projetoId).toBe('proj-2');
+  });
+
+  it('mantém o projeto ao LIMPAR o cliente: sem cliente, todo projeto é válido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, null, PROJETOS)).toEqual({
+      ...FILTROS_VAZIOS,
+      projetoId: 'proj-1',
+    });
+  });
+
+  it('preserva o projeto desconhecido: lista vazia é lista que ainda não chegou', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, 'cli-2', []).projetoId).toBe('proj-1');
+  });
+
+  it('não altera o recorte recebido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    aoTrocarDeCliente(filtros, 'cli-2', PROJETOS);
+    expect(filtros.projetoId).toBe('proj-1');
   });
 });

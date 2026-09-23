@@ -76,6 +76,18 @@ const ROTULO = /^(CLÁUSULA[^:]*?:|Parágrafo[^:]*?:)\s?/;
 const ALINEA = /^\s*([a-zA-ZivxlIVXL]+\)|[•·-])\s+/;
 /** Linha de assinatura: "____________". */
 const REGUA_ASSINATURA = /^_{5,}$/;
+/**
+ * Cabeçalho de seção NUMERADA: "I. PARTES INTEGRANTES:", "III.DAS DISPOSIÇÕES".
+ *
+ * Fica na margem, e não centralizado como "ANEXO ÚNICO" ou "PREÂMBULO": é o
+ * rótulo de um trecho corrido, não folha de rosto. O modelo do Acordo escreve os
+ * três assim, e centralizá-los transformava o preâmbulo em três títulos soltos.
+ * Nenhum outro documento do catálogo tem linha em caixa alta aberta por numeral
+ * romano, então a regra não os alcança.
+ */
+const SECAO_NUMERADA = /^[IVXL]+\.\s*\S/;
+/** Lacuna a preencher à mão, do `lacunaDoTipo`. */
+const LACUNA = '____';
 
 function ehCaixaAlta(linha: string): boolean {
   return /[A-ZÀ-Ý]/.test(linha) && linha === linha.toUpperCase();
@@ -378,6 +390,20 @@ function paragrafosDoBloco(
   let assinatura = 0;
   let primeiraLinha = true;
 
+  // Quebra de página declarada no catálogo (`tmpl_bloco.quebra_pagina_antes`): é
+  // assim que o Anexo Único abre em folha própria sem virar arquivo separado.
+  //
+  // O parágrafo carrega SÓ a quebra e fica no pé da página anterior, onde não se
+  // vê. E `terminaEmBranco` é marcado de propósito: sem isso o bloco ainda abriria
+  // com a linha em branco de sempre, que cairia no topo da página nova.
+  //
+  // `tipoAnterior === undefined` significa primeiro bloco do documento — ali a
+  // quebra só produziria uma folha em branco na frente do título.
+  if (bloco.quebraPaginaAntes && estado.tipoAnterior !== undefined) {
+    saida.push(new Paragraph({ children: [new docx.PageBreak()] }));
+    estado.terminaEmBranco = true;
+  }
+
   /**
    * Linha em branco antes do 1º parágrafo do bloco, como no modelo: antes de
    * todo capítulo e de toda cláusula, EXCETO a cláusula que vem imediatamente
@@ -520,8 +546,23 @@ function paragrafosDoBloco(
       assinatura += 1;
       continue;
     }
-    if (ehCaixaAlta(limpo) && !ALINEA.test(limpo)) {
-      // Título de seção solto no meio do documento (anexo, por exemplo).
+    /*
+     * Título de seção solto no meio do documento (anexo, por exemplo).
+     *
+     * DUAS EXCEÇÕES, e as duas custaram documento torto no Acordo:
+     *
+     * - Seção numerada fica na margem (ver `SECAO_NUMERADA`).
+     * - Linha com LACUNA não é título, é campo a preencher. "NOME: ____" passa
+     *   em `ehCaixaAlta` porque sublinhado não tem caixa, e as seis linhas das
+     *   testemunhas viravam seis títulos centralizados, cada uma com uma linha
+     *   em branco por cima. A régua de assinatura continua entrando antes, pelo
+     *   `REGUA_ASSINATURA`, que casa a linha feita SÓ de sublinhados.
+     *
+     * As duas caem no `linhaComRotulo` do fim, que justifica e respeita o
+     * negrito que o bloco marcar.
+     */
+    if (ehCaixaAlta(limpo) && !ALINEA.test(limpo)
+        && !SECAO_NUMERADA.test(limpo) && !limpo.includes(LACUNA)) {
       if (!estado.terminaEmBranco) saida.push(linhaEmBranco(docx));
       emitir(linhaCentralizada(docx, texto, { bold: true }));
       continue;

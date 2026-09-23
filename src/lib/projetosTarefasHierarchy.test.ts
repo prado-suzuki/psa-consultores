@@ -43,6 +43,7 @@ const task = (id: string, overrides: Partial<OrgTask> = {}): OrgTask => ({
   tags: [],
   estimated_hours: null,
   actual_hours: null,
+  review_hours: null,
   parent_task_id: null,
   start_date: null,
   project_id: 'project-1',

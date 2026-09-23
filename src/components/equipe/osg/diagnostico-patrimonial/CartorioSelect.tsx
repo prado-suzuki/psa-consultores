@@ -20,6 +20,7 @@ import { UF_STATES } from '@/components/equipe/client-form/constants';
 import {
   useCartorios, useUpsertCartorio, useDeleteCartorio, type CartorioRow,
 } from '@/hooks/useDiagnosticoPatrimonial';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface CartorioSelectProps {
   value: string;
@@ -121,7 +122,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Buscar cartório..." />
+            <CommandInput placeholder="Buscar…" />
             <CommandList>
               <CommandEmpty>Nenhum cartório encontrado.</CommandEmpty>
               <CommandGroup>
@@ -148,9 +149,9 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                       </span>
                     </div>
                     <div className="flex gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100">
-                      <button
+                      <ButtonTooltip text="Editar cartório">
+                        <button aria-label="Editar cartório"
                         type="button"
-                        title="Editar cartório"
                         className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
                         onClick={(e) => {
                           e.preventDefault();
@@ -161,9 +162,10 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button
+                      </ButtonTooltip>
+                      <ButtonTooltip text="Excluir cartório">
+                        <button aria-label="Excluir cartório"
                         type="button"
-                        title="Excluir cartório"
                         className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
                         onClick={(e) => {
                           e.preventDefault();
@@ -174,6 +176,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
+                      </ButtonTooltip>
                     </div>
                   </CommandItem>
                 ))}
@@ -211,7 +214,10 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
               <Input
                 value={draft.nome_completo}
                 onChange={(e) => setDraft((p) => ({ ...p, nome_completo: e.target.value }))}
-                placeholder="Cartório de Registro de Imóveis de..."
+                // `Ex:` e não `Buscar…`: o campo é o NOME do cartório sendo
+                // cadastrado, não uma busca — a especificação leu a linha
+                // truncada e propôs a forma de busca para um campo de texto.
+                placeholder="Ex: Cartório de Registro de Imóveis de Cuiabá"
                 className="h-9"
               />
             </div>

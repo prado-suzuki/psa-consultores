@@ -35,7 +35,7 @@ export function OnboardingChecklist({
       transition={{ duration: 0.5 }}
       className="w-full max-w-4xl mx-auto"
     >
-      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row">
           {/* Content Side */}
           <div className="flex-1 p-6 md:p-8">

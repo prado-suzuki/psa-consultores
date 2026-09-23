@@ -194,7 +194,7 @@ export function FamiliaSaidaTab({
       <BaseLegalCard familia={familia} />
 
       {resumo.length > 0 && (
-        <Card className="border-border shadow-sm">
+        <Card variant="tabela" className="border-border shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
               Resumo Mensal
@@ -248,7 +248,7 @@ export function FamiliaSaidaTab({
         </Card>
       )}
 
-      <Card className="border-border shadow-sm">
+      <Card variant="tabela" className="border-border shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
             Análise Detalhada

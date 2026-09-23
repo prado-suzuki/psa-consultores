@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TicketFirstResponse, TicketListItem } from '@/hooks/useTickets';
+import { dicaDe } from '@/test/dica';
 
 Object.defineProperties(HTMLElement.prototype, {
   hasPointerCapture: { configurable: true, value: () => false },
@@ -193,6 +194,11 @@ function kpi(label: string) {
   return container;
 }
 
+/** Palavra da nuvem de tópicos: o rótulo é o primeiro nó de texto, a contagem vem no `sup`. */
+function topico(label: string) {
+  return screen.getByText((_, el) => el?.tagName === 'SPAN' && el.firstChild?.textContent === label);
+}
+
 function chooseFilter(index: number, option: string) {
   fireEvent.keyDown(screen.getAllByRole('combobox')[index], { key: 'ArrowDown' });
   fireEvent.click(screen.getByRole('option', { name: option }));
@@ -278,8 +284,8 @@ describe('GestaoChamadosDashboard', () => {
 
     chooseFilter(0, 'Todas as datas');
     expect(kpi('Total')).toHaveTextContent('5');
-    expect(screen.getByTitle('EFD — 1 chamado')).toBeInTheDocument();
-    expect(screen.getByTitle('IRPJ — 1 chamado')).toBeInTheDocument();
+    expect(dicaDe(topico('EFD'))).toBe('EFD — 1 chamado');
+    expect(dicaDe(topico('IRPJ'))).toBe('IRPJ — 1 chamado');
   });
 
   it('aplica filtros por departamento, área e cluster usando os IDs carregados', async () => {
@@ -372,7 +378,7 @@ describe('GestaoChamadosDashboard', () => {
     // Sem clique, nenhuma tabela de prazo na tela.
     expect(screen.queryByRole('heading', { name: 'Chamados por prazo' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Ver os chamados respondidos fora do prazo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver os chamados respondidos fora do prazo' }));
     const painel = screen.getByRole('heading', { name: 'Chamados por prazo' });
     expect(painel).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Fora do prazo (1)' })).toBeInTheDocument();
@@ -383,10 +389,10 @@ describe('GestaoChamadosDashboard', () => {
     expect(screen.getByRole('cell', { name: 'Alice Fiscal' })).toBeInTheDocument();
 
     // Clicar no mesmo card de novo fecha o painel.
-    fireEvent.click(screen.getByTitle('Ver os chamados respondidos fora do prazo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver os chamados respondidos fora do prazo' }));
     expect(screen.queryByRole('heading', { name: 'Chamados por prazo' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Ver os chamados sem resposta'));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver os chamados sem resposta' }));
     expect(screen.getByRole('button', { name: 'Baixa de veículo' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Responsável' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Bruno Contábil' })).toBeInTheDocument();
@@ -467,9 +473,9 @@ describe('GestaoChamadosDashboard', () => {
     renderPage();
 
     chooseFilter(0, 'Últimos 30 dias');
-    expect(screen.getByTitle('ICMS — 1 chamado')).toBeInTheDocument();
-    expect(screen.getByTitle('ICMS-ST — 1 chamado')).toBeInTheDocument();
-    expect(screen.getByTitle('PIS — 1 chamado')).toBeInTheDocument();
+    expect(dicaDe(topico('ICMS'))).toBe('ICMS — 1 chamado');
+    expect(dicaDe(topico('ICMS-ST'))).toBe('ICMS-ST — 1 chamado');
+    expect(dicaDe(topico('PIS'))).toBe('PIS — 1 chamado');
     expect(screen.getByText(/6 tópicos/)).toBeInTheDocument();
   });
 

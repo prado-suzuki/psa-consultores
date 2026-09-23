@@ -99,7 +99,7 @@ export function BaldePanel({
               id="balde-busca"
               value={busca}
               onChange={(event) => onBusca(event.target.value)}
-              placeholder="ex: contrato"
+              placeholder="Ex: contrato"
               className="h-8 pl-8 text-[12.5px]"
             />
           </div>

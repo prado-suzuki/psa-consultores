@@ -105,7 +105,7 @@ export function DashboardEmbedView({
         {selected?.sop_url && (
           <Button
             variant="outline"
-            className="h-10 rounded-lg border-border bg-white text-foreground shadow-sm"
+            className="h-10 rounded-lg border-border bg-card text-foreground shadow-sm"
             onClick={() => window.open(selected.sop_url!, '_blank', 'noopener,noreferrer')}
           >
             <BookOpen className="h-4 w-4 mr-1.5" />
@@ -117,7 +117,7 @@ export function DashboardEmbedView({
       {ehNativo ? (
         nativo!.conteudo
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <DashboardIframe
             embed={embed}
             isLoading={isLoadingUrl}

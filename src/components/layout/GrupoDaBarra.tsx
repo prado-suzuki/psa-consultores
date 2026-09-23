@@ -1,5 +1,10 @@
-// Um agrupador da barra lateral do OSG Work: cabeçalho com ícone e seta, e os
-// itens que abrem no hover (ou ficam abertos quando a rota ativa é de dentro).
+// Um agrupador de barra lateral: cabeçalho com ícone e seta, e os itens que
+// abrem no hover (ou ficam abertos quando a rota ativa é de dentro).
+//
+// SAIU DA PASTA DA OSG em 22/09/2026, quando o Tax Work passou a usá-lo. Ele
+// nunca teve nada de OSG além de uma cor de borda, que agora é parâmetro. O
+// nome do arquivo ficou; o que mudou foi o endereço, para o Tax não importar
+// interface de outra área.
 //
 // Saiu de `OsgLayout` em 14/09/2026, quando a especificação final da Patrícia
 // passou o OSG Work de DOIS agrupadores (Oficina de Contratos e Relatórios) para
@@ -58,10 +63,30 @@ export interface GrupoDaBarraProps {
   trilho: boolean;
   /** As classes que desbotam e zeram a largura do rótulo. Ver `OsgLayout`. */
   rotuloCls: string;
+  /**
+   * A borda que liga os filhos ao cabeçalho. Cada área tem a sua: o bege da OSG
+   * (`--osg-100`) é global e não muda com o tema, então pintá-lo dentro da Tax
+   * daria a cor da área errada.
+   */
+  classeDaBorda?: string;
+  /**
+   * O que fazer ao clicar no CABEÇALHO do grupo. Sem isto, ele só abre e fecha,
+   * que é o comportamento do OSG Work.
+   *
+   * O Tax Work precisa navegar: cada agrupador dele tem uma página de hub, com
+   * os cards das ferramentas daquela família, e ela só é alcançável por aqui.
+   * O comentário no topo deste arquivo dizia que o cabeçalho com `onClick` era
+   * "uma terceira variante com razão própria" e ficava de fora; a razão continua
+   * própria, e agora ela cabe aqui como opção em vez de virar uma quarta cópia
+   * do bloco.
+   */
+  aoClicarNoCabecalho?: () => void;
 }
 
 export function GrupoDaBarra({
   icone: Icone, rotulo, ativo, itens, trilho, rotuloCls,
+  classeDaBorda = 'border-osg-100',
+  aoClicarNoCabecalho,
 }: GrupoDaBarraProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,6 +95,8 @@ export function GrupoDaBarra({
     <div className="group/agrupador">
       <button
         type="button"
+        onClick={aoClicarNoCabecalho}
+        aria-label={trilho ? rotulo : undefined}
         className={cn(
           // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
           classesItemDaBarra({ ativo: false, ancestral: ativo, trilho }),
@@ -108,7 +135,7 @@ export function GrupoDaBarra({
           <div
             className={cn(
               'space-y-1 pt-1',
-              trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
+              trilho ? '' : cn('ml-2 pl-2 border-l', classeDaBorda),
             )}
           >
             {itens.map(({ path, label }) => (

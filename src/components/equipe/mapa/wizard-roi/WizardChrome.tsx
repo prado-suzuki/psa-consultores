@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from '@/components/icons/RoiIcons';
 import { PASSOS } from '@/components/equipe/mapa/wizard-roi/constants';
 import type { Passo } from '@/components/equipe/mapa/wizard-roi/types';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 export function WizardHeader({ processoNome, passo }: { processoNome: string; passo: Passo }) {
   return (
@@ -53,7 +54,12 @@ export function WizardFooter({ passo, irPara, salvando, visualizandoHistorico, p
       {passo < PASSOS.length ? (
         <button type="button" className="btn-save" onClick={() => irPara((passo + 1) as Passo)}>Próximo<Icon name="chevronRight" size={14} /></button>
       ) : (
-        <button type="button" className="btn-save" onClick={onSalvar} disabled={salvando || visualizandoHistorico} title={visualizandoHistorico ? 'Volte para "Ao vivo" antes de salvar uma nova mensuração' : !podeCalcular ? 'Preencha os campos faltantes antes de salvar' : ''}>{salvando ? 'Salvando...' : 'Salvar mensuração'}</button>
+        // Botão desabilitado não abre balão; quem abre é o `span`, que recebe o foco.
+        <ElementTooltip text={visualizandoHistorico ? 'Volte para "Ao vivo" antes de salvar uma nova mensuração' : !podeCalcular ? 'Preencha os campos faltantes antes de salvar' : ''}>
+          <span className="inline-flex" tabIndex={visualizandoHistorico || !podeCalcular ? 0 : undefined}>
+            <button type="button" className="btn-save" onClick={onSalvar} disabled={salvando || visualizandoHistorico}>{salvando ? 'Salvando...' : 'Salvar mensuração'}</button>
+          </span>
+        </ElementTooltip>
       )}
     </div>
   );

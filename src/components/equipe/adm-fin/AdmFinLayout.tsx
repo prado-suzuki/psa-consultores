@@ -17,6 +17,7 @@ import {
   classesGavetaBarra,
   larguraBarraCss,
 } from '@/lib/sidebarMedidas';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Layout da área Adm & Fin.
@@ -114,19 +115,20 @@ export const AdmFinLayout = ({ children, title, subtitle, headerActions }: AdmFi
 
         <nav className="p-4 space-y-1">
           {MENU.map((item) => (
-            <button
-              key={item.id}
+            <ButtonTooltip key={item.id} text={trilho ? item.label : undefined}>
+              <button aria-label={trilho ? item.label : undefined}
+             
               type="button"
               // O cromo é o compartilhado: pílula cheia no ativo, quadrado de
               // 40px no trilho. Sem ele esta barra nasceria com uma tinta
               // própria, que é como as nove divergiram da primeira vez.
               className={classesItemDaBarra({ ativo: estaAtivo(item), trilho })}
               onClick={() => navigate(item.path)}
-              title={trilho ? item.label : undefined}
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
               {!trilho && <span className="flex-1 text-left">{item.label}</span>}
             </button>
+            </ButtonTooltip>
           ))}
         </nav>
 

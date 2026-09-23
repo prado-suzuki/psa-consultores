@@ -6,7 +6,7 @@ import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from 
 import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -394,6 +394,18 @@ export function useGerarDocumentoController() {
       ),
     [catalogoBlocos],
   );
+  // Mesma mecânica da numeração: efeito estrutural que o catálogo declara e o
+  // gerador do .docx aplica (`tmpl_bloco.quebra_pagina_antes`).
+  const quebraPaginaPorBlocoId = useMemo(
+    () =>
+      new Map(
+        catalogoBlocos.map((b) => [
+          b.id,
+          (b as BlocoComVersao & { quebra_pagina_antes?: boolean }).quebra_pagina_antes,
+        ]),
+      ),
+    [catalogoBlocos],
+  );
   const nomePorVarianteId = useMemo(
     () => new Map([...variantePorId].map(([id, v]) => [id, v.variante_rotulo ?? v.nome])),
     [variantePorId],
@@ -448,6 +460,7 @@ export function useGerarDocumentoController() {
             : (ov ? ov.conteudoSubstituto : (b.bloco!.conteudo as string)),
           obrigatorio: b.obrigatorio,
           reiniciaNumeracao: reiniciaNumeracaoPorBlocoId.get(b.bloco!.id) ?? undefined,
+          quebraPaginaAntes: quebraPaginaPorBlocoId.get(b.bloco!.id) ?? undefined,
           flagsRequeridas: b.bloco!.flags,
           repeteColecao: b.bloco!.repete_colecao ?? undefined,
           ancora: b.bloco!.ancora ?? undefined,
@@ -455,7 +468,7 @@ export function useGerarDocumentoController() {
         };
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario, reiniciaNumeracaoPorBlocoId]);
+  }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario, reiniciaNumeracaoPorBlocoId, quebraPaginaPorBlocoId]);
   // A peça REGISTRADA renderiza os blocos congelados no snapshot dela, nunca a
   // Biblioteca de hoje. O que o MODELO declara (flags de evento, por exemplo)
   // continua vindo de `templateDoModelo`: o assistente da alteração pergunta ao
@@ -494,6 +507,7 @@ export function useGerarDocumentoController() {
           : (b.bloco!.conteudo as string),
         obrigatorio: b.obrigatorio,
         reiniciaNumeracao: reiniciaNumeracaoPorBlocoId.get(b.bloco!.id) ?? undefined,
+        quebraPaginaAntes: quebraPaginaPorBlocoId.get(b.bloco!.id) ?? undefined,
         flagsRequeridas: b.bloco!.flags,
         repeteColecao: b.bloco!.repete_colecao ?? undefined,
         ancora: b.bloco!.ancora ?? undefined,
@@ -502,7 +516,7 @@ export function useGerarDocumentoController() {
         tituloDocumento: b.bloco!.titulo_documento ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, reproduzindoRegistrado]);
+  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, quebraPaginaPorBlocoId, reproduzindoRegistrado]);
 
   const nomePorBlocoId = useMemo(
     () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),
@@ -1877,6 +1891,12 @@ export function useGerarDocumentoController() {
     [capitalValor, documentoBase?.snapshot_dados],
   );
   const tituloColetivoSocios = useMemo(() => tituloColetivoDosSocios(socios), [socios]);
+  // "seus administradores", "sua diretora": a palavra que abre "neste ato
+  // representada por" no preâmbulo, e que acompanha o cargo do cadastro.
+  const tituloColetivoAdministradores = useMemo(
+    () => tituloColetivoDosAdministradores(administradores),
+    [administradores],
+  );
   // Os campos `sociedade.*` como o cadastro de HOJE os produz. É a única fonte
   // viva da sociedade: alimenta o efeito abaixo, o re-sync e a comparação da
   // alteração contratual.
@@ -1885,10 +1905,14 @@ export function useGerarDocumentoController() {
       ? mapearSociedade(
           empresaRow,
           { capitalValor, totalQuotas },
-          { numeroAlteracao, ...historicoCapital, tituloColetivoSocios },
+          {
+            numeroAlteracao, ...historicoCapital,
+            tituloColetivoSocios, tituloColetivoAdministradores,
+          },
         )
       : {}),
-    [empresaRow, capitalValor, totalQuotas, numeroAlteracao, historicoCapital, tituloColetivoSocios],
+    [empresaRow, capitalValor, totalQuotas, numeroAlteracao, historicoCapital,
+      tituloColetivoSocios, tituloColetivoAdministradores],
   );
   // Os bindings de sociedade do MODELO (não da peça registrada em cena, cujo
   // snapshot pode nem ter blocos): a alteração é composta com o modelo, e é
@@ -1990,8 +2014,13 @@ export function useGerarDocumentoController() {
       // proposto, porque só aqui existem os NÚMEROS: o estado proposto já
       // trabalha com os itens formatados.
       ...estadoDosOnus.problemas,
+      // A escada de alçada cujos degraus não se comparam (percentual subindo
+      // para moeda). Mesma natureza das somas acima: o dado existe, e é a
+      // combinação dele que não vira frase — a alínea sai só com o teto, e quem
+      // olha a Matriz precisa saber disso antes de levar a peça à junta.
+      ...(entradaGov.pendencias ?? []),
     ])],
-    [analise, estadoProposto, estadoDosOnus],
+    [analise, estadoProposto, estadoDosOnus, entradaGov],
   );
   const confirmarProposta = useConfirmarPropostaAC();
 

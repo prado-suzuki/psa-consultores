@@ -68,7 +68,7 @@ export function FormMatricula({
           ) : (
             <Select value={bemId || undefined} onValueChange={onBemId}>
               <SelectTrigger className={fieldCls}>
-                <SelectValue placeholder="Selecione o imóvel..." />
+                <SelectValue placeholder="Selecione…" />
               </SelectTrigger>
               <SelectContent>
                 {imoveis.map((item) => (

@@ -468,7 +468,7 @@ export function ImpactDashboard() {
       </Card>
 
       {/* Melhorias Implementadas - Cards/Table View */}
-      <Card className="border-border">
+      <Card variant="tabela" className="border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-medium">

@@ -21,6 +21,11 @@ const BASES: Record<string, string> = {
   faturamento_ano_anterior: 'do faturamento do ano anterior',
 };
 
+/** A base do percentual em prosa ("do orçamento aprovado"); '' quando não há. */
+export function baseDaAlcada(base: string | null | undefined): string {
+  return base ? (BASES[base] ?? '') : '';
+}
+
 /**
  * Só o pedaço da alçada, em texto: "até R$ 100.000,00" ou "até 10% do orçamento
  * aprovado". Sai daqui e não do `resumoDaCompetencia` porque a alínea do
@@ -39,6 +44,124 @@ export function textoDaAlcada(c: {
     return `até ${valor}% ${base}`.trim();
   }
   return `até R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+}
+
+/**
+ * O PISO DA ALÇADA NÃO É CAMPO NOVO: é o teto de quem aponta para este órgão na
+ * mesma linha.
+ *
+ * A escada inteira da "contratação de prestadores de serviços" no Zamo mostra
+ * por que a faixa não se digita:
+ *
+ *   Gestão    → até 500 mil, sobe para a Diretoria  (órgão interno: sem cláusula)
+ *   Diretoria → até 5 MM, sobe para o Conselho      → "superior a R$ 500.000,00
+ *                                                      e até R$ 5.000.000,00"
+ *   Conselho  → até 15 MM, sobe para a Reunião      → "superior a R$ 5.000.000,00"
+ *
+ * A faixa da Diretoria é o teto DELA mais o teto de quem sobe para ela. Pedir o
+ * piso no cadastro seria pedir duas vezes o mesmo número, e a segunda digitação
+ * é que fica velha quando a primeira muda.
+ *
+ * As cinco regras, todas com caso no corpus:
+ *
+ *  1. O piso vem de QUALQUER célula da linha, inclusive de órgão interno. A
+ *     Gestão do Zamo não recebe cláusula (`entra_no_contrato = false`) e é ela
+ *     que dá o piso da Diretoria — por isso esta função recebe as células da
+ *     linha inteira, e não os órgãos já filtrados.
+ *  2. Mais de uma célula apontando para o mesmo órgão: o piso é o MAIOR teto
+ *     entre elas. É o único valor a partir do qual toda decisão chega a este
+ *     órgão sem passar por ninguém abaixo.
+ *  3. Unidade (ou base) diferente entre quem aponta e quem recebe: NÃO HÁ FAIXA.
+ *     A célula sai só com o teto e a linha vira pendência, porque a matriz está
+ *     pedindo uma comparação que o contrato não sabe escrever ("superior a 10%
+ *     do faturamento e até R$ 1.000.000,00" não é faixa, é duas coisas). A base
+ *     entra na comparação junto com a unidade pelo mesmo motivo: 10% do
+ *     faturamento e 20% do orçamento não formam intervalo.
+ *  4. Célula que sobe SEM alçada (só `fora_da_politica`, ou papel de análise)
+ *     não contribui para o piso de ninguém — não há teto a herdar.
+ *  5. Órgão com teto e ninguém apontando para ele sai sem piso, e a alínea não
+ *     pode inventar um.
+ */
+export interface CelulaDaEscada {
+  orgao_id: string;
+  nao_participa: boolean;
+  sobe_para_orgao_id: string | null;
+  alcada_valor: number | string | null;
+  alcada_unidade: string | null;
+  alcada_base: string | null;
+}
+
+export interface PisoDaCelula {
+  /** O maior teto que sobe para este órgão; null quando não há piso derivável. */
+  valor: number | null;
+  /**
+   * Quem aponta e quem recebe medem coisas diferentes (regra 3). A célula sai só
+   * com o teto, e quem chama transforma isto em pendência do documento.
+   */
+  incomparavel: boolean;
+  /**
+   * A MEDIDA DO PISO, que vem de quem o fornece e não de quem o recebe.
+   *
+   * O órgão de topo não tem alçada própria: a célula dele traz `alcada_unidade`
+   * nula, porque a constraint do banco não deixa haver unidade sem valor. Sem
+   * estes dois campos, quem monta a alínea só tinha a unidade da célula, lia
+   * nulo, e "5% do orçamento aprovado" virava "R$ 5,00 (cinco reais)" no
+   * contrato do Conselho. Medido no capítulo do Zamo em 17/09/2026.
+   *
+   * Vêm juntos e sem ambiguidade: quando as medidas divergem a função já marca
+   * `incomparavel` e não devolve valor nenhum, então todas as células que
+   * contribuem para um piso têm a MESMA medida.
+   */
+  unidade: string | null;
+  base: string | null;
+}
+
+/** A medida de uma alçada, para comparar duas: "R$" e "10% do orçamento" não se comparam. */
+function medida(c: { alcada_unidade: string | null; alcada_base: string | null }): string {
+  return c.alcada_unidade === 'percentual' ? `percentual:${c.alcada_base ?? ''}` : 'moeda';
+}
+
+/**
+ * O piso de cada órgão que RECEBE alçada nesta linha, pelas regras acima.
+ * Só entra no mapa o órgão para quem alguém sobe; os demais não têm piso.
+ */
+export function pisosDaLinha(celulas: readonly CelulaDaEscada[]): Map<string, PisoDaCelula> {
+  const porOrgao = new Map<string, CelulaDaEscada[]>();
+  for (const c of celulas) {
+    // Regra 4: sem destino ou sem teto, não há o que herdar.
+    if (!c.sobe_para_orgao_id || c.nao_participa) continue;
+    if (c.alcada_valor === null || c.alcada_valor === undefined) continue;
+    const lista = porOrgao.get(c.sobe_para_orgao_id) ?? [];
+    lista.push(c);
+    porOrgao.set(c.sobe_para_orgao_id, lista);
+  }
+
+  const pisos = new Map<string, PisoDaCelula>();
+  for (const [orgaoId, apontam] of porOrgao) {
+    const recebe = celulas.find((c) => c.orgao_id === orgaoId);
+    const medidas = new Set(apontam.map(medida));
+    // A medida de quem recebe só entra quando ele TEM teto: órgão de topo (que
+    // recebe e não sobe para ninguém) legitimamente sai só com piso.
+    if (recebe && recebe.alcada_valor !== null && recebe.alcada_valor !== undefined && !recebe.nao_participa) {
+      medidas.add(medida(recebe));
+    }
+    if (medidas.size > 1) {
+      pisos.set(orgaoId, { valor: null, incomparavel: true, unidade: null, base: null });
+      continue;
+    }
+    // Regra 2: o maior teto entre quem aponta.
+    const valor = Math.max(...apontam.map((c) => Number(c.alcada_valor)));
+    // Todas medem igual (senão teria caído no `incomparavel` acima), então a
+    // primeira responde pela medida do piso.
+    const medidor = apontam[0];
+    pisos.set(orgaoId, {
+      valor: Number.isFinite(valor) ? valor : null,
+      incomparavel: false,
+      unidade: medidor.alcada_unidade ?? null,
+      base: medidor.alcada_base ?? null,
+    });
+  }
+  return pisos;
 }
 
 /** Uma célula em uma linha de texto, do jeito que ela se lê. */

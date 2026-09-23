@@ -74,7 +74,7 @@ export function ProcedimentoCard({
     }
 
     return (
-      <div className="bg-white rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center min-h-[280px] gap-3">
+      <div className="bg-card rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center min-h-[280px] gap-3">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-5/6" />
@@ -122,7 +122,7 @@ export function ProcedimentoCard({
   return (
     <>
       <div
-        className={`bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden cursor-pointer ${
+        className={`bg-card rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden cursor-pointer ${
           aguardandoConfirmacao ? 'border-2 border-dashed border-warning/40' : ''
         }`}
         onClick={() => onAbrir(p)}

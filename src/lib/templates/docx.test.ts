@@ -389,3 +389,94 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml).not.toContain('}}');
   });
 });
+
+describe('caixa alta que NÃO é título de seção', () => {
+  /*
+   * As duas exceções nasceram do preâmbulo e do fecho do Acordo de Quotistas,
+   * onde a regra "linha em caixa alta solta é título" produzia documento torto:
+   * três cabeçalhos numerados jogados para o meio da página, e as seis linhas
+   * das testemunhas viradas em seis títulos centralizados.
+   */
+
+  it('cabeçalho numerado por romano fica na margem, e não centralizado', async () => {
+    const doc = await montarDocx([
+      // A cláusula antes fecha a ABERTURA: sem ela, uma linha em caixa alta
+      // seguida de linha em branco e texto seria lida como capa.
+      bloco('z', 'clausula', '*CLÁUSULA PRIMEIRA:* Texto.'),
+      bloco('a', 'livre', 'FECHO\n\n*I. PARTES INTEGRANTES:*\nNa condição de signatários…'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    // "FECHO" continua sendo título de seção: centralizado.
+    expect(paragrafoCom(xml, 'FECHO')).toContain('w:val="center"');
+    // O cabeçalho numerado, não — e o negrito que o bloco marcou sobrevive.
+    expect(paragrafoCom(xml, 'I. PARTES INTEGRANTES:')).not.toContain('w:val="center"');
+    expect(paragrafoCom(xml, 'I. PARTES INTEGRANTES:')).toContain('<w:b/>');
+  });
+
+  it('linha com lacuna é campo a preencher, e não título', async () => {
+    const doc = await montarDocx([
+      // A cláusula antes fecha a ABERTURA: sem ela, uma linha em caixa alta
+      // seguida de linha em branco e texto seria lida como capa.
+      bloco('z', 'clausula', '*CLÁUSULA PRIMEIRA:* Texto.'),
+      bloco('a', 'livre', 'TESTEMUNHAS:\n\n*NOME:* ____________________\n*RG:* ____________________'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    expect(paragrafoCom(xml, 'TESTEMUNHAS:')).toContain('w:val="center"');
+    expect(paragrafoCom(xml, 'NOME:')).not.toContain('w:val="center"');
+    expect(paragrafoCom(xml, 'RG:')).not.toContain('w:val="center"');
+  });
+
+  it('a régua de assinatura continua sendo régua, e não lacuna', async () => {
+    const doc = await montarDocx([
+      bloco('a', 'livre', '_______________________________________\nFULANO DE TAL'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    expect(paragrafoCom(xml, 'FULANO DE TAL')).toContain('w:val="center"');
+    expect(paragrafoCom(xml, 'FULANO DE TAL')).toContain('<w:b/>');
+  });
+
+  it('a linha em branco solta o contador da assinatura, e o rótulo volta a ser título', async () => {
+    /*
+     * É o defeito do fecho do Acordo: "QUOTISTAS:" vinha colado no nome do
+     * signatário de cima, o contador ainda estava correndo e a linha saía sem
+     * negrito. Com a linha em branco no meio, ela volta a ser rótulo.
+     */
+    const colado = await montarDocx([
+      bloco('a', 'livre', '_______________________________________\nFULANO\nQUOTISTAS:'),
+    ]);
+    expect(paragrafoCom(await parteXml(colado, /word\/document\.xml$/), 'QUOTISTAS:'))
+      .not.toContain('<w:b/>');
+
+    const separado = await montarDocx([
+      bloco('a', 'livre', '_______________________________________\nFULANO\n\nQUOTISTAS:'),
+    ]);
+    expect(paragrafoCom(await parteXml(separado, /word\/document\.xml$/), 'QUOTISTAS:'))
+      .toContain('<w:b/>');
+  });
+});
+
+describe('quebra de página declarada no bloco', () => {
+  // `quebraPaginaAntes` vem de `tmpl_bloco.quebra_pagina_antes` (migration
+  // 20260916173000): é o que faz o Anexo Único sair em folha própria sem precisar
+  // virar arquivo separado.
+  const comAnexo = (quebra: boolean): Bloco[] => [
+    bloco('fecho', 'livre', 'Fulano de Tal'),
+    { ...bloco('anexo', 'livre', '*ANEXO ÚNICO*'), quebraPaginaAntes: quebra },
+  ];
+
+  it('bloco marcado abre página nova; sem a marca, nada muda', async () => {
+    const comQuebra = await parteXml(await montarDocx(comAnexo(true)), /word\/document\.xml$/);
+    const semQuebra = await parteXml(await montarDocx(comAnexo(false)), /word\/document\.xml$/);
+
+    expect(comQuebra).toContain('w:type="page"');
+    expect(semQuebra).not.toContain('w:type="page"');
+  });
+
+  it('o primeiro bloco do documento não leva quebra — sobraria uma folha em branco', async () => {
+    const doc = await montarDocx([
+      { ...bloco('capa', 'livre', '*INSTRUMENTO*'), quebraPaginaAntes: true },
+      bloco('corpo', 'clausula', 'Texto da cláusula.'),
+    ]);
+    expect(await parteXml(doc, /word\/document\.xml$/)).not.toContain('w:type="page"');
+  });
+});

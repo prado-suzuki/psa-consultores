@@ -46,7 +46,7 @@ interface KanbanFiltersProps {
 
 export function KanbanFilters(props: KanbanFiltersProps) {
   return (
-    <div className="bg-white border border-border rounded-lg p-4 mb-4">
+    <div className="bg-card border border-border rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Filtros</span>

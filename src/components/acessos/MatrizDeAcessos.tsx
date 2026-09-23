@@ -21,6 +21,7 @@ import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { ariaSortDe, proximaOrdem, type OrdemDaMatriz } from '@/lib/filtroDeUsuarios';
 import { ROLE_SHORT_LABELS } from './roleOptions';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * A matriz de acessos: uma linha por pessoa, uma coluna por papel ou por área.
@@ -406,10 +407,10 @@ const BotaoDeOrdem = ({
 }) => {
   const Seta = !ativo ? ArrowUpDown : ascendente ? ArrowUp : ArrowDown;
   return (
-    <button
+    <ButtonTooltip text={titulo}>
+      <button
       type="button"
       onClick={onClick}
-      title={titulo}
       className={cn(
         'group flex w-full items-center gap-1 rounded-md py-2 transition-colors',
         'hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -424,6 +425,7 @@ const BotaoDeOrdem = ({
         aria-hidden
       />
     </button>
+    </ButtonTooltip>
   );
 };
 
@@ -448,11 +450,11 @@ const CelulaDaMatriz = ({
   rotulo: string;
   onClick: () => void;
 }) => (
-  <button
+  <ButtonTooltip text={rotulo}>
+    <button
     type="button"
     aria-pressed={ligada}
     aria-label={rotulo}
-    title={rotulo}
     disabled={salvando}
     onClick={onClick}
     className={cn(
@@ -469,4 +471,5 @@ const CelulaDaMatriz = ({
       <Circle className="h-4 w-4 text-muted-foreground" />
     )}
   </button>
+  </ButtonTooltip>
 );

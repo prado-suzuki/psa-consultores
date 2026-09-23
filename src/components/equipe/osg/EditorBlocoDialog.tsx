@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
 import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import { useFlags, useSalvarBloco, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface FormState {
   id?: string;
@@ -146,7 +147,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
               <Input
                 value={form.nome}
                 onChange={(e) => setCampo('nome', e.target.value)}
-                placeholder="ex: Descrição de imóvel — propriedade exclusiva"
+                placeholder="Ex: Descrição de imóvel — propriedade exclusiva"
               />
             </div>
             <div className="space-y-1.5">
@@ -213,7 +214,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
               <Input
                 value={form.ancora}
                 onChange={(e) => setCampo('ancora', e.target.value)}
-                placeholder="ex: haveres — outros blocos citam {{ refs.haveres }}"
+                placeholder="Ex: haveres — outros blocos citam {{ refs.haveres }}"
                 className={cn(ancoraInvalida && 'border-destructive focus-visible:ring-destructive')}
               />
               <p className={cn('text-[11px]', ancoraInvalida ? 'text-destructive' : 'text-muted-foreground')}>
@@ -230,7 +231,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
               <Input
                 value={form.categoria}
                 onChange={(e) => setCampo('categoria', e.target.value)}
-                placeholder="ex: descricao_imovel"
+                placeholder="Ex: descricao_imovel"
                 list="categorias-sugeridas"
               />
               <datalist id="categorias-sugeridas">
@@ -311,10 +312,10 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
                 {flags.map((f) => {
                   const marcada = form.flagIds.includes(f.id);
                   return (
-                    <button
-                      key={f.id}
+                    <ButtonTooltip key={f.id} text={f.descricao ?? undefined}>
+                      <button aria-label={f.descricao ?? undefined}
+                     
                       type="button"
-                      title={f.descricao ?? undefined}
                       onClick={() => alternarFlag(f.id)}
                       className={cn(
                         'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
@@ -325,6 +326,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
                     >
                       {f.nome}
                     </button>
+                    </ButtonTooltip>
                   );
                 })}
               </div>
@@ -339,7 +341,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
               <Input
                 value={form.changelog}
                 onChange={(e) => setCampo('changelog', e.target.value)}
-                placeholder="ex: ajuste de redação da cláusula de valor"
+                placeholder="Ex: ajuste de redação da cláusula de valor"
               />
             </div>
           )}

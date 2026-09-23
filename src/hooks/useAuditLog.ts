@@ -79,6 +79,24 @@ type AuditEntityType =
   | 'wp_importacao'
   | 'wp_apresentacao'
   | 'wp_estudo'
+  // Os decks .pptx da OSG (patrimonial e societária), da `gerar-apresentacao`.
+  // NÃO é o `wp_apresentacao`, que é a tabela do deck tributário: aquela geração
+  // grava uma linha e esta não persiste nada. Sem linha para apontar, o
+  // `entity_id` aqui é o CLIENTE — a pergunta que se faz ao log é "quem gerou
+  // deck de qual cliente", e os nomes dos arquivos vão no `entity_name`.
+  | 'apresentacao_osg'
+  // GOV-F: o Protocolo de Remuneracao. Mesmo recorte da GOV-02 na grade: audita-se
+  // o PROTOCOLO e a LINHA, e nao cada celula, porque a linha e o que a pessoa
+  // abre, preenche e salva de uma vez. Os catalogos (tema e item) entram porque
+  // sao compartilhados: um item criado para um cliente fica visivel na tela de
+  // todo mundo que o cliente alcanca. E a COLUNA entra por um motivo proprio: ela
+  // e o que mais varia entre clientes (nenhum dos medidos usa as tres do modelo),
+  // e tirar uma leva junto, por cascade, todo o texto escrito nela.
+  | 'protocolo_remuneracao'
+  | 'protocolo_linha'
+  | 'protocolo_tema_governanca'
+  | 'protocolo_item_governanca'
+  | 'protocolo_beneficiario'
   // Controle de Acessos: o vinculo de PAPEL (`user_roles`) e o de AREA DE
   // ACESSO (o conjunto de paginas de uma area em `user_page_access`). O
   // `entity_id` dos dois e o id da PESSOA, e nao o da linha de vinculo: a

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { MessageSquare, Lightbulb, Timer, Users, ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { CockpitAgente } from '@/hooks/useDomainAgentePsa';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const ROTULO_MODO: Record<string, string> = {
   dados: 'Dados (leitura fiel)',
@@ -104,7 +105,9 @@ export function AgenteCockpitMetricas({ dados }: Props) {
             {dados.camposMaisUsados.map((c) => (
               <div key={c.campo} className="space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-foreground truncate" title={c.campo}>{c.campo}</span>
+                  <ElementTooltip text={c.campo}>
+                    <span className="text-sm text-foreground truncate">{c.campo}</span>
+                  </ElementTooltip>
                   <span className="text-xs text-muted-foreground tabular-nums">{c.vezes}x</span>
                 </div>
                 <Progress value={(c.vezes / maiorUso) * 100} className="h-1.5" />

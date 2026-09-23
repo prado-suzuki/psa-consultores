@@ -1,7 +1,10 @@
 import { Fragment, type ReactNode } from 'react';
 import type { JSONContent } from '@tiptap/core';
+import { ExternalLink } from 'lucide-react';
 
 import { MENCAO_CLASS } from '@/components/comentarios/extensions/MencaoUsuario';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
+import { partesDoTexto } from '@/lib/linksNoTexto';
 import { lerCorpo, NO_DE_MENCAO } from '@/lib/orgCommentRichText';
 
 /**
@@ -20,11 +23,46 @@ function Mencao({ children }: { children: ReactNode }) {
   return <span className={MENCAO_CLASS}>{children}</span>;
 }
 
+/**
+ * O clique no link não pode chegar ao item do feed, que abre a thread: quem
+ * clicou queria o endereço.
+ */
+function Link({ href, rotulo, original }: { href: string; rotulo: string; original: string }) {
+  return (
+    <ElementTooltip text={original}>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(evento) => evento.stopPropagation()}
+        className="break-all rounded-sm bg-primary/5 px-1 font-medium text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:bg-primary/10 hover:decoration-primary"
+      >
+        {rotulo}
+        <ExternalLink aria-hidden className="ml-0.5 inline h-3 w-3 align-[-0.1em]" />
+      </a>
+    </ElementTooltip>
+  );
+}
+
+function ComLinks({ texto }: { texto: string }) {
+  return (
+    <>
+      {partesDoTexto(texto).map((parte, index) =>
+        parte.tipo === 'link' ? (
+          <Link key={index} href={parte.href} rotulo={parte.rotulo} original={parte.original} />
+        ) : (
+          <Fragment key={index}>{parte.texto}</Fragment>
+        ),
+      )}
+    </>
+  );
+}
+
 function renderNode(node: JSONContent, key: string): ReactNode {
   const filhos = node.content?.map((filho, index) => renderNode(filho, `${key}-${index}`));
 
   if (node.type === 'text') {
-    let conteudo: ReactNode = node.text || '';
+    let conteudo: ReactNode = <ComLinks texto={node.text || ''} />;
     for (const marca of node.marks || []) {
       if (marca.type === 'bold') conteudo = <strong>{conteudo}</strong>;
       if (marca.type === 'italic') conteudo = <em>{conteudo}</em>;
@@ -68,7 +106,7 @@ function TextoLegado({ texto }: { texto: string }) {
         return mencao ? (
           <Mencao key={`${parte}-${index}`}>@{mencao[1]}</Mencao>
         ) : (
-          <Fragment key={`texto-${index}`}>{parte}</Fragment>
+          <ComLinks key={`texto-${index}`} texto={parte} />
         );
       })}
     </p>

@@ -19,6 +19,7 @@ const TODOS_OS_TIPOS: NotificacaoTipo[] = [
   'cobranca_pendencia',
   'tarefa_prazo_proximo',
   'tarefa_atrasada',
+  'tarefa_inativa',
 ];
 
 describe('apresentacaoDoAviso', () => {
@@ -43,6 +44,26 @@ describe('apresentacaoDoAviso', () => {
     // três dias antes e o de vence hoje (docs/geral/avisos-prazo-tarefa.md).
     expect(apresentacaoDoAviso('tarefa_prazo_proximo').rotulo).toBe('Prazo de tarefa');
     expect(apresentacaoDoAviso('tarefa_atrasada').rotulo).toBe('Tarefa atrasada');
+  });
+
+  it('põe a falta de movimentação na família âmbar, porque não é estouro', () => {
+    // GES-01B: falta de movimento é lembrete de atenção, não prazo vencido. O
+    // vermelho fica para o atraso, que é fato consumado.
+    //
+    // O rótulo é "Sem movimentação", e não "Tarefa inativa", por decisão da
+    // consultoria em 21/09/2026: "inativa" é interpretativo, porque a tarefa pode
+    // estar legitimamente aguardando cliente ou dependência externa. A chave do
+    // enum continua `tarefa_inativa`, que é dado, não texto de tela.
+    expect(apresentacaoDoAviso('tarefa_inativa').tom).toContain('amber');
+    expect(apresentacaoDoAviso('tarefa_inativa').rotulo).toBe('Sem movimentação');
+  });
+
+  it('distingue o projeto frio da tarefa fria pelo rótulo, não pelo tom', () => {
+    // GES-01B: o gestor recebe os dois, e precisa saber de relance se o que
+    // parou foi uma tarefa ou o projeto inteiro. Mesmo tom porque a natureza é a
+    // mesma; rótulo diferente porque a leitura é outra.
+    expect(apresentacaoDoAviso('projeto_inativo').rotulo).toBe('Projeto sem movimentação');
+    expect(apresentacaoDoAviso('projeto_inativo').tom).toBe(apresentacaoDoAviso('tarefa_inativa').tom);
   });
 
   it('cai num rótulo genérico se o banco tiver um tipo que o types.ts ainda não conhece', () => {

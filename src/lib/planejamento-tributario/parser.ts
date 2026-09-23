@@ -363,6 +363,79 @@ function descobreColunas(
 }
 
 /**
+ * O rótulo com que o percentual de parceria agrícola é gravado.
+ *
+ * **Vira um valor de `wp_valor`, e não coluna nova em `wp_importacao`.** Medido
+ * em 21/09/2026: a RPC `importar_wp` insere `valores` de forma genérica, a partir
+ * de `_conteudo->'valores'`, sem lista branca de rótulo. Então este dado atravessa
+ * a esteira inteira sem migração, sem redefinir uma função de 185 linhas e sem
+ * regerar o `types.ts`. A unicidade da tabela é por célula de origem, e esta
+ * célula é única.
+ *
+ * O `bloco` é `dre` porque é o bloco da aba onde a célula mora, e o `origemCelula`
+ * (`Cenário 01 (PFxPJ)!C11`) deixa a procedência explícita. A unidade
+ * `percentual` é o que o distingue de conta: nenhuma conta da DRE é percentual.
+ */
+export const ROTULO_PERCENTUAL_DE_PARCERIA = 'Percentual de parceria agrícola';
+
+/** A coluna do valor, que não é a coluna do texto do comentário. */
+const COLUNA_DO_PERCENTUAL = 'C';
+
+/**
+ * O percentual de parceria agrícola da aba de cenário.
+ *
+ * A linha dele ocupa um marcador do bloco de comentários mas não é comentário:
+ * `leComentarios` a pula, e é aqui que ela é lida. Serve o slide de Cenários
+ * Avaliados, que mostra a proporção entre as duas pontas da parceria.
+ */
+function lePercentualDeParceria(
+  aba: XLSX.WorkSheet,
+  mapa: AbaCenarioWp,
+  anoDeReferencia: number | undefined,
+): { valores: ValorWp[]; problemas: ProblemaWp[] } {
+  const linha = mapa.comentarios.percentualDeParceria;
+  if (linha === undefined || anoDeReferencia === undefined) {
+    return { valores: [], problemas: [] };
+  }
+
+  const alvo = endereco(COLUNA_DO_PERCENTUAL, linha);
+  const onde = `${mapa.nome}!${alvo}`;
+  const celula = leCelula(aba, alvo);
+  if (celula.estado === 'erro') {
+    return { valores: [], problemas: [{ tipo: celula.motivo, onde, detalhe: celula.detalhe }] };
+  }
+
+  /*
+   * **Zero conta como não preenchido.** No modelo em branco a célula vem `0`, e
+   * parceria de 0% não é parceria: gravar isso faria o slide afirmar 100% para
+   * uma ponta e 0% para a outra, com cara de medida.
+   */
+  if (celula.estado !== 'valor' || typeof celula.valor !== 'number' || celula.valor === 0) {
+    return { valores: [], problemas: [] };
+  }
+
+  return {
+    valores: [
+      {
+        bloco: 'dre',
+        rotulo: ROTULO_PERCENTUAL_DE_PARCERIA,
+        cenario: mapa.nome,
+        /*
+         * O ano é preenchimento, não informação: a célula é única e não tem
+         * exercício, mas a coluna é NOT NULL. Vai o primeiro exercício da aba,
+         * para o dado ficar junto do estudo a que pertence, e quem lê ignora.
+         */
+        ano: anoDeReferencia,
+        valor: celula.valor,
+        unidade: 'percentual',
+        origemCelula: onde,
+      },
+    ],
+    problemas: [],
+  };
+}
+
+/**
  * Lê uma aba de cenário: a DRE projetada e, quando existe, a apuração do IRPF.
  *
  * A DRE carrega o nível de cada linha, porque é o que diz se a conta é um total
@@ -986,6 +1059,14 @@ export function lerWp(dados: ArrayBuffer | Uint8Array): ResultadoLeitura {
     const lido = leCenario(aba, mapa);
     valores.push(...lido.valores);
     problemas.push(...lido.problemas);
+
+    const parceria = lePercentualDeParceria(
+      aba,
+      mapa,
+      lido.valores.length > 0 ? Math.min(...lido.valores.map((v) => v.ano)) : undefined,
+    );
+    valores.push(...parceria.valores);
+    problemas.push(...parceria.problemas);
 
     const texto = leComentarios(aba, mapa.nome, mapa.comentarios);
     comentarios.push(...texto.comentarios);

@@ -2,6 +2,7 @@ import { ArrowRight, FileText, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface PerDetailHeaderProps {
   nrPer: string;
@@ -112,12 +113,13 @@ export function PerDetailHeader({
                 {formatCurrency(valorSelic)}
               </p>
             ) : selicIndisponivel ? (
-              <p
+              <ElementTooltip text={selicError ?? 'SELIC indisponível'}>
+                <p
                 className="text-sm font-bold text-destructive max-w-[200px] truncate"
-                title={selicError ?? 'SELIC indisponível'}
               >
                 SELIC indisponível
               </p>
+              </ElementTooltip>
             ) : (
               <p className="text-lg font-mono font-bold text-muted-foreground">—</p>
             )}

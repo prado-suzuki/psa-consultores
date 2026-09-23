@@ -1,0 +1,74 @@
+-- 20260917143042_gov03_o_preco_da_opcao_nao_e_campo.sql
+-- GOV-03: saem tres colunas que nao escrevem linha nenhuma no Acordo.
+--
+-- ESCRITA EM 17/09/2026.
+--
+--
+-- A REGRA, E ELA E A MESMA QUE DERRUBOU SEIS CAMPOS EM 15/09
+--
+-- Campo que nao vira frase no documento e campo que nao devia existir. Nenhuma
+-- das tres e citada por nenhum dos 266 blocos, e nao e esquecimento: o modelo
+-- nao tem lugar para elas.
+--
+--
+-- 1. `opcao_compra_preco`
+--
+-- Eu tinha dito que o preco VARIAVA no acervo, e estava errado: comparei frases
+-- DIFERENTES de documentos diferentes. Sao duas frases, e cada uma e estavel:
+--
+--   Frase A, na definicao de OPCAO DE COMPRA (Clausula Primeira), identica em
+--   Horita, Perci, modelo e Via Fertil: "o preco de cada QUOTA sera o preco
+--   atribuido neste ACORDO, para cada hipotese que a OPCAO DE COMPRA for
+--   prevista, sendo que caso nao especifique, sera considerado o VALOR DA QUOTA".
+--
+--   Frase B, no subscritor desistente, identica em Perci, modelo e AgroAlianca:
+--   "o maior dentre os valores adquiridos atraves das seguintes metodologias:
+--   (i)... (ii)...".
+--
+-- O que varia DENTRO da frase B e a taxa de juros, e essa ja e campo
+-- (`juros_valor_subscrito`), medida a parte: o Perci escreve 1% num lugar e
+-- 0,50% no outro. E a frase A resolve sozinha quem nao combina preco proprio.
+--
+-- Quatro acordos do sandbox tem valor escrito, todos de teste, e nenhum sai no
+-- documento hoje nem sairia. Mante-los e pior que perde-los: o consultor
+-- responde achando que combinou o preco, e o Acordo entrega outra coisa.
+--
+--
+-- 2. `data_referencia`
+--
+-- Gravada em dois lugares (ao criar o acordo e ao criar versao nova) e lida por
+-- NINGUEM para escrever documento. Conferido no sandbox, 6 de 6 linhas
+-- preenchidas e em TODAS ela e igual a `created_at::date`. Ou seja: nao carrega
+-- informacao que o `created_at` ja nao tenha, e apagar nao perde nada.
+--
+-- Ela veio copiada de `matriz_alcadas`, onde se justifica: a matriz do Mattei
+-- traz "Elaborada em 07 de julho de 2025" em linha propria do documento. O
+-- Acordo nao tem essa linha. A sessao que cuida do Protocolo de Remuneracao
+-- chegou a mesma conclusao por conta propria, medindo os documentos dela, e
+-- derrubou a mesma coluna copiada da mesma origem.
+--
+-- O codigo que a gravava sai no mesmo commit.
+--
+--
+-- 3. `prazo_sigilo_anos`
+--
+-- Os campos de sigilo sairam do vocabulario e da tela em 15/09, e a coluna
+-- ficou. Duas linhas tem valor, as duas do cliente de TESTE Zamo, as duas com 5,
+-- e nenhuma tela grava ou le isso hoje.
+--
+--
+-- EM PRODUCAO NAO HA NADA A PERDER: zero acordos cadastrados (conferido pelo
+-- MCP do Lovable em 17/09).
+--
+--
+-- O QUE FICA, e nao por descuido
+--
+-- `opcao_compra_quem` FICA e foi ligado em 17/09: esse varia de verdade, tres
+-- redacoes em quatro acordos ("QUOTISTAS que sejam titulares da maioria das
+-- QUOTAS" no modelo e no AgroAlianca, "demais QUOTISTAS" no Perci, "QUOTISTAS
+-- e/ou seus curadores" no Horita), e agora escreve a frase 8.2.
+
+ALTER TABLE public.acordo_quotistas
+  DROP COLUMN IF EXISTS opcao_compra_preco,
+  DROP COLUMN IF EXISTS data_referencia,
+  DROP COLUMN IF EXISTS prazo_sigilo_anos;

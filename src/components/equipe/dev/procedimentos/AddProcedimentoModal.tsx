@@ -109,7 +109,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
   const botaoModo = (valor: Modo, icone: React.ReactNode, rotulo: string) => (
     <button
       className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-        mode === valor ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground'
+        mode === valor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
       }`}
       onClick={() => setMode(valor)}
     >

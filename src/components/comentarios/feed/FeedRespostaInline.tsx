@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   feedComentariosQueryKeyPrefix,
   type FeedComentario,
@@ -8,12 +9,14 @@ import {
 import { useDomainMentionCandidates } from '@/hooks/useDomainMentionCandidates';
 import { useDomainOrgComments } from '@/hooks/useDomainOrgComments';
 import { parentIdParaResposta, type AreaDeProjetos } from '@/lib/feedComentarios';
+import { expandirMencaoTodos } from '@/lib/orgCommentMentions';
 
 interface FeedRespostaInlineProps {
   comentario: FeedComentario;
   area: AreaDeProjetos;
   onCancelar: () => void;
-  onRespondeu: () => void;
+  /** Recebe o id do comentário criado: é por ele que o feed leva até a resposta. */
+  onRespondeu: (id: string) => void;
 }
 
 /**
@@ -35,6 +38,7 @@ export function FeedRespostaInline({
   onRespondeu,
 }: FeedRespostaInlineProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { createComment, isCreating } = useDomainOrgComments(
     comentario.entity_type,
     comentario.entity_id,
@@ -56,10 +60,12 @@ export function FeedRespostaInline({
       replyingToName={comentario.author_name}
       onCancel={onCancelar}
       onSubmit={async (body, files, mentions) => {
-        await createComment.mutateAsync({
+        const id = await createComment.mutateAsync({
           body,
           files,
-          mentions,
+          // Aqui a roda de gente é a do projeto da thread, que não muda no meio
+          // do envio: dá para expandir o `@todos` direto.
+          mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
           parentId: parentIdParaResposta(comentario),
           // Aqui os dois divergem: no feed responde-se a qualquer item, e
           // responder a uma resposta pendura na raiz dela. Quem recebe a
@@ -72,7 +78,10 @@ export function FeedRespostaInline({
         // conhecidos, sem repetir nem perder item. Pelo PREFIXO, para valer
         // também no recorte filtrado que está na tela.
         await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
-        onRespondeu();
+        // O id volta para a tela porque o feed é cronológico: a resposta nasce no
+        // topo, longe de onde foi escrita, e sem ele não haveria como levar a
+        // pessoa até ela nem realçá-la.
+        onRespondeu(id);
       }}
     />
   );

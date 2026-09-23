@@ -6,7 +6,7 @@ import { CommentComposer } from '@/components/comentarios/CommentComposer';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { OrgCommentOrigem } from '@/components/comentarios/OrgCommentOrigem';
-import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
+import { AnexosDoComentario } from '@/components/comentarios/AnexosDoComentario';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,9 +42,10 @@ import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
+  pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
-import { iniciaisDoNome } from '@/lib/orgCommentMentions';
+import { expandirMencaoTodos, iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 
@@ -194,6 +195,8 @@ export function OrgCommentsPanel({
     { nested = false, ultima = false }: { nested?: boolean; ultima?: boolean } = {},
   ) => {
     const isSystem = ehEventoDeSistema(comment.kind);
+    /* Quem agiu e, quando existe, para quem. O avatar segue sendo o do sistema. */
+    const pessoas = pessoasDoEventoPartes(comment);
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
     const isReplying = replyingTo === comment.id;
@@ -216,7 +219,7 @@ export function OrgCommentsPanel({
             <span
               aria-hidden
               data-thread-connector
-              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-lg border-b border-l border-border"
+              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
             />
             {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
             {!ultima && (
@@ -247,10 +250,31 @@ export function OrgCommentsPanel({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            {/* A linha do evento quebra: nesta coluna estreita, título, pessoas
+                e hora disputando a mesma linha truncavam os três de uma vez. No
+                comentário humano nada muda, que ali a linha continua sendo nome,
+                hora e o menu de ações. */}
+            <div className={cn('flex items-center gap-2', isSystem && 'flex-wrap')}>
               <span className={cn('truncate font-semibold', nested ? 'text-[13px]' : 'text-sm')}>
                 {isSystem ? rotuloDoEvento(comment.kind) : comment.author_name || 'Usuário removido'}
               </span>
+              {/* Quem agiu e para quem, no mesmo desenho do Feed: o aviso é o
+                  mesmo nas duas telas e tem de ler igual nas duas. Nome no
+                  corpo do rótulo, só a preposição no cinza. */}
+              {pessoas.autor && (
+                <span className={cn('min-w-0 truncate', nested ? 'text-[13px]' : 'text-sm')}>
+                  <span aria-hidden className="mr-2 text-muted-foreground">
+                    ·
+                  </span>
+                  <span className="font-medium">{pessoas.autor}</span>
+                  {pessoas.destinatario && (
+                    <>
+                      <span className="text-muted-foreground"> para </span>
+                      <span className="font-medium">{pessoas.destinatario}</span>
+                    </>
+                  )}
+                </span>
+              )}
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {dataHoraCurta(comment.created_at)}
               </span>
@@ -294,7 +318,7 @@ export function OrgCommentsPanel({
             {comment.excluido ? (
               <p className="mt-1 text-sm italic text-muted-foreground">Comentário excluído</p>
             ) : editingId === comment.id ? (
-              <div className="mt-2 space-y-2 rounded-lg border bg-background p-2">
+              <div className="mt-2 space-y-2 rounded-md border bg-background p-2">
                 <OrgCommentEditor
                   value={editingBody}
                   onChange={setEditingBody}
@@ -327,7 +351,7 @@ export function OrgCommentsPanel({
               <div
                 className={cn(
                   'mt-1',
-                  isSystem && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
+                  isSystem && 'rounded-md border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
                 )}
               >
                 {(!isSystem || corpoDoEvento(comment)) && (
@@ -340,15 +364,7 @@ export function OrgCommentsPanel({
             )}
 
             {comment.attachments.length > 0 && !comment.excluido && (
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {comment.attachments.map((attachment) => (
-                  <AttachmentButton
-                    key={attachment.id}
-                    attachment={attachment}
-                    onOpen={openAttachment}
-                  />
-                ))}
-              </div>
+              <AnexosDoComentario attachments={comment.attachments} onBaixar={openAttachment} />
             )}
 
             {!nested && !isSystem && !comment.excluido && !isReplying && (
@@ -399,7 +415,7 @@ export function OrgCommentsPanel({
                   await createComment.mutateAsync({
                     body,
                     files,
-                    mentions,
+                    mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
                     parentId: comment.id,
                     respondidoId: comment.id,
                     alvo: { entityType: comment.entity_type, entityId: comment.entity_id },
@@ -501,7 +517,13 @@ export function OrgCommentsPanel({
           mentionCandidates={mentionCandidates}
           focusSignal={focusComposerSignal}
           onSubmit={async (body, files, mentions) => {
-            await createComment.mutateAsync({ body, files, mentions });
+            await createComment.mutateAsync({
+              body,
+              files,
+              // O `@todos` vira a roda de gente do projeto no instante de
+              // gravar, sem quem escreveu: ver `expandirMencaoTodos`.
+              mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
+            });
             // O que acabei de publicar entra no fim da lista: desce até ele.
             ancoraPendente.current = true;
             ancorarNoFim();

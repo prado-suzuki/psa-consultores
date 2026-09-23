@@ -40,7 +40,10 @@ export const AREAS = {
   tax: { nome: 'Tax', subtitulo: 'Gestão de Projetos' },
   admFin: { nome: 'Adm & Fin', subtitulo: 'Administrativo e Financeiro' },
   rotina: { nome: 'Digital Rotina', subtitulo: 'Gestão de Projetos' },
-  dev: { nome: 'Digital Dev', subtitulo: 'Ambiente de desenvolvimento' },
+  // Era 'Digital Dev' ate 22/09/2026. A ferramenta mudou de area, de rota e de
+  // nome; a CHAVE segue `dev` porque ela e o identificador do layout e do
+  // registro de telas, e renomear chave so trocaria o custo de lugar.
+  dev: { nome: 'Tax Work', subtitulo: 'Ferramentas Tax' },
   gestao: { nome: 'Gestão', subtitulo: 'Painel de Controle' },
   admin: { nome: 'Administração', subtitulo: 'Gestão Geral' },
   fixos: { nome: 'Fixos', subtitulo: 'Área Fixos' },

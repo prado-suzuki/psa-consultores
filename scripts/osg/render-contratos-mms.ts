@@ -100,6 +100,7 @@ interface LinhaDoCatalogo {
     ancora: string | null;
     repete_colecao: string | null;
     reinicia_numeracao: boolean | null;
+    quebra_pagina_antes: boolean | null;
     versoes: { conteudo: string }[];
     flags: { flag: { nome: string } | null }[];
   } | null;
@@ -118,7 +119,7 @@ interface LinhaDoCatalogo {
 async function carregarTemplate(nome: string): Promise<Template> {
   const recurso =
     'tmpl_documento_bloco?select=ordem,obrigatorio,' +
-    'bloco:tmpl_bloco(nome,tipo,ancora,repete_colecao,reinicia_numeracao,' +
+    'bloco:tmpl_bloco(nome,tipo,ancora,repete_colecao,reinicia_numeracao,quebra_pagina_antes,' +
     'versoes:tmpl_bloco_versao(conteudo,atual),' +
     'flags:tmpl_bloco_flag(flag:tmpl_flag(nome)))' +
     `&documento_id=eq.${'${id}'}&order=ordem`;
@@ -140,6 +141,7 @@ async function carregarTemplate(nome: string): Promise<Template> {
       repeteColecao: l.bloco.repete_colecao ?? undefined,
       ancora: l.bloco.ancora ?? undefined,
       reiniciaNumeracao: l.bloco.reinicia_numeracao === true,
+      quebraPaginaAntes: l.bloco.quebra_pagina_antes === true,
       // As flags que o bloco EXIGE. Sem carregá-las, `comporBlocos` via um bloco
       // opcional sem flag declarada e o descartava — os três parágrafos da
       // pecuária sairiam do documento em silêncio, e o arnês diria que estava
@@ -235,7 +237,7 @@ const SELECT_EXPLORACAO =
     'matricula_id,area_explorada,area_unidade,ordem,origem_tipo,origem_externa_id,' +
     'origem_exploracao_rural_id),' +
   'origens:exploracao_rural_origem_externa(id,titulo_instrumento,data_assinatura,' +
-    'outorgante_pessoa_id,outorgante_representante,outorgante_capital_social_na_assinatura)';
+    'outorgante_pessoa_id,outorgante_representante)';
 
 // O MESMO select da tela (MATRICULA_GERACAO_SELECT), porque é o mesmo mapeador
 // que consome o resultado.

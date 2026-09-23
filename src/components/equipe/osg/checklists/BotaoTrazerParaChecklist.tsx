@@ -20,6 +20,7 @@ import { ListChecks, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
 import { DialogoPassarParaChecklist } from '../onboarding/DialogoPassarParaChecklist';
@@ -53,6 +54,9 @@ export function BotaoTrazerParaChecklist({
 
   return (
     <>
+      <ButtonTooltip text={'Passa a classificar automaticamente o que o cliente enviar: cada '
+        + 'documento aparece ligado à pessoa ou ao imóvel a que pertence. Não '
+        + 'reclassifica o que já foi recebido, e não há como voltar.'}>
       <Button
         size="sm"
         onClick={() => setConfirmando(true)}
@@ -60,15 +64,13 @@ export function BotaoTrazerParaChecklist({
         /* Terceira pessoa, e a segunda metade é a que evita chamado: quem clica
            esperando que os pendentes de agora se resolvam sozinhos não vai ver
            isso acontecer — a transição vale para o que vier DEPOIS dela. */
-        title={'Passa a classificar automaticamente o que o cliente enviar: cada '
-          + 'documento aparece ligado à pessoa ou ao imóvel a que pertence. Não '
-          + 'reclassifica o que já foi recebido, e não há como voltar.'}
       >
         {passarParaChecklist.isPending
           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           : <ListChecks className="mr-2 h-4 w-4" />}
         Trazer para o checklist
       </Button>
+      </ButtonTooltip>
 
       <DialogoPassarParaChecklist
         aberto={confirmando}

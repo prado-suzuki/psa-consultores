@@ -52,6 +52,14 @@ export interface EntradaGovernanca {
   /** Só os órgãos que recebem cláusula. O filtro é do chamador. */
   orgaos: OrgaoParaMapear[];
   linhas: LinhaParaMapear[];
+  /**
+   * O que a Matriz pede e a cláusula não sabe escrever — hoje, a escada de
+   * alçada cujos degraus não se comparam (ver `pisosDaLinha`). Some com a
+   * pendência de campo obrigatório: aqui o dado EXISTE, e é a combinação dele
+   * que não vira frase. Opcional para não obrigar chamador antigo (os testes
+   * montam a entrada à mão).
+   */
+  pendencias?: string[];
 }
 
 /**

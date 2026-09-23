@@ -257,10 +257,10 @@ describe("AbaPorEstado", () => {
     expect(screen.getByText("Top 12 Clientes — Quem está demandando")).toBeInTheDocument();
     expect(screen.getByText("Notas metodológicas")).toBeInTheDocument();
     expect(screen.getByText("Exportação em curso")).toBeInTheDocument();
-    expect(screen.getByTitle("Ver detalhamento de SP")).toHaveTextContent(/R\$\s*700/);
-    expect(screen.getByTitle("Ver detalhamento de SP")).toHaveTextContent("3 NFs · alíq 8.6%");
+    expect(screen.getByRole("button", { name: "Ver detalhamento de SP" })).toHaveTextContent(/R\$\s*700/);
+    expect(screen.getByRole("button", { name: "Ver detalhamento de SP" })).toHaveTextContent("3 NFs · alíq 8.6%");
 
-    await user.click(screen.getByTitle("Ver detalhamento de SP"));
+    await user.click(screen.getByRole("button", { name: "Ver detalhamento de SP" }));
 
     expect(await screen.findByText("Destino: SP")).toBeInTheDocument();
     expect(screen.getByText("Produtos vendidos para SP (2 NCMs)")).toBeInTheDocument();
@@ -290,7 +290,7 @@ describe("AbaPorEstado", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Top 3 concentram", { exact: false })).toHaveTextContent("0.0%");
     expect(screen.getByText("Sem fluxo de faturamento para esta seleção")).toBeInTheDocument();
-    expect(screen.getByTitle("Ver detalhamento de SP")).toHaveTextContent("0 NFs · alíq 0.0%");
+    expect(screen.getByRole("button", { name: "Ver detalhamento de SP" })).toHaveTextContent("0 NFs · alíq 0.0%");
     expect(container).not.toHaveTextContent(/NaN|Infinity/);
   });
 

@@ -17,6 +17,7 @@ import {
 } from '@/lib/clientesPorRegiao';
 import { useOsVolumePorCliente } from '@/hooks/useOsVolumePorCliente';
 import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Mapa de calor (choropleth) dos clientes por estado, para o módulo Gerencial.
@@ -200,7 +201,10 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
                       estado.categoria === 'zero'
                         ? `url(#${PATTERN_ZERO})`
                         : corDaFaixa(estado.indiceFaixa ?? 0),
-                    stroke: selecionadoUf ? 'var(--board-t1)' : 'var(--board-card)',
+                    /* `--bd-control` e não `--board-card`: o risco separa dois
+                       estados PINTADOS, e o cartão virou tinta translúcida em
+                       17/09/2026 — a divisa sumiria por cima do fill. */
+                    stroke: selecionadoUf ? 'var(--board-t1)' : 'var(--bd-control)',
                     strokeWidth: selecionadoUf ? 4 : 1.6,
                     strokeLinejoin: 'round',
                   }}
@@ -258,7 +262,9 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
               style={{
                 left: Math.max(0, hover.x + 12),
                 top: Math.max(0, hover.y - 8),
-                background: 'var(--board-card)',
+                /* Tooltip flutua sobre o mapa: fundo opaco, pelo mesmo motivo do
+                   `TOOLTIP_STYLE` em `board-chart-defaults.ts`. */
+                background: 'var(--bd-control)',
                 border: '1px solid var(--board-border)',
                 color: 'var(--board-t1)',
               }}
@@ -401,20 +407,22 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
                   >
                     {i + 1}
                   </span>
-                  <span
+                  <ElementTooltip text={c.nome}>
+                    <span
                     className="min-w-0 flex-1 truncate text-[12.5px]"
                     style={{ color: 'var(--board-t1)' }}
-                    title={c.nome}
                   >
                     {c.nome}
                   </span>
-                  <span
+                  </ElementTooltip>
+                  <ElementTooltip text={`${c.projetos} OS`}>
+                    <span
                     className="shrink-0 text-[11px] tabular-nums"
                     style={{ color: 'var(--board-t3)' }}
-                    title={`${c.projetos} OS`}
                   >
                     {c.projetos} OS
                   </span>
+                  </ElementTooltip>
                   <span
                     className="shrink-0 text-[12px] font-semibold tabular-nums"
                     style={{ color: 'var(--board-t1)', minWidth: 64, textAlign: 'right' }}

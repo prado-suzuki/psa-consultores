@@ -19,7 +19,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
       title={hub.title}
       subtitle={hub.subtitle}
       headerActions={
-        <Button variant="outline" onClick={() => navigate(hub.backPath ?? "/equipe/dev")}>
+        <Button variant="outline" onClick={() => navigate(hub.backPath ?? "/equipe/tax/work")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           {hub.backLabel ?? "Voltar ao painel"}
         </Button>

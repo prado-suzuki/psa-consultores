@@ -44,6 +44,9 @@ export interface OrgTask {
    
    estimated_hours: number | null;
    actual_hours: number | null;
+   /** Horas de quem REVISOU, acumuladas a cada despacho. Ver a migration
+    *  `20260921173000_revisao_horas_do_revisor.sql`. */
+   review_hours: number | null;
    parent_task_id: string | null;
   start_date: string | null;
   project_id: string | null;
@@ -99,6 +102,8 @@ export interface TaskFilters {
    tags?: string[];
    estimated_hours?: number;
    actual_hours?: number | null;
+   /** Horas de quem REVISOU, acumuladas. Nunca se mistura com `actual_hours`. */
+   review_hours?: number | null;
    parent_task_id?: string;
   project_id: string;
    client_id?: string;
@@ -465,14 +470,39 @@ export const useUpdateOrgTask = (
          }
 
          const currentUserIsReviewer = current && isDelegatedOrgTaskReviewer(current, user?.id);
-         if (currentUserIsReviewer) {
-           if (changedOnly.status === 'done') {
-             throw new Error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
-           }
+
+         /*
+          * ESPELHO DA RLS-06 NO FRONT, e ele tem de andar junto com o gatilho.
+          * Os dois ramos abaixo são os dois ramos de lá, na mesma ordem, e cada
+          * um com a MESMA condição de entrada — foi disso que este trecho já se
+          * afastou duas vezes.
+          *
+          * Concluir é vedado ao revisor em qualquer status, como no gatilho.
+          */
+         if (currentUserIsReviewer && changedOnly.status === 'done') {
+           throw new Error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
+         }
+
+         /*
+          * Já o ramo estrito do despacho só vale com a tarefa EM REVISÃO, que é
+          * o `OLD.status = 'review'` do gatilho. A condição faltava aqui desde o
+          * commit que criou o fluxo, e a trava pegava o revisor em qualquer
+          * status: mandar de volta para revisão uma tarefa que estava em ajuste
+          * morria com a mensagem de devolução, que nada tem a ver. O `TaskModal`
+          * sempre leu a regra com o status junto (`currentUserIsReviewer` lá é
+          * `status === 'review' && ...`); era o hook que estava fora de passo.
+          *
+          * A lista de campos: em 21/09/2026 o gatilho passou a aceitar
+          * `review_hours`, a hora que o revisor informa no despacho, e aqui ela
+          * ficou para trás — o despacho com hora morria antes de chegar ao
+          * banco. Quem mexer num dos dois mexe no outro.
+          */
+         if (currentUserIsReviewer && current.status === 'review') {
+           const CAMPOS_DO_DESPACHO = new Set(['status', 'review_hours']);
            const changedKeys = Object.keys(changedOnly);
            const isValidReturn = reviewTransitionValidated &&
              changedOnly.status === 'em_ajuste' &&
-             changedKeys.every(key => key === 'status');
+             changedKeys.every((key) => CAMPOS_DO_DESPACHO.has(key));
            if (!isValidReturn) {
              throw new Error('Abra a tarefa e informe o ajuste necessário para devolvê-la.');
            }

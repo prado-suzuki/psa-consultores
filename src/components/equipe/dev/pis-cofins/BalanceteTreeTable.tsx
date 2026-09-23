@@ -17,6 +17,7 @@ import {
   PIS_MONTH_HEADER_CLASS as MONTH_HIGHLIGHT,
   PIS_HEADER_BUTTON_CLASS as HEADER_BTN,
 } from "@/components/equipe/dev/pis-cofins/theme";
+import { ButtonTooltip } from "@/components/ui/button-tooltip";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -448,13 +449,14 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                   ) : (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button
+                        <ButtonTooltip text="Adicionar conta ao cálculo">
+                          <button aria-label="Adicionar conta ao cálculo"
                           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-5 w-5 rounded bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center text-xs font-bold"
                           onClick={(e) => e.stopPropagation()}
-                          title="Adicionar conta ao cálculo"
                         >
                           +
                         </button>
+                        </ButtonTooltip>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-2 flex gap-2" align="start" sideOffset={4}>
                         <Button

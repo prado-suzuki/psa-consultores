@@ -148,7 +148,7 @@ const Ajuda = () => {
             {/* Left Column - Login */}
             <div className="w-full lg:w-1/2">
               {/* Login Card */}
-              <div className="bg-white rounded-2xl border border-border shadow-sm p-6 md:p-8">
+              <div className="bg-card rounded-2xl border border-border shadow-sm p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

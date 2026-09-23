@@ -27,7 +27,8 @@ const PESSOA_DIFF_FIELDS: (keyof PessoaRow)[] = [
   'filiacao_pai', 'filiacao_mae', 'profissao',
   'documento_identidade_tipo', 'documento_identidade_numero', 'documento_identidade_orgao', 'documento_identidade_uf',
   'conjuge_id',
-  'nire', 'junta_comercial_uf', 'data_constituicao', 'objeto_social', 'status_constituicao',
+  'nome_fantasia', 'nire', 'junta_comercial_uf', 'data_constituicao', 'objeto_social',
+  'status_constituicao',
   'tipo_empresa',
 ];
 

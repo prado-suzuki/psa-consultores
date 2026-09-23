@@ -27,6 +27,7 @@ import {
   type OrigemTipo,
 } from '@/lib/exploracaoRuralModalModels';
 import { OrigemExternaDialog } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/OrigemExternaDialog';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Aba "Imóveis e origens": os itens do Anexo Único.
@@ -343,18 +344,19 @@ export function ImoveisPanel({ draft, onChange, matriculas, pessoas, instrumento
                           {/* `truncate` + `title`: "Lucas do Rio Verde/MT" não cabe na
                               coluna e quebrava a caixa de altura fixa em duas linhas,
                               desalinhando a grade. */}
-                          <span
-                            className="truncate"
-                            title={
+                          <ElementTooltip text={
                               matricula
                                 ? [matricula.municipio_imovel, matricula.uf_imovel].filter(Boolean).join('/')
                                 : undefined
-                            }
+                            }>
+                            <span
+                            className="truncate"
                           >
                             {matricula
                               ? [matricula.municipio_imovel, matricula.uf_imovel].filter(Boolean).join('/') || '—'
                               : '—'}
                           </span>
+                          </ElementTooltip>
                         </ValorDerivado>
                       </Campo>
                   </div>

@@ -7,6 +7,7 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { mapearSociedade } from '@/lib/templates/mapeadores';
 import { confirmarPropostaAC } from '@/lib/osg/alteracaoPorEventos';
 import GerarDocumento from './GerarDocumento';
+import { dicaDe } from '@/test/dica';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -464,7 +465,11 @@ describe('GerarDocumento — caracterização O1', () => {
 
     expect(screen.getByText(/Acme congelada/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByTitle('Abrir o cadastro deste dado')[0]);
+    // O valor com proveniência é um `span` com papel de botão e o balão do cadastro.
+    const valores = screen
+      .getAllByRole('button')
+      .filter((el) => el.tagName === 'SPAN' && dicaDe(el) === 'Abrir o cadastro deste dado');
+    await userEvent.click(valores[0]);
     expect(await screen.findByRole('dialog', { name: 'pessoa-origem' })).toHaveAttribute('data-pessoa', 'empresa-1');
   });
 

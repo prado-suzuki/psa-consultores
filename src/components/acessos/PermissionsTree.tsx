@@ -12,6 +12,7 @@ import {
   getDisplayPath,
   getTreeNodeLabelOverride,
 } from './pageCategoryStyles';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface TreeNode {
   segment: string;
@@ -231,9 +232,11 @@ const TreeRow = ({ node, depth, userIsAdmin, grantedIds, onToggle, disabled }: T
         </button>
 
         {state === 'disabled' && !hasChildren && (
-          <span className="text-xs italic text-muted-foreground" title="Requer permissão de administrador">
+          <ElementTooltip text="Requer permissão de administrador">
+            <span className="text-xs italic text-muted-foreground">
             Requer admin
           </span>
+          </ElementTooltip>
         )}
         {total > 0 && hasChildren && (
           <span className="text-xs text-muted-foreground tabular-nums">

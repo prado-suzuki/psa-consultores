@@ -37,7 +37,7 @@ export function EquipeChamadosTable({ tickets, canAssignTickets, areaMap, cluste
   );
 
   return (
-    <Card>
+    <Card variant="tabela">
       <CardHeader>
         <CardTitle>Chamados</CardTitle>
         <CardDescription>{tickets.length} chamado(s) encontrado(s)</CardDescription>

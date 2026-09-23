@@ -74,7 +74,7 @@ export const ProjectList = ({
   return (
     <>
       {viewMode === 'table' && (
-        <Card className="border-border">
+        <Card variant="tabela" className="border-border">
           <Table>
             <TableHeader>
               <TableRow className="border-border">

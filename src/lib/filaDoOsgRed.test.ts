@@ -26,7 +26,7 @@ import { PROPRIEDADES_DE_COR, medirCorCrua } from '@/lib/medirCorCrua';
  *                                                           dizia "documento devolvido")
  *   ModalAvisarCliente, histórico falhou -> destructive
  *   Onboarding, banner de erro           -> destructive
- *   FiscalReport, seção vazia por erro   -> destructive
+ *   TerrasExploradas, seção vazia por erro -> destructive
  *   DocumentGroups, hover da lixeira     -> destructive
  *   HistoricoFlutuante, ACTION_LABELS    -> feito/andamento/ajuste (é mapa: as três
  *                                           entradas andaram juntas)

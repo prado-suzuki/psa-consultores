@@ -452,7 +452,10 @@ export const TaskModal = ({
       return;
     }
 
-    const input = buildOrgTaskInput(values, nextStatus);
+    /* O total já gravado vem da TAREFA e não do formulário: o campo do diálogo
+       guarda só o que foi informado agora, e somar em cima do próprio campo
+       dobraria o valor a cada salvamento. */
+    const input = buildOrgTaskInput(values, nextStatus, task?.review_hours ?? null);
 
     try {
       let taskId = partiallySavedTaskIdRef.current;
@@ -536,15 +539,20 @@ export const TaskModal = ({
     }, 0);
   };
 
+  /* `review_hours` nasce vazio a cada abertura: a pergunta do diálogo é quanto
+     levou ESTA revisão, e quem acumula é o `somaHorasDeRevisao`. Deixar o valor
+     anterior no campo faria o revisor somar de cabeça, ou pior, repetir. */
   const openReviewAction = (action: ReviewAction) => {
     form.clearErrors(['reviewer_id', 'review_comment']);
     form.setValue('review_comment', '');
+    form.setValue('review_hours', '');
     setReviewAction(action);
   };
 
   const closeReviewAction = () => {
     form.clearErrors(['reviewer_id', 'review_comment']);
     form.setValue('review_comment', '');
+    form.setValue('review_hours', '');
     setReviewAction(null);
   };
 
@@ -556,7 +564,10 @@ export const TaskModal = ({
       form.setError('reviewer_id', { type: 'manual', message: 'Selecione quem fará a revisão' });
       return;
     }
-    if (isReviewRichTextEmpty(reviewComment)) {
+    /* Aprovar não pede comentário: o texto do evento é fixo ("Tarefa aprovada"),
+       montado no `onSubmit`. Cobrar um texto que não seria gravado travaria o
+       revisor por nada. */
+    if (reviewAction !== 'approved' && isReviewRichTextEmpty(reviewComment)) {
       form.setError('review_comment', {
         type: 'manual',
         message:
@@ -570,6 +581,10 @@ export const TaskModal = ({
     form.clearErrors(['reviewer_id', 'review_comment']);
     if (reviewAction === 'send') {
       await form.handleSubmit((values) => onSubmit(values, 'send'), handleInvalidSubmit)();
+      return;
+    }
+    if (reviewAction === 'approved') {
+      await form.handleSubmit((values) => onSubmit(values, 'approved'), handleInvalidSubmit)();
       return;
     }
     await form.handleSubmit((values) => onSubmit(values, 'adjustments'), handleInvalidSubmit)();
@@ -681,7 +696,7 @@ export const TaskModal = ({
                           }
                           onRequestAdjustments={() => openReviewAction('adjustments')}
                           onSendForReview={() => openReviewAction('send')}
-                          onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'), handleInvalidSubmit)}
+                          onApprove={() => openReviewAction('approved')}
                         />
                       }
                     />
@@ -738,6 +753,7 @@ export const TaskModal = ({
                     reviewerName={activeReviewerName}
                     disabled={currentUserIsReviewer}
                     prazoDaMae={prazoDaMae}
+                    horasDeRevisao={task?.review_hours ?? null}
                   />
                   <TaskEditBody
                     form={form}

@@ -14,6 +14,7 @@ import { revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 import {
   CLUSTER_LABEL, ESTADO_CHIP, ESTADO_LABEL, estadoDaLinha, PESO_STATUS, STATUS_LINHA,
 } from './checklistKit';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * A ficha de uma entidade: os documentos pedidos a ela, o veredito sobre o que
@@ -213,7 +214,11 @@ function BotaoNaoAplica({ marcado, ocupado, documento, onClick }: {
   onClick: () => void;
 }) {
   return (
-    <button
+    <ButtonTooltip text={marcado
+        ? 'Volta a solicitar este documento desta entidade e o traz de volta para a conta.'
+        : 'Tira este documento da conta desta entidade e da notificação ao cliente. '
+          + 'As outras entidades continuam com ele.'}>
+      <button
       type="button"
       onClick={onClick}
       disabled={ocupado}
@@ -224,10 +229,6 @@ function BotaoNaoAplica({ marcado, ocupado, documento, onClick }: {
       /* Terceira pessoa e o efeito inteiro: o que sai da conta, de onde sai, e o
          que NÃO muda. "As outras continuam devendo" era coloquial e ainda
          deixava dúvida sobre o que continuava valendo. */
-      title={marcado
-        ? 'Volta a solicitar este documento desta entidade e o traz de volta para a conta.'
-        : 'Tira este documento da conta desta entidade e da notificação ao cliente. '
-          + 'As outras entidades continuam com ele.'}
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         marcado
@@ -240,6 +241,7 @@ function BotaoNaoAplica({ marcado, ocupado, documento, onClick }: {
         : marcado ? <Undo2 className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
       {marcado ? 'Voltar a solicitar' : 'Não se aplica'}
     </button>
+    </ButtonTooltip>
   );
 }
 
@@ -347,10 +349,10 @@ function BotaoVeredito({ tom, onClick, children }: {
   children: ReactNode;
 }) {
   return (
-    <button
+    <ButtonTooltip text={DICA_VEREDITO[tom]}>
+      <button
       type="button"
       onClick={onClick}
-      title={DICA_VEREDITO[tom]}
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
@@ -360,6 +362,7 @@ function BotaoVeredito({ tom, onClick, children }: {
     >
       {children}
     </button>
+    </ButtonTooltip>
   );
 }
 

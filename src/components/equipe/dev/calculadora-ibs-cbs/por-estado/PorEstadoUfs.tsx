@@ -6,6 +6,7 @@ import { fmtBRL, fmtBRLCompact, fmtInt, fmtPp } from "@/lib/ibs-cbs/formatters";
 import type { UfAgregada } from "@/lib/porEstadoIbsCbsModel";
 import { CORES_NATUREZA, LABEL_NATUREZA } from "@/components/equipe/dev/calculadora-ibs-cbs/por-estado/constants";
 import { HelpHint } from "@/components/equipe/dev/calculadora-ibs-cbs/por-estado/Primitives";
+import { ButtonTooltip } from "@/components/ui/button-tooltip";
 
 interface PorEstadoUfsProps {
   ufs: UfAgregada[];
@@ -24,13 +25,15 @@ export function PorEstadoUfs({ ufs, faturamentoTotal, onSelecionarUf }: PorEstad
         </CardHeader>
         <CardContent><div className="grid grid-cols-2 gap-3">{ufs.map((uf) => {
           const cor = CORES_NATUREZA[uf.natureza];
-          return <button key={uf.uf} type="button" onClick={() => onSelecionarUf(uf.uf)} className="group relative rounded-lg border border-border overflow-hidden bg-white text-left hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer" title={`Ver detalhamento de ${uf.uf}`}>
+          return <ButtonTooltip key={uf.uf} text={`Ver detalhamento de ${uf.uf}`}>
+            <button aria-label={`Ver detalhamento de ${uf.uf}`} type="button" onClick={() => onSelecionarUf(uf.uf)} className="group relative rounded-lg border border-border overflow-hidden bg-card text-left hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer">
             <div className="absolute inset-0 group-hover:opacity-80 transition-opacity" style={{ background: cor, opacity: 0.05 + (uf.faturamento / maximo) * 0.18 }} />
             <div className="relative p-3"><div className="flex items-center justify-between mb-1"><span className="font-bold text-lg text-foreground">{uf.uf}</span><span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wider" style={{ background: `${cor}25`, color: cor }}>{uf.natureza === "interno" ? "MT" : uf.natureza === "interestadual" ? "Inter." : "Exp."}</span></div><p className="text-sm font-bold text-foreground tabular-nums">{fmtBRLCompact(uf.faturamento)}</p><p className="text-[11px] text-muted-foreground mt-0.5">{fmtInt(uf.qtdNFs)} NFs · alíq {uf.aliqDepois.toFixed(1)}%</p><div className="flex items-center justify-between mt-1.5"><div className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${uf.tributoDepois - uf.tributoAntes < 0 ? "text-success" : "text-destructive"}`}>{uf.tributoDepois - uf.tributoAntes < 0 ? <TrendingDown className="h-2.5 w-2.5" /> : <TrendingUp className="h-2.5 w-2.5" />}{fmtPp(uf.aliqDepois - uf.aliqAntes)}</div><span className="text-[10px] text-muted-foreground group-hover:text-foreground font-medium">Detalhes →</span></div></div>
-          </button>;
+          </button>
+          </ButtonTooltip>;
         })}</div></CardContent>
       </Card>
-      <Card className="border-border xl:col-span-3">
+      <Card variant="tabela" className="border-border xl:col-span-3">
         <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold text-foreground flex items-center gap-1.5">Detalhamento por UF<HelpHint><strong>Faturamento</strong>: soma de vProd nas saídas com essa uf_dest.<br /><strong>% Total</strong>: participação no faturamento filtrado.<br /><strong>Ticket médio</strong>: faturamento ÷ qtd. de NFs distintas.<br /><strong>Carga antes / depois</strong>: tributo ÷ faturamento da UF.<br /><strong>Δ pp</strong>: diferença (depois − antes) em pontos percentuais.</HelpHint></CardTitle><p className="text-xs text-muted-foreground">Ordenado por faturamento</p></CardHeader>
         <CardContent className="p-0"><div className="overflow-x-auto"><Table>
           <TableHeader><TableRow className="bg-muted hover:bg-muted"><TableHead className="w-14">UF</TableHead><TableHead>Natureza</TableHead><TableHead className="text-right">Faturamento</TableHead><TableHead className="text-right">% Total</TableHead><TableHead className="text-right">NFs</TableHead><TableHead className="text-right">Ticket médio</TableHead><TableHead className="text-right">Carga antes</TableHead><TableHead className="text-right">Carga depois</TableHead><TableHead className="text-right">Δ pp</TableHead></TableRow></TableHeader>

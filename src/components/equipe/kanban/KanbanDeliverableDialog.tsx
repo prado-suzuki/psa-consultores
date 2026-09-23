@@ -40,6 +40,7 @@ import type {
   EquipeKanbanEditForm,
   EquipeKanbanProfile,
 } from '@/lib/equipeKanban';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface KanbanDeliverableDialogProps {
   selectedDeliverable: EquipeKanbanDeliverable | null;
@@ -219,11 +220,11 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                       checked={subtask.status === 'completed'}
                       onCheckedChange={() => props.onSubtaskStatusChange(subtask)}
                     />
-                    <button
+                    <ButtonTooltip text="Abrir subtarefa (para lançar horas realizadas)">
+                      <button
                       type="button"
                       onClick={() => props.onOpenSubtask(subtask)}
                       className="flex-1 text-left cursor-pointer hover:underline"
-                      title="Abrir subtarefa (para lançar horas realizadas)"
                     >
                       <span
                         className={cn(
@@ -237,6 +238,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                         {subtask.title}
                       </span>
                     </button>
+                    </ButtonTooltip>
                     {subtask.estimated_hours && (
                       <span className="text-xs text-muted-foreground">{subtask.estimated_hours}h</span>
                     )}

@@ -19,6 +19,7 @@ import {
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
 import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface KanbanTableProps {
   deliverables: HierarchicalEquipeKanbanDeliverable[];
@@ -36,7 +37,7 @@ interface KanbanTableProps {
 
 export function KanbanTable(props: KanbanTableProps) {
   return (
-    <Card className="border-border">
+    <Card variant="tabela" className="border-border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -79,12 +80,13 @@ export function KanbanTable(props: KanbanTableProps) {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {props.getGroupLabel(deliverable) && (
-                        <span
+                        <ElementTooltip text={props.getGroupLabel(deliverable) ?? undefined}>
+                          <span
                           className="max-w-[16rem] truncate text-xs font-normal text-muted-foreground"
-                          title={props.getGroupLabel(deliverable) ?? undefined}
                         >
                           {props.getGroupLabel(deliverable)} ·
                         </span>
+                        </ElementTooltip>
                       )}
                       {deliverable.task_code && (
                         <span className="text-muted-foreground font-normal">{deliverable.task_code}</span>
@@ -106,12 +108,13 @@ export function KanbanTable(props: KanbanTableProps) {
                         </Badge>
                       )}
                       {props.getBlocker(deliverable) && (
-                        <span
-                          title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
+                        <ElementTooltip text={formatBlockerTooltip(props.getBlocker(deliverable)!)}>
+                          <span
                           className="inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                         >
                           🚩 Bloqueada
                         </span>
+                        </ElementTooltip>
                       )}
                     </div>
                   </TableCell>
@@ -165,7 +168,9 @@ export function KanbanTable(props: KanbanTableProps) {
                           )}
                           {subtask.title}
                           {props.getBlocker(subtask) && (
-                            <span title={formatBlockerTooltip(props.getBlocker(subtask)!)}>🚩</span>
+                            <ElementTooltip text={formatBlockerTooltip(props.getBlocker(subtask)!)}>
+                              <span>🚩</span>
+                            </ElementTooltip>
                           )}
                         </div>
                       </TableCell>

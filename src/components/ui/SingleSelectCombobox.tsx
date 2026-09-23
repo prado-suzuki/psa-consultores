@@ -42,6 +42,11 @@ interface SingleSelectComboboxProps {
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   'aria-required'?: boolean;
+  /**
+   * Nome do campo para quem não vê o rótulo. Existe para o campo que dispensou
+   * o `<Label>` em cima e ficou só com o ícone dentro do gatilho.
+   */
+  'aria-label'?: string;
 }
 
 /** Valor interno da linha que limpa. Não sai daqui: o `onChange` devolve `null`. */
@@ -73,6 +78,7 @@ export function SingleSelectCombobox({
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   'aria-required': ariaRequired,
+  'aria-label': ariaLabel,
 }: SingleSelectComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -93,6 +99,7 @@ export function SingleSelectCombobox({
           aria-describedby={ariaDescribedBy}
           aria-invalid={ariaInvalid}
           aria-required={ariaRequired}
+          aria-label={ariaLabel}
           disabled={disabled}
           style={style}
           // `hover:` neutralizado, e não é preferência: a variante `outline` traz
@@ -113,7 +120,10 @@ export function SingleSelectCombobox({
           )}
         >
           {icone}
-          <span className={cn('truncate', !selected && 'text-muted-foreground text-xs')}>
+          {/* `flex-1 text-left`: com ícone, o `justify-between` do gatilho jogava
+              o rótulo para o MEIO do campo, entre o ícone e a seta — três campos
+              lado a lado ficavam com o texto começando em posições diferentes. */}
+          <span className={cn('flex-1 truncate text-left', !selected && 'text-muted-foreground text-xs')}>
             {selected?.label ?? placeholder}
           </span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />

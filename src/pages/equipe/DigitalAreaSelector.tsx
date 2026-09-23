@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, Code2, ChevronRight, ShieldCheck, Map } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ChevronRight, ShieldCheck, Map } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
 import logo from '@/assets/logo-psa.png';
@@ -24,6 +24,10 @@ const DigitalAreaSelector = () => {
   const { categories, isLoading } = useUserAccessibleCategories();
   const { hasAccess: canAccessAcessos, isLoading: acessosLoading } = usePageAccess('/equipe/acessos');
 
+  // O cartão "Digital Dev" saiu em 22/09/2026: a ferramenta virou o TAX Work e
+  // mudou de área, de rota e de nome. Nenhuma pessoa fica isolada por isso —
+  // medido em produção, ZERO pessoas tinham só as ferramentas sem ter também a
+  // Tax, então todas continuam alcançando a ferramenta pela porta nova.
   const allAreas: AreaCard[] = [
     {
       id: 'rotina',
@@ -33,15 +37,6 @@ const DigitalAreaSelector = () => {
       path: '/equipe/dashboard',
       color: 'from-blue-500 to-cyan-500',
       category: 'rotina',
-    },
-    {
-      id: 'dev',
-      label: 'Digital Dev',
-      description: 'Ambiente de criação e desenvolvimento de ferramentas automatizadas',
-      icon: Code2,
-      path: '/equipe/dev',
-      color: 'from-purple-500 to-pink-500',
-      category: 'dev',
     },
     {
       id: 'mapa',

@@ -28,6 +28,7 @@ import {
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
 import { linkEspelhado } from '@/lib/areaTheme';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface MenuItem {
   id: string;
@@ -61,7 +62,11 @@ const menuItems: MenuItem[] = [
     id: 'inicio',
     label: 'Início',
     icon: Home,
-    path: '/equipe/tax'
+    // Desceu de `/equipe/tax` para `/equipe/tax/inicio` em 22/09/2026, quando a
+    // raiz virou a escolha entre TAX Projects e TAX Work. Apontar para a raiz
+    // faria o "Início" EXPULSAR a pessoa da área, de volta para o seletor.
+    // Mesmo endereco que a OSG usa no item equivalente (`/equipe/osg/inicio`).
+    path: '/equipe/tax/inicio'
   },
   {
     // Item de primeiro nível, espelhando a OSG (Início, Dashboard, Projetos,
@@ -260,13 +265,13 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
                   const childActive = isActive(child.path) ||
                     (child.id === 'projetos-tarefas' && location.pathname === '/equipe/tax/projetos/tarefas');
                   return (
-                    <button
-                      key={child.id}
+                    <ButtonTooltip key={child.id} text={child.label}>
+                      <button aria-label={child.label}
+                     
                       onClick={() => navigate(child.path)}
                       // O título vale sempre, não só recolhido: rótulo comprido
                       // agora corta com reticências em vez de vazar, e a versão
                       // inteira fica ao alcance do mouse.
-                      title={child.label}
                       className={cn(
                         classesItemDaBarra({ ativo: childActive, trilho, sub: true }),
                         // Item de submenu ganha um respiro: o recuo da barra à
@@ -278,6 +283,7 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
                       {!trilho && <span className="min-w-0 truncate">{child.label}</span>}
                     </button>
+                    </ButtonTooltip>
                   );
                 })}
               </div>
@@ -289,15 +295,16 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
 
     const active = isActive(item.path);
     return (
-      <button
-        key={item.id}
+      <ButtonTooltip key={item.id} text={trilho ? item.label : undefined}>
+        <button aria-label={trilho ? item.label : undefined}
+       
         onClick={() => item.path && goTo(item.path)}
-        title={trilho ? item.label : undefined}
         className={classesItemDaBarra({ ativo: active, trilho })}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
         {!trilho && <span>{item.label}</span>}
       </button>
+      </ButtonTooltip>
     );
   };
 

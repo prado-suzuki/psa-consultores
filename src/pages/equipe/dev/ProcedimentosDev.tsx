@@ -107,7 +107,7 @@ const ProcedimentosDev = () => {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] min-h-[280px] animate-pulse" />
+            <div key={i} className="bg-card rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] min-h-[280px] animate-pulse" />
           ))}
         </div>
       );

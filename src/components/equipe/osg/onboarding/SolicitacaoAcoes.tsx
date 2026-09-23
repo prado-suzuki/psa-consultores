@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
 import { DialogoPassarParaChecklist } from './DialogoPassarParaChecklist';
 
@@ -91,28 +92,26 @@ export function SolicitacaoAcoes({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {temOrigemNaOs && (
+        <ButtonTooltip text={listaVazia
+          ? 'Cria a lista de documentos a partir dos produtos contratados na OS.'
+          : 'Verifica se novos produtos foram incluídos na OS e adiciona os documentos necessários à solicitação.'}>
         <Button
           size="sm"
           variant={listaVazia ? 'default' : 'outline'}
           onClick={() => (comOCliente ? setConfirmarAtualizacao(true) : onGerar())}
           disabled={ocupado}
-          /* A primeira frase é a da Patrícia (10/09/2026). A segunda diz o que a
-             ação NÃO faz, e é a parte que evita chamado: quem dispensou um
-             documento e clica aqui esperando recuperá-lo não recupera — a RPC é
-             idempotente e nunca desfaz dispensa. */
-          title={listaVazia
-            ? 'Cria a lista de documentos a partir dos produtos contratados na OS.'
-            : 'Verifica se novos produtos foram incluídos na OS e adiciona os documentos '
-              + 'necessários à solicitação. Não remove nada, e documento dispensado não volta.'}
         >
           {ocupado
             ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             : <FileStack className="mr-2 h-4 w-4" />}
           {listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar documentos da OS'}
         </Button>
+        </ButtonTooltip>
       )}
 
       {status === 'rascunho' && (
+        <ButtonTooltip text={'Abre a escolha de destinatários e canais. O envio acontece uma vez: '
+          + 'depois dele, cobrar o que faltar é pelo checklist.'}>
         <Button
           size="sm"
           onClick={onEnviar}
@@ -120,29 +119,30 @@ export function SolicitacaoAcoes({
           /* Abre o modal, não envia. E diz que é uma vez só: o botão some
              depois, porque só existe em rascunho, e quem não sabe disso fica
              procurando um segundo "Enviar" para cobrar o que faltou. */
-          title={'Abre a escolha de destinatários e canais. O envio acontece uma vez: '
-            + 'depois dele, cobrar o que faltar é pelo checklist.'}
         >
           <Send className="mr-2 h-4 w-4" />
           Enviar solicitação
         </Button>
+        </ButtonTooltip>
       )}
 
       {enviada && (
+        <ButtonTooltip text={'Passa a classificar automaticamente o que o cliente enviar: cada '
+          + 'documento aparece ligado à pessoa ou ao imóvel a que pertence.'}>
         <Button
           size="sm"
           onClick={() => setConfirmarChecklist(true)}
           disabled={ocupado}
-          title={'Passa a classificar automaticamente o que o cliente enviar: cada '
-            + 'documento aparece ligado à pessoa ou ao imóvel a que pertence. Não há '
-            + 'como voltar.'}
         >
           <ListChecks className="mr-2 h-4 w-4" />
           Passar para o checklist
         </Button>
+        </ButtonTooltip>
       )}
 
       {status && (
+        <ButtonTooltip text={'Abre a confirmação de encerramento e a escolha de quem é avisado. '
+          + 'Finalizar é definitivo: não há como reabrir.'}>
         <Button
           size="sm"
           variant="outline"
@@ -151,12 +151,11 @@ export function SolicitacaoAcoes({
           /* Abre o modal, não finaliza. Desde 11/09/2026 a confirmação deixou de
              ser um `AlertDialog` daqui e virou `ModalFinalizarSolicitacao`, que
              além de confirmar escolhe quem recebe o aviso de conferência. */
-          title={'Abre a confirmação de encerramento e a escolha de quem é avisado. '
-            + 'Finalizar é definitivo: não há como reabrir.'}
         >
           <Lock className="mr-2 h-4 w-4" />
           Finalizar solicitação
         </Button>
+        </ButtonTooltip>
       )}
 
       <AlertDialog open={confirmarAtualizacao} onOpenChange={setConfirmarAtualizacao}>
@@ -166,7 +165,7 @@ export function SolicitacaoAcoes({
             <AlertDialogDescription>
               O cliente já está vendo esta lista. Os documentos que a OS trouxer de novo
               aparecem para ele imediatamente, e ele não é avisado por e-mail. Nada do que
-              já está pedido é alterado.
+              já está pedido é alterado. Documento dispensado não volta.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

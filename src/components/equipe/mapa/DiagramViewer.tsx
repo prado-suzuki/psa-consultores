@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { toast } from 'sonner';
 import Modal from './Modal';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 // Torna o SVG do mermaid bem-formado em XML (necessário pra abrir o .svg
 // standalone e pra rasterizar em canvas → PNG). O mermaid pode emitir tags HTML
@@ -355,30 +356,33 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
           <h2 style={{ margin: 0, flex: 1 }}>{title || 'Diagrama do Processo'}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
+            <ButtonTooltip text="Diminuir (ou role o mouse sobre o diagrama)">
+              <button aria-label="Diminuir (ou role o mouse sobre o diagrama)"
               type="button"
               className="btn-action-sm"
               style={{ fontSize: 20, lineHeight: 1, width: 36, height: 36, padding: 0 }}
               onClick={() => setZoom(z => clampZoom(z / 1.25))}
-              title="Diminuir (ou role o mouse sobre o diagrama)"
             >−</button>
+            </ButtonTooltip>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', minWidth: 52, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
               {Math.round(zoom * 100)}%
             </span>
-            <button
+            <ButtonTooltip text="Aumentar (ou role o mouse sobre o diagrama)">
+              <button aria-label="Aumentar (ou role o mouse sobre o diagrama)"
               type="button"
               className="btn-action-sm"
               style={{ fontSize: 20, lineHeight: 1, width: 36, height: 36, padding: 0 }}
               onClick={() => setZoom(z => clampZoom(z * 1.25))}
-              title="Aumentar (ou role o mouse sobre o diagrama)"
             >+</button>
-            <button
+            </ButtonTooltip>
+            <ButtonTooltip text="Ajustar à tela">
+              <button
               type="button"
               className="btn-action-sm"
               onClick={() => fitToContainer()}
-              title="Ajustar à tela"
               style={{ marginLeft: 4 }}
             >Ajustar</button>
+            </ButtonTooltip>
           </div>
         </div>
 
@@ -426,29 +430,32 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
         <div className="modal-actions" style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn-cancel" onClick={onClose}>Fechar</button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
+            <ButtonTooltip text="Código-fonte Mermaid (.mmd)">
+              <button
               className="btn-action"
               onClick={handleDownloadMmd}
-              title="Código-fonte Mermaid (.mmd)"
             >
               ⬇ Baixar .mmd
             </button>
-            <button
+            </ButtonTooltip>
+            <ButtonTooltip text="SVG vetorial (escalável)">
+              <button
               className="btn-action"
               onClick={handleDownloadSvg}
               disabled={!svg}
-              title="SVG vetorial (escalável)"
             >
               ⬇ Baixar SVG
             </button>
-            <button
+            </ButtonTooltip>
+            <ButtonTooltip text="Abre o diagrama no editor mermaid.live, em nova guia, já carregado">
+              <button
               className="btn-save"
               onClick={handleOpenMermaidLive}
               disabled={!code}
-              title="Abre o diagrama no editor mermaid.live, em nova guia, já carregado"
             >
               ↗ Abrir no Mermaid Live
             </button>
+            </ButtonTooltip>
           </div>
         </div>
       </div>

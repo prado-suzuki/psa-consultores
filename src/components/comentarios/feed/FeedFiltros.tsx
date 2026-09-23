@@ -1,10 +1,11 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, User, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, Paperclip, Search, User, X } from 'lucide-react';
 
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -15,15 +16,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
 import { useExternalClients, useOrgProjectsForFilter, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import {
+  aoTrocarDeCliente,
   contarFiltrosAtivos,
   FILTROS_VAZIOS,
   PERIODOS_DO_FEED,
+  projetosDoCliente,
   temFiltroAtivo,
+  termoDaBusca,
   type FeedFiltros as FeedFiltrosValor,
   type PeriodoDoFeed,
 } from '@/lib/feedFiltros';
+
+/**
+ * Quanto o campo de busca espera antes de virar recorte.
+ *
+ * Cada termo é uma lista paginada própria no React Query (a chave carrega o
+ * recorte), então tecla a tecla seriam oito consultas para escrever
+ * "balancete", cada uma abrindo o cursor do zero.
+ */
+const ESPERA_DA_BUSCA = 350;
 
 interface FeedFiltrosProps {
   filtros: FeedFiltrosValor;
@@ -45,7 +59,8 @@ const ITEM_DA_ALTERNANCIA =
  * A barra de recorte do feed.
  *
  * Dois níveis, por frequência de uso. **Menções** é o recorte do dia a dia —
- * "onde me chamaram" — e fica a um clique, em alternância com o feed inteiro; o
+ * "onde me chamaram" — e fica a um clique, em alternância com o feed inteiro e
+ * com **Anexos** ("onde está o arquivo que mandaram"); o
  * **período** também fica à vista, porque é o eixo que se mexe junto com
  * qualquer outro. Cliente, projeto e usuário entram num popover: são listas
  * grandes, precisam de busca e não se troca a cada minuto.
@@ -68,7 +83,28 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     () => clientes.map((cliente) => ({ value: cliente.id, label: cliente.nome })),
     [clientes],
   );
+  /**
+   * A lista de projetos obedece ao cliente escolhido.
+   *
+   * Sem isso, o popover oferecia todos os projetos da casa depois de a pessoa já
+   * ter dito de qual cliente ela está falando, e escolher um projeto de outro
+   * cliente montava um recorte impossível (os dois filtros se cruzam no `WHERE`),
+   * devolvendo feed vazio sem explicar a causa.
+   */
+  const projetosOferecidos = useMemo(
+    () => projetosDoCliente(projetos, filtros.clienteId),
+    [projetos, filtros.clienteId],
+  );
   const opcoesDeProjeto = useMemo<ComboOption[]>(
+    () => projetosOferecidos.map((projeto) => ({ value: projeto.id, label: projeto.name })),
+    [projetosOferecidos],
+  );
+  /**
+   * A etiqueta lê a lista INTEIRA: o projeto continua nomeado enquanto o cliente
+   * está sendo trocado, mesmo no instante em que ele já não está entre os
+   * oferecidos.
+   */
+  const opcoesDeTodoProjeto = useMemo<ComboOption[]>(
     () => projetos.map((projeto) => ({ value: projeto.id, label: projeto.name })),
     [projetos],
   );
@@ -87,7 +123,11 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   const quantidade = contarFiltrosAtivos(filtros);
   /** O contador do botão não conta o que já está visível fora dele. */
   const quantidadeNoPopover =
-    quantidade - (filtros.apenasMencoes ? 1 : 0) - (filtros.periodo !== 'sempre' ? 1 : 0);
+    quantidade -
+    (filtros.apenasMencoes ? 1 : 0) -
+    (filtros.apenasAnexos ? 1 : 0) -
+    (filtros.periodo !== 'sempre' ? 1 : 0) -
+    (termoDaBusca(filtros) ? 1 : 0);
 
   const etiquetas = [
     {
@@ -99,7 +139,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     {
       chave: 'projeto',
       icone: FolderKanban,
-      texto: rotuloDe(opcoesDeProjeto, filtros.projetoId, 'Projeto'),
+      texto: rotuloDe(opcoesDeTodoProjeto, filtros.projetoId, 'Projeto'),
       limpar: () => alterar({ projetoId: null }),
     },
     {
@@ -111,19 +151,23 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   ].filter((etiqueta) => etiqueta.texto !== null);
 
   return (
-    <div className="mb-3 rounded-2xl border border-border/70 bg-card p-2 shadow-sm">
+    /* Sem moldura nem margem: a faixa grudada de `FeedComentarios` é a máscara, e uma
+       margem aqui abriria fresta por onde o conteúdo passaria rolando. */
+    <div>
       <div className="flex flex-wrap items-center gap-2">
         {/*
-          Alternância, e não caixa de seleção: "tudo" e "só menções" são duas
-          leituras do feed, não um filtro que se soma aos outros. `type="single"`
-          do Radix devolve string vazia ao desmarcar o item ativo — aí o valor
-          cai em 'tudo' em vez de virar um terceiro estado sem sentido.
+          Alternância, e não caixa de seleção: "tudo", "só menções" e "só
+          anexos" são leituras do feed, não um filtro que se soma aos outros.
+          `type="single"` do Radix devolve string vazia ao desmarcar o item
+          ativo — aí o valor cai em 'tudo' em vez de virar um estado sem sentido.
         */}
         <ToggleGroup
           type="single"
-          value={filtros.apenasMencoes ? 'mencoes' : 'tudo'}
-          onValueChange={(valor) => alterar({ apenasMencoes: valor === 'mencoes' })}
-          className="justify-start gap-0.5 rounded-lg bg-muted/60 p-0.5"
+          value={filtros.apenasMencoes ? 'mencoes' : filtros.apenasAnexos ? 'anexos' : 'tudo'}
+          onValueChange={(valor) =>
+            alterar({ apenasMencoes: valor === 'mencoes', apenasAnexos: valor === 'anexos' })
+          }
+          className="justify-start gap-0.5 rounded-md bg-muted/60 p-0.5"
         >
           <ToggleGroupItem value="tudo" aria-label="Ver todas as conversas" className={ITEM_DA_ALTERNANCIA}>
             <MessagesSquare aria-hidden className="h-3.5 w-3.5" />
@@ -137,11 +181,35 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
             <AtSign aria-hidden className="h-3.5 w-3.5" />
             Menções
           </ToggleGroupItem>
+          <ToggleGroupItem
+            value="anexos"
+            aria-label="Ver só as conversas com anexo"
+            className={ITEM_DA_ALTERNANCIA}
+          >
+            <Paperclip aria-hidden className="h-3.5 w-3.5" />
+            Anexos
+          </ToggleGroupItem>
         </ToggleGroup>
+
+        {/*
+          A busca fica na PRIMEIRA linha, à vista, e não dentro do popover: ela é
+          o filtro que responde "onde ficou aquilo", a pergunta que trouxe a
+          pessoa ao feed sabendo o que procura. Escondida atrás de um clique ela
+          seria descoberta por quem já não precisa dela.
+
+          Ela cresce e toma o espaço que sobra entre a alternância e os controles
+          de período, porque é onde se digita: campo de texto curto num canto
+          mostra três palavras da frase buscada.
+        */}
+        <CampoDeBusca
+          valor={filtros.busca}
+          onBuscar={(busca) => alterar({ busca })}
+          className="min-w-40 flex-1 max-sm:order-last max-sm:w-full max-sm:flex-none"
+        />
 
         {/* Em tela estreita a linha quebra: aí os dois controles ocupam a largura
             toda em vez de ficarem pendurados num canto. */}
-        <div className="ml-auto flex items-center gap-2 max-sm:w-full">
+        <div className="flex items-center gap-2 max-sm:w-full">
           <Select
             value={filtros.periodo}
             onValueChange={(valor) => alterar({ periodo: valor as PeriodoDoFeed })}
@@ -181,7 +249,9 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
                 <SingleSelectCombobox
                   options={opcoesDeCliente}
                   value={filtros.clienteId}
-                  onChange={(valor) => alterar({ clienteId: valor })}
+                  /* Trocar de cliente derruba o projeto que era de outro, ver
+                     `aoTrocarDeCliente`. */
+                  onChange={(valor) => onFiltrosChange(aoTrocarDeCliente(filtros, valor, projetos))}
                   placeholder="Todos os clientes"
                   searchPlaceholder="Buscar cliente…"
                   emptyText="Nenhum cliente encontrado."
@@ -194,9 +264,13 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
                   options={opcoesDeProjeto}
                   value={filtros.projetoId}
                   onChange={(valor) => alterar({ projetoId: valor })}
-                  placeholder="Todos os projetos"
+                  placeholder={filtros.clienteId ? 'Todos os projetos do cliente' : 'Todos os projetos'}
                   searchPlaceholder="Buscar projeto…"
-                  emptyText="Nenhum projeto encontrado."
+                  emptyText={
+                    filtros.clienteId
+                      ? 'Esse cliente não tem projeto cadastrado.'
+                      : 'Nenhum projeto encontrado.'
+                  }
                   className="w-full min-w-0"
                 />
               </CampoDeFiltro>
@@ -223,7 +297,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
       </div>
 
       {(etiquetas.length > 0 || temFiltroAtivo(filtros)) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {etiquetas.map((etiqueta) => (
             <span
               key={etiqueta.chave}
@@ -282,6 +356,89 @@ function CampoDeFiltro({
         {rotulo}
       </Label>
       {children}
+    </div>
+  );
+}
+
+/**
+ * O campo de busca do feed.
+ *
+ * Ele tem estado PRÓPRIO porque o recorte mora na URL: escrever direto lá
+ * repintaria a página e refaria a consulta a cada tecla, e o cursor do feed é
+ * reaberto do zero em cada recorte novo. Aqui a letra aparece na hora e o
+ * recorte só muda quando a digitação para (ou no Enter, para quem não quer
+ * esperar).
+ *
+ * A sincronia de volta compara o termo APARADO. Sem isso, o espaço de
+ * "balancete " sumia debaixo do dedo: a URL guarda o termo sem as pontas, esse
+ * valor voltava para cá e apagava o espaço recém-digitado, colando a palavra
+ * seguinte na anterior.
+ */
+function CampoDeBusca({
+  valor,
+  onBuscar,
+  className,
+}: {
+  valor: string;
+  onBuscar: (busca: string) => void;
+  className?: string;
+}) {
+  const [texto, setTexto] = useState(valor);
+  /** O callback muda de identidade a cada render; o relógio não pode reiniciar por isso. */
+  const buscarRef = useRef(onBuscar);
+  buscarRef.current = onBuscar;
+
+  // O valor de fora manda quando ele muda por outro caminho: "Limpar filtros",
+  // F5, link colado por outra pessoa.
+  useEffect(() => {
+    setTexto((atual) => (atual.trim() === valor.trim() ? atual : valor));
+  }, [valor]);
+
+  useEffect(() => {
+    if (texto.trim() === valor.trim()) return;
+    const relogio = window.setTimeout(() => buscarRef.current(texto), ESPERA_DA_BUSCA);
+    return () => window.clearTimeout(relogio);
+  }, [texto, valor]);
+
+  return (
+    <div className={cn('relative', className)}>
+      <Search
+        aria-hidden
+        className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        type="search"
+        value={texto}
+        onChange={(evento) => setTexto(evento.target.value)}
+        onKeyDown={(evento) => {
+          // Enter não espera o relógio; Esc limpa sem tirar a mão do teclado.
+          if (evento.key === 'Enter') onBuscar(texto);
+          if (evento.key === 'Escape' && texto) {
+            evento.stopPropagation();
+            setTexto('');
+            onBuscar('');
+          }
+        }}
+        placeholder="Buscar no que foi escrito…"
+        aria-label="Buscar no texto dos comentários"
+        /* `[&::-webkit-search-cancel-button]:hidden`: o × nativo do
+           `type="search"` ficaria ao lado do nosso, e o nativo some do estado
+           controlado sem avisar o React. */
+        className="h-9 pl-8 pr-8 text-xs [&::-webkit-search-cancel-button]:hidden"
+      />
+      {texto && (
+        <button
+          type="button"
+          aria-label="Limpar busca"
+          onClick={() => {
+            setTexto('');
+            onBuscar('');
+          }}
+          className="absolute right-2 top-1/2 grid h-4 w-4 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+        >
+          <X aria-hidden className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }

@@ -3,17 +3,40 @@
 // Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
 //   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
 // Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-// Saida: SEM persistencia. Os bytes de cada .pptx voltam inline em base64
-//   para o front baixar via Blob local (nao mexe em Storage nem em
-//   documento_gerado/documento_arquivo — isso segue reservado ao fluxo de minutas).
+//
+// Saida: PERSISTE, desde 21/09/2026. Cada deck vira um arquivo em
+//   `osg-apresentacoes` e uma linha em `osg_apresentacao`, com versao, checksum do
+//   arquivo, checksum do molde, versao do gerador, os problemas congelados e o
+//   SNAPSHOT do conteudo. O front recebe URL assinada, nao mais bytes em base64.
+//
+//   Antes disto a geracao nao deixava rastro: baixava e pronto. Nao havia como
+//   dizer o que foi entregue a um cliente, nem quando, nem de qual molde — e
+//   regerar depois dava outro arquivo, porque o cadastro anda.
+//
+//   Continua NAO mexendo em `documento_gerado`/`documento_arquivo`: aquelas tem
+//   `checklist_item_id` e `triado_em`, e a apresentacao apareceria no checklist do
+//   cliente como documento que ele deve entregar. A fronteira e antiga e vale.
+//
+// A sequencia de gravar (validar → versionar → subir → registrar → assinar) NAO
+//   mora aqui: e a casca `_shared/apresentacao/registrar.ts`, compartilhada com o
+//   `gerar-slides-tributarios`. O que e da OSG entra por parametro — a ancora
+//   `cliente_id` + `tipo`, o bucket, o nome do arquivo e o snapshot.
 //
 // Contrato:
 //   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...] }
+//   → { arquivos: [{ tipo, nome, url, apresentacaoId, versao }],
+//       erros?: [...], problemas?: [...] }
+//
+// `erros` e `problemas` NAO sao a mesma coisa:
+//   erros    — excecao num deck (template ausente, PPTX invalido, erro de query).
+//              Custa o arquivo inteiro; aquele deck nao vem.
+//   problemas — buraco de cadastro. O .pptx SAI, e sai faltando coisa: empresa fora
+//              do quadro, bem sem sociedade de destino, titular em placeholder.
+//              Ate 09/2026 isso ia calado, e quem apresentava descobria na reuniao.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { falhou, registrarApresentacao } from "../_shared/apresentacao/registrar.ts";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 import { unpackPptx, packPptx, readText, writeText, listPaths, type PptxParts } from "../_shared/ooxml/zip.ts";
 import { parseXml, serializeXml, qsa } from "../_shared/ooxml/xml.ts";
@@ -34,10 +57,36 @@ import {
   carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
   type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
+  type ProblemaDoDeck,
 } from "./data.ts";
+import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
+/* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
+   que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
+import {
+  cabemQuantasLinhas, estimarAltura, repartirLinhas,
+  QUADRO_PAD_H, QUADRO_ROW_H, QUADRO_TOP_0, QUADRO_TOP_MAX,
+} from "../_shared/apresentacao-osg/paginacao.ts";
 
 type DeckTipo = "patrimonial" | "societaria";
 type BodyTipo = DeckTipo | "ambas";
+
+/**
+ * O que um gerador devolve: os bytes, as contagens e o SNAPSHOT.
+ *
+ * O snapshot e o modelo de conteudo que virou aquele .pptx — o retorno das
+ * funcoes puras do `conteudo.ts`, que ja e JSON e ja tem gabarito. Vai para
+ * `osg_apresentacao.snapshot_dados` porque a ancora desta tabela e o CLIENTE, e o
+ * cadastro anda: sem gravar o que o deck afirmou, um mes depois ninguem sabe.
+ *
+ * Nao e dump de tabela. Linha crua teria de ser reinterpretada para dizer algo; o
+ * modelo montado JA e a resposta — quais sociedades, quais linhas do quadro, quais
+ * faixas do organograma, quem era o titular.
+ */
+interface DeckMontado {
+  bytes: Uint8Array;
+  contagens: Record<string, number>;
+  snapshot: Record<string, unknown>;
+}
 
 const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
@@ -45,6 +94,10 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
 };
 
 const BUCKET_TEMPLATES = "osg-templates";
+/* Provisionado em 14/08/2026 e vazio ate agora: a geracao nao persistia nada. */
+const BUCKET_SAIDA = "osg-apresentacoes";
+/* Muda quando a forma de montar o slide muda, e fica gravado na apresentacao. */
+const VERSAO_DO_GERADOR = "1.0";
 
 // Slide widescreen (16:9) — dimensoes usadas pra distribuicao horizontal e paginacao.
 const SLIDE_W = 12192000;
@@ -115,14 +168,14 @@ function renderPatrimonialSlide(
 
 async function gerarPatrimonial(
   admin: ReturnType<typeof createClient>,
+  bytesDoMolde: Uint8Array,
   clienteId: string,
   clienteNome: string,
-): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
-  const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.patrimonial);
-  if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS.patrimonial}`);
-  const parts = unpackPptx(new Uint8Array(await dl.data.arrayBuffer()));
+  probs?: ProblemaDoDeck[],
+): Promise<DeckMontado> {
+  const parts = unpackPptx(bytesDoMolde);
 
-  const sociedades = await carregarPatrimonial(admin, clienteId);
+  const sociedades = await carregarPatrimonial(admin, clienteId, probs);
 
   const TEMPLATE = "ppt/slides/slide3.xml";
   if (sociedades.length === 0) {
@@ -182,7 +235,11 @@ async function gerarPatrimonial(
 
   const issues = validatePptx(parts);
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
-  return { bytes: packPptx(parts), contagens: { sociedades: sociedades.length } };
+  return {
+    bytes: packPptx(parts),
+    contagens: { sociedades: sociedades.length },
+    snapshot: { sociedades },
+  };
 }
 
 // ============================================================================
@@ -346,15 +403,8 @@ const QUADRO_GAP_H = 274320;    // 0.3"
 const QUADRO_LEFT_0 = 548640;   // 0.6"
 const QUADRO_LEFT_1 = QUADRO_LEFT_0 + QUADRO_COL_W + QUADRO_GAP_H;
 const QUADRO_LEFT_CENTER = 2971800; // 3.25" (1 empresa)
-const QUADRO_TOP_0 = 1417320;   // 1.55"
-const QUADRO_TOP_MAX = 6492240; // 7.1"
-const QUADRO_ROW_H = 292608;    // ~0.32" (super-estimado pra evitar sobreposicao)
-const QUADRO_PAD_H = 365760;    // ~0.40" (respiro entre tabelas empilhadas)
 
-function estimarAltura(rowCount: number): number {
-  // header empresa + header colunas + linhas + TOTAL + padding
-  return (3 + rowCount) * QUADRO_ROW_H + QUADRO_PAD_H;
-}
+
 
 /**
  * Localiza a row TOTAL (unica remanescente com celulas de dados apos remover template SOCIO).
@@ -378,6 +428,15 @@ function preencherTotal(gf: Element, totalQuotas: number, totalValor: number): v
   }
 }
 
+/**
+ * Desenha a tabela de UMA empresa numa posicao do slide.
+ *
+ * `fechaOTotal` diz se esta e a ultima parte da empresa. Quando a tabela e
+ * partida entre paginas, so a ultima leva a linha de TOTAL: o `preencherTotal`
+ * escreve o total da EMPRESA INTEIRA e um "100,00%" fixo, entao repeti-lo em cada
+ * pedaco faria quatro paginas dizerem 100% com treze socios cada — e nenhuma
+ * delas fecharia com as proprias linhas.
+ */
 function renderQuadroTable(
   spTree: Element,
   templateGf: Element,
@@ -385,6 +444,7 @@ function renderQuadroTable(
   empresa: QuadroEmpresa,
   x: number,
   y: number,
+  fechaOTotal = true,
 ): void {
   const clone = cloneGraphicFrameWithId(templateGf, idCounter.next++);
   // Substituir rows: encontrar row com {{SOCIO}}, clonar por linha.
@@ -404,7 +464,14 @@ function renderQuadroTable(
     removeRow(template);
   }
   applyTokensToNode(clone, { EMPRESA: empresa.empresa });
-  preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
+  if (fechaOTotal) {
+    preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
+  } else {
+    // Pedaco intermediario: a linha de TOTAL sai, e volta na ultima pagina.
+    const todas = listRows(clone);
+    const ultima = todas[todas.length - 1];
+    if (ultima) removeRow(ultima);
+  }
 
   // Escalar <a:gridCol> para somar QUADRO_COL_W — senao a tabela renderiza
   // pela largura do template (~6,83") e invade a coluna vizinha no layout 2-col.
@@ -442,9 +509,25 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
   const validas = empresas.filter((e) => e.linhas.length > 0);
   const restantes: QuadroEmpresa[] = [];
 
+  /** Desenha o que couber e devolve as linhas que sobraram da mesma empresa. */
+  const desenharAteCaber = (
+    emp: QuadroEmpresa, left: number, top: number,
+  ): QuadroEmpresa | null => {
+    const { aqui, resto } = repartirLinhas(emp.linhas, top);
+    if (aqui.length === 0) return emp; // nem os cabecalhos cabem: vai inteira
+    renderQuadroTable(
+      spTree, gf, idCounter, { ...emp, linhas: aqui }, left, top,
+      resto.length === 0, // so o pedaco final fecha o TOTAL
+    );
+    return resto.length === 0 ? null : { ...emp, linhas: resto };
+  };
+
   if (validas.length === 1) {
-    // Centralizar tabela unica.
-    renderQuadroTable(spTree, gf, idCounter, validas[0], QUADRO_LEFT_CENTER, QUADRO_TOP_0);
+    // Tabela unica, centralizada. TAMBEM parte: antes esta ramificacao nao tinha
+    // checagem de altura nenhuma, e uma empresa grande transbordava para fora do
+    // slide — nao sumia do deck, mas saia ilegivel na apresentacao.
+    const sobrou = desenharAteCaber(validas[0], QUADRO_LEFT_CENTER, QUADRO_TOP_0);
+    if (sobrou) restantes.push(sobrou);
   } else {
     const tops = [QUADRO_TOP_0, QUADRO_TOP_0];
     const lefts = [QUADRO_LEFT_0, QUADRO_LEFT_1];
@@ -452,13 +535,17 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
       const col = i % 2;
       const emp = validas[i];
       const h = estimarAltura(emp.linhas.length);
-      if (tops[col] + h > QUADRO_TOP_MAX) {
-        // Nao coube — adia esta e todas as demais.
-        restantes.push(...validas.slice(i));
-        break;
+      if (tops[col] + h <= QUADRO_TOP_MAX) {
+        renderQuadroTable(spTree, gf, idCounter, emp, lefts[col], tops[col]);
+        tops[col] += h;
+        continue;
       }
-      renderQuadroTable(spTree, gf, idCounter, emp, lefts[col], tops[col]);
-      tops[col] += h;
+      // Nao cabe inteira: desenha o pedaco que cabe e manda o resto adiante,
+      // junto com as empresas seguintes, preservando a ordem.
+      const sobrou = desenharAteCaber(emp, lefts[col], tops[col]);
+      if (sobrou) restantes.push(sobrou);
+      restantes.push(...validas.slice(i + 1));
+      break;
     }
   }
 
@@ -474,17 +561,17 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
 
 async function gerarSocietaria(
   admin: ReturnType<typeof createClient>,
+  bytesDoMolde: Uint8Array,
   clienteId: string,
   clienteNome: string,
-): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
-  const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.societaria);
-  if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS.societaria}`);
-  const parts = unpackPptx(new Uint8Array(await dl.data.arrayBuffer()));
+  probs?: ProblemaDoDeck[],
+): Promise<DeckMontado> {
+  const parts = unpackPptx(bytesDoMolde);
 
   const [bands, empresas, titular] = await Promise.all([
-    carregarOrganograma(admin, clienteId),
-    carregarQuadro(admin, clienteId),
-    resolverTitular(admin, clienteId),
+    carregarOrganograma(admin, clienteId, probs),
+    carregarQuadro(admin, clienteId, probs),
+    resolverTitular(admin, clienteId, probs),
   ]);
 
   // Organograma (slide3)
@@ -496,20 +583,44 @@ async function gerarSocietaria(
     removeSlide(parts, SLIDE_QUADRO);
   } else {
     let restantes = renderQuadroSlide(parts, SLIDE_QUADRO, empresas);
-    // Se sobrou, duplica slide4 (do template original — mas ja foi mutado).
-    // Para simplificar: duplicamos slide4.xml antes de mutar. Como ja mutamos,
-    // usamos o proprio conteudo original: guardado na variavel below.
-    let guardBail = 0;
-    while (restantes.length > 0 && guardBail < 20) {
-      // Re-download template pra ter graphicFrame limpo com placeholders.
-      const dl2 = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.societaria);
-      const p2 = unpackPptx(new Uint8Array(await dl2.data!.arrayBuffer()));
-      const freshXml = readText(p2, SLIDE_QUADRO);
-      // Duplica um novo slide e sobrescreve com XML fresco
+
+    /*
+      A PAGINACAO PARAVA EM 20 PAGINAS E DESCARTAVA O RESTO EM SILENCIO.
+
+      O laco tinha `guardBail < 20` e ninguem conferia `restantes` no fim: quem
+      nao coubesse simplesmente nao ia para o deck. Medido em 21/09 no cliente de
+      teste com 41 socios — 24 nao apareciam, e nada na tela dizia. Um consultor
+      apresentaria o quadro de uma holding mostrando 17 de 41.
+
+      Duas correcoes. A guarda agora e de PROGRESSO, nao de contagem: o laco para
+      quando uma volta deixa de reduzir o que falta, que e o unico jeito de travar
+      laco infinito sem inventar um teto. E o que sobrar, se sobrar, vira aviso —
+      o deck sai, e quem gera fica sabendo.
+
+      O molde tambem deixou de ser rebaixado a cada volta. Eram ate 20 downloads
+      de 1,5 MB por geracao; os bytes ja estao na mao desde o inicio.
+     */
+    const moldeLimpo = readText(unpackPptx(bytesDoMolde), SLIDE_QUADRO);
+    /* Conta LINHAS, e nao empresas: agora que uma empresa pode ser partida entre
+       paginas, o numero de empresas pendentes fica igual enquanto as linhas
+       diminuem — medir empresa daria falso "nao avancou" na primeira volta. */
+    const linhasDe = (es: QuadroEmpresa[]) => es.reduce((n, e) => n + e.linhas.length, 0);
+    let antes = linhasDe(restantes);
+    while (restantes.length > 0) {
       const dup = duplicateSlide(parts, SLIDE_QUADRO);
-      writeText(parts, dup.newPath, freshXml);
+      writeText(parts, dup.newPath, moldeLimpo);
       restantes = renderQuadroSlide(parts, dup.newPath, restantes);
-      guardBail++;
+      const agora = linhasDe(restantes);
+      if (agora >= antes) break; // nao avancou: para, e relata abaixo
+      antes = agora;
+    }
+    if (restantes.length > 0) {
+      anota(
+        probs,
+        ONDE.quadro,
+        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societario e ficaram fora do deck.`,
+        "formatacao",
+      );
     }
   }
 
@@ -524,7 +635,11 @@ async function gerarSocietaria(
 
   const issues = validatePptx(parts);
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
-  return { bytes: packPptx(parts), contagens: { empresas: empresas.length } };
+  return {
+    bytes: packPptx(parts),
+    contagens: { empresas: empresas.length },
+    snapshot: { organograma: bands, quadro: empresas, titular },
+  };
 }
 
 // ============================================================================
@@ -588,30 +703,95 @@ serve(async (req) => {
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
     const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
-    const arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }> = [];
+    const arquivos: Array<{
+      tipo: DeckTipo;
+      nome: string;
+      url: string | null;
+      apresentacaoId: string;
+      versao: number;
+    }> = [];
     const erros: Array<{ tipo: DeckTipo; message: string }> = [];
+
+    /*
+     * UM `problemas` POR DECK, e nao um acumulador da chamada inteira.
+     *
+     * Antes era um só, compartilhado pelos dois geradores, porque a resposta
+     * também era uma só. Agora cada deck vira uma LINHA em `osg_apresentacao` com
+     * os seus problemas congelados — e misturar faria o registro do patrimonial
+     * carregar buraco que é do organograma. Quem quer os dois juntos é a tela, e
+     * ela soma o que voltou.
+     */
+    const problemasDeTodos: ProblemaDoDeck[] = [];
 
     for (const tipo of decks) {
       try {
-        const { bytes } = tipo === "patrimonial"
-          ? await gerarPatrimonial(admin, clienteId, cli.nome)
-          : await gerarSocietaria(admin, clienteId, cli.nome);
-
+        const problemas: ProblemaDoDeck[] = [];
         const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
-        const nomeArquivo = `PSA_${tipoLabel}_${slugify(cli.nome)}.pptx`;
 
-        // std@0.168.0 base64.encode: (ArrayBuffer | string) => string. Uint8Array
-        // pode ser um sub-view de um buffer maior; slicei pra cobrir exatamente
-        // os bytes gerados e tipar como ArrayBuffer sem cast.
-        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-        arquivos.push({ tipo, nome: nomeArquivo, b64: base64Encode(buf) });
+        /*
+         * A CASCA COMPARTILHADA assume daqui: baixar o molde, validar o pacote,
+         * versionar, subir, gravar a linha e assinar a URL são a mesma sequência
+         * do gerador tributário, e a ordem carrega as decisões (ver o cabeçalho
+         * de `_shared/apresentacao/registrar.ts`).
+         *
+         * O que é da OSG entra por parâmetro: a âncora é `cliente_id` + `tipo`,
+         * porque um cliente tem dois decks distintos e cada um versiona sozinho.
+         * E o `snapshot` é a coluna que só esta tabela tem — o tributário aponta
+         * para revisão imutável e ganha o retrato de graça; aqui o cadastro anda.
+         *
+         * QUEM GRAVA É A CONEXÃO DO USUÁRIO, sob RLS, mesmo o resto da função
+         * lendo com `admin`: a policy de INSERT exige team_member+ e a de SELECT
+         * passa pelo `cliente_visivel_para`. Gravar com `admin` puraria a linha
+         * por fora da regra que a própria migration escreveu.
+         */
+        const registrada = await registrarApresentacao({
+          admin,
+          db: userClient,
+          molde: { bucket: BUCKET_TEMPLATES, nome: TEMPLATE_PATHS[tipo] },
+          registro: {
+            tabela: "osg_apresentacao",
+            ancora: { cliente_id: clienteId, tipo },
+            bucketSaida: BUCKET_SAIDA,
+            pasta: clienteId,
+            nomeArquivo: (versao) =>
+              `PSA_${tipoLabel}_${slugify(cli.nome)}_v${versao}.pptx`,
+          },
+          montar: async (bytesDoMolde) => {
+            const montado = tipo === "patrimonial"
+              ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
+              : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
+            /* Os avisos ficam vazios de proposito: o que esta geracao tem a dizer
+               ja entrou no `problemas`, com `onde` e causa, pelas regras puras. */
+            return { bytes: montado.bytes, avisos: [], snapshot: montado.snapshot };
+          },
+          problemas,
+          versaoDoGerador: VERSAO_DO_GERADOR,
+        });
+
+        if (falhou(registrada)) {
+          erros.push({ tipo, message: registrada.erro });
+          continue;
+        }
+
+        problemasDeTodos.push(...registrada.problemas);
+        arquivos.push({
+          tipo,
+          nome: registrada.nomeArquivo,
+          url: registrada.url,
+          apresentacaoId: registrada.apresentacaoId,
+          versao: registrada.versao,
+        });
       } catch (e: any) {
         erros.push({ tipo, message: String(e?.message ?? e) });
       }
     }
 
     if (arquivos.length === 0) return json({ error: "Falha ao gerar", detalhes: erros }, 500);
-    return json({ arquivos, erros: erros.length ? erros : undefined });
+    return json({
+      arquivos,
+      erros: erros.length ? erros : undefined,
+      problemas: problemasDeTodos.length ? problemasDeTodos : undefined,
+    });
   } catch (e: any) {
     return json({ error: String(e?.message ?? e) }, 500);
   }

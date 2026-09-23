@@ -95,7 +95,7 @@ describe('SimulacaoAberta', () => {
 
   it('a aba do CÁLCULO traz os três cenários com base e imposto gravados', () => {
     montar();
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
 
     expect(screen.getByText('Valor contábil')).toBeInTheDocument();
     expect(screen.getByText('Valor de ITR')).toBeInTheDocument();
@@ -143,12 +143,12 @@ describe('SimulacaoAberta', () => {
         ],
       }),
     });
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
 
     // A seção muda de nome: o leitor precisa saber que a régua virou a guia. Três
     // cabeçalhos, um por cenário.
     expect(screen.getAllByText('Base de cálculo, por guia')).toHaveLength(3);
-    expect(screen.getAllByText('Simulação do ITCD, por guia')).toHaveLength(3);
+    expect(screen.getAllByText('Simulação do ITCMD, por guia')).toHaveLength(3);
 
     // Cada guia com o par na frente: 3 cenários × 2 seções (base e imposto).
     expect(screen.getAllByText('Cristiano → Gabriel')).toHaveLength(6);
@@ -165,7 +165,7 @@ describe('SimulacaoAberta', () => {
 
   it('COM UM DOADOR a seção segue por donatário: a guia é ele', () => {
     montar();
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
     expect(screen.getAllByText('Base de cálculo')).toHaveLength(3);
     expect(screen.queryByText('Base de cálculo, por guia')).not.toBeInTheDocument();
     // O par não aparece: com um doador, dizer "Avelino → Cristina" em toda linha é
@@ -229,7 +229,7 @@ describe('SimulacaoAberta', () => {
     });
 
     montar({ simulacao: ato2, todas: [ato1, ato2] });
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
 
     // Os dois atos, em ordem CRONOLÓGICA — é a ordem em que aconteceram. O ato
     // aberto aparece duas vezes, no título e na linha dele da cadeia, e é o certo:
@@ -253,7 +253,7 @@ describe('SimulacaoAberta', () => {
     const b = simulacaoSalva({ id: 'B', versao: 2, nome: 'Ato B', origemSimulacaoId: 'A' });
 
     montar({ simulacao: a, todas: [a, b] });
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
 
     // Parou, e mostrou os dois uma vez cada.
     expect(screen.getByText('Total dos 2 atos')).toBeInTheDocument();
@@ -263,7 +263,7 @@ describe('SimulacaoAberta', () => {
 
   it('ATO ÚNICO não mostra cadeia: uma linha só não é fluxo', () => {
     montar();
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
     expect(screen.queryByText(/Total dos .* atos/)).not.toBeInTheDocument();
   });
 
@@ -357,7 +357,7 @@ describe('SimulacaoAberta', () => {
     expect(colunasSemDica()).toEqual([]);
     irPara('Usufruto');
     expect(colunasSemDica()).toEqual([]);
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
     expect(colunasSemDica()).toEqual([]);
   });
 
@@ -384,7 +384,7 @@ describe('SimulacaoAberta', () => {
       origemSimulacaoId: primeira.id,
     });
     montar({ simulacao: segunda, todas: [primeira, segunda] });
-    irPara('Cálculo do ITCD');
+    irPara('Cálculo do ITCMD');
     expect(titulosDosQuadros()).toEqual(['Cadeia de atos']);
   });
 });

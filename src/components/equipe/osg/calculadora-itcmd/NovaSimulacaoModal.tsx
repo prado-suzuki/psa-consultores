@@ -63,7 +63,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
         <ComoDicas>
         <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
           <DialogHeader className="mb-3 space-y-0 text-left">
-            <DialogTitle className="text-base font-semibold">Nova simulação de ITCD</DialogTitle>
+            <DialogTitle className="text-base font-semibold">Nova simulação de ITCMD</DialogTitle>
           </DialogHeader>
         </div>
 
@@ -165,7 +165,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 <Campo
                   className="ml-auto w-24"
                   rotulo={(
-                    <ComDica dica="O estado decide a lei: faixa, dedução e a própria UPF são de Mato Grosso. Um item na lista é honesto, só o ITCD de MT tem motor aqui.">
+                    <ComDica dica="O estado decide a lei: faixa, dedução e a própria UPF são de Mato Grosso. Um item na lista é honesto, só o ITCMD de MT tem motor aqui.">
                       Estado
                     </ComDica>
                   )}
@@ -401,7 +401,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                       </Th>
                       {/* O APORTE vem ANTES de Quotas porque e ele que as forma: R$ X
                           integralizados viram quotas novas ao preco da quota. */}
-                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra nos três cenários pelo valor de face. Não recolhe ITCD: a pessoa não recebeu de ninguém, ela pagou.">
+                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra nos três cenários pelo valor de face. Não recolhe ITCMD: a pessoa não recebeu de ninguém, ela pagou.">
                         Aporte (R$)
                       </Th>
                       <Th dica="O que a pessoa tem hoje, do quadro societário, mais as quotas que o aporte comprou.">
@@ -413,7 +413,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                       <Th dica="Quotas recebidas da parte LEGÍTIMA, a metade que a lei reserva aos herdeiros necessários. Campo livre: quem declara é o analista, e o número se confirma na guia.">
                         Legítima
                       </Th>
-                      <Th dica="Quotas recebidas da parte DISPONÍVEL, a metade de que o doador dispõe livremente. Legítima e disponível compõem UMA base no ITCD: mover valor entre as duas não muda o imposto.">
+                      <Th dica="Quotas recebidas da parte DISPONÍVEL, a metade de que o doador dispõe livremente. Legítima e disponível compõem UMA base no ITCMD: mover valor entre as duas não muda o imposto.">
                         Disponível
                       </Th>
                       <Th dica={`Com quantas quotas a pessoa termina o ato. Editável: digitar aqui resolve o resto para trás. ${DICA_DA_CONTA}`}>
@@ -654,14 +654,14 @@ function LinhaDaTabela({ linha, calc }: {
           e chega ao percentual por PROPRIEDADE.
 
           QUALQUER UM APORTA, doador ou donatário, e por isso é coluna e não campo da
-          barra. Não é fato gerador de ITCD: ninguém transmite nada, a pessoa entrega
+          barra. Não é fato gerador de ITCMD: ninguém transmite nada, a pessoa entrega
           dinheiro e recebe quotas. Vive só no motor desta simulação — o campo de moeda
           corrente do capital social é outra frente. */}
       <NumCampo>
         <DicaDoControle
           dica={'Dinheiro integralizado no capital. Vira quotas novas ao preço da '
             + 'quota do acervo e entra nos três cenários pelo valor de face, sem '
-            + 'multiplicar. Não recolhe ITCD: a pessoa pagou por essas quotas.'}
+            + 'multiplicar. Não recolhe ITCMD: a pessoa pagou por essas quotas.'}
         >
           <Input
             aria-label={`Aporte em moeda de ${linha.nome}, em reais`}
@@ -695,7 +695,7 @@ function LinhaDaTabela({ linha, calc }: {
           <DicaDoControle
             dica={'Quantas quotas esta pessoa recebe da parte LEGÍTIMA. Livre: quem '
               + 'declara é o analista, e o número só se confirma na guia. Legítima e '
-              + 'disponível compõem uma base única no ITCD, então mover valor entre '
+              + 'disponível compõem uma base única no ITCMD, então mover valor entre '
               + 'elas não muda o imposto.'}
           >
             <Input

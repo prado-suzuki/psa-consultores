@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { dicaDe } from '@/test/dica';
 import { GanttChart } from './GanttChart';
 import type { GanttGrupo } from './tiposDeGantt';
 
@@ -84,13 +85,8 @@ describe('GanttChart — a coluna de nomes cabe no celular', () => {
     definirLargura(390);
     render(<GanttChart grupos={grupos} rotuloDaColuna="Responsável / Tarefa" />);
 
-    // Lição da Lista: texto cortado sem tooltip é texto perdido. Em toque não há
-    // hover para recuperá-lo, mas no desktop o mouse resolve — e sem o `title`
-    // não resolve em lugar nenhum.
-    expect(colunaDoGrupo()).toHaveAttribute(
-      'title',
-      'Monica Matunaga — 2 tarefas • 1/2 concluídas',
-    );
+    // Texto cortado sem balão é texto perdido.
+    expect(dicaDe(colunaDoGrupo())).toBe('Monica Matunaga — 2 tarefas • 1/2 concluídas');
 
     // O grupo nasce fechado: a tarefa só existe depois de abrir.
     fireEvent.click(colunaDoGrupo());
@@ -101,8 +97,7 @@ describe('GanttChart — a coluna de nomes cabe no celular', () => {
       .getAllByRole('button', { name: /Elaborar Protocolo/ })
       .find((no) => no.className.includes('left-0'));
     expect(tarefa).toBeDefined();
-    expect(tarefa).toHaveAttribute(
-      'title',
+    expect(dicaDe(tarefa!)).toBe(
       'Elaborar Protocolo e Justificativa da Reestruturação Societária',
     );
   });

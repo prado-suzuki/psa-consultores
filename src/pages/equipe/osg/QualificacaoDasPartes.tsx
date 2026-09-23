@@ -81,7 +81,7 @@ const COLUNA = {
 const PessoasTable = ({
   titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
 }: PessoasTableProps) => (
-  <Card>
+  <Card variant="tabela">
     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
       <CardTitle className="text-base flex items-center gap-2">
         {icone}
@@ -239,12 +239,22 @@ const QualificacaoDasPartes = () => {
       title={TELAS_OSG_WORK.qualificacaoDasPartes.label}
       subtitle={TELAS_OSG_WORK.qualificacaoDasPartes.descricao}
     >
+      {/* TEXTO DE APOIO DA TELA, e sem `aria-describedby`: o padrão da casa
+          (§3 de `docs/geral/texto-explicativo-na-tela.md`) pede o par id +
+          `aria-describedby` NO CAMPO que o texto descreve. Aqui não há campo —
+          é prosa de página, logo abaixo do título, e o leitor de tela já a
+          anuncia na ordem do documento. Pendurar o atributo na `div` que
+          contém o próprio parágrafo não é anunciado por tecnologia assistiva
+          nenhuma. */}
       <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Os dados cadastrados aqui alimentam o checklist de documentos, a calculadora de ITCMD, o quadro societário e a geração de contratos.
+        </p>
         {!clienteId ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar a qualificação das partes.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para abrir a qualificação das partes deste cliente.</p>
             </CardContent>
           </Card>
         ) : loadingPessoas ? (

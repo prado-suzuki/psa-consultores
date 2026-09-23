@@ -23,6 +23,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
 import { Button } from '@/components/ui/button';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const BOARD_STATUSES = statusList.map((status) => status.key);
 
@@ -364,12 +365,13 @@ export const TaskKanban = ({
                 {/* Um número só, igual à régua de KPIs do topo: são a mesma
                     conta. O detalhe de quantas estão dentro de uma lista fica
                     no title, sem virar um segundo número na tela. */}
-                <span
-                  title={`${column.taskCount} tarefa(s) neste status: ${cardsDeTarefa} card(s) + ${column.hiddenCount} dentro de listas`}
+                <ElementTooltip text={`${column.taskCount} tarefa(s) neste status: ${cardsDeTarefa} card(s) + ${column.hiddenCount} dentro de listas`}>
+                  <span
                   className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums"
                 >
                   {column.taskCount}
                 </span>
+                </ElementTooltip>
               </div>
 
               <ScrollArea className="flex-1 p-1">

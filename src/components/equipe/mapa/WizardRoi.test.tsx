@@ -11,6 +11,7 @@ import type {
   Sistema,
 } from '@/types';
 import WizardRoi from './WizardRoi';
+import { dicaDe } from '@/test/dica';
 
 const snapshotBoundary = vi.hoisted(() => ({
   data: [] as ProcessSnapshot[],
@@ -275,11 +276,12 @@ describe('WizardRoi — API pública standalone', () => {
     expect(screen.getByText('4,5 meses')).toBeInTheDocument();
     const salvar = screen.getByRole('button', { name: 'Salvar mensuração' });
     expect(salvar).toBeDisabled();
-    expect(salvar).toHaveAttribute('title', 'Volte para "Ao vivo" antes de salvar uma nova mensuração');
+    expect(dicaDe(salvar.parentElement as HTMLElement)).toBe('Volte para "Ao vivo" antes de salvar uma nova mensuração');
 
     fireEvent.change(selector, { target: { value: 'ao-vivo' } });
     expect(screen.queryByText(/Você está vendo dados/)).not.toBeInTheDocument();
-    expect(salvar).toBeEnabled();
+    // Sem dica o balão sai da árvore e o botão é remontado; busca de novo.
+    expect(screen.getByRole('button', { name: 'Salvar mensuração' })).toBeEnabled();
   });
 
   it('cria mensuração com o payload calculado, mostra estado de salvamento e notifica o consumidor', async () => {

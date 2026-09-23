@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Pencil, Trash2, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { frasePapelNecessario } from "@/lib/rlsMessages";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatCpfCnpj, formatCep, formatPhone } from "./constants";
@@ -422,7 +423,7 @@ export default function ContribuintesTab({
                     <Trash2 size={18} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Excluir contribuinte já cadastrado exige o papel Sublíder ou superior</TooltipContent>
+                <TooltipContent>{frasePapelNecessario('sublider')}</TooltipContent>
               </Tooltip>
             )
           )}

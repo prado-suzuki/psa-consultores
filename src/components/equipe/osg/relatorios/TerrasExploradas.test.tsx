@@ -53,11 +53,11 @@ vi.mock('@/hooks/useDiagnosticoPatrimonial', () => ({
 
 vi.mock('./EstruturaAtual', () => ({ EstruturaAtual: () => null }));
 
-import { FiscalReport } from './FiscalReport';
+import { TerrasExploradas } from './TerrasExploradas';
 
-const montar = () => render(<FiscalReport clienteId="cli-1" />);
+const montar = () => render(<TerrasExploradas clienteId="cli-1" />);
 
-describe('FiscalReport, a fonte da tabela de áreas exploradas', () => {
+describe('TerrasExploradas, a fonte da tabela de áreas exploradas', () => {
   it('sem exploração cadastrada, cai para as matrículas (o fallback legítimo)', () => {
     exploracao.data = [];
     exploracao.isError = false;
@@ -66,6 +66,24 @@ describe('FiscalReport, a fonte da tabela de áreas exploradas', () => {
 
     expect(screen.getByText('Fazenda Banana Quântica')).toBeInTheDocument();
     expect(screen.getByText(/1 matrículas/)).toBeInTheDocument();
+  });
+
+  it('no fallback, as colunas de contrato não aparecem — nem vazias', () => {
+    exploracao.data = [];
+    exploracao.isError = false;
+
+    montar();
+
+    // Sem instrumento não há outorgante nem prazo. Imprimi-las com travessão
+    // fazia a tabela prometer treze colunas e entregar seis, e era esse peso
+    // morto que estourava a largura da página.
+    for (const semSentido of ['Outorgante', 'Assinatura', 'Encerramento', 'Vigência', 'Sacas/ha']) {
+      expect(screen.queryByText(semSentido)).not.toBeInTheDocument();
+    }
+    // As que sobrevivem são as que a matrícula de fato preenche.
+    expect(screen.getByText('Matrícula')).toBeInTheDocument();
+    expect(screen.getByText('Área explorada')).toBeInTheDocument();
+    expect(screen.getByText(/as colunas de contrato .* não se aplicam/)).toBeInTheDocument();
   });
 
   it('leitura que FALHOU não vira fallback: avisa, e não imprime linha nenhuma', () => {
@@ -87,7 +105,7 @@ describe('FiscalReport, a fonte da tabela de áreas exploradas', () => {
 
     montar();
 
-    expect(screen.getByText(/Carregando abertura de demanda/)).toBeInTheDocument();
+    expect(screen.getByText(/Carregando as terras exploradas/)).toBeInTheDocument();
     expect(screen.queryByText('Fazenda Banana Quântica')).not.toBeInTheDocument();
     exploracao.isLoading = false;
   });

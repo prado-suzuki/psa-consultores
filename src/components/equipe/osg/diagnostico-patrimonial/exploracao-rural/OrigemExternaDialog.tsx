@@ -4,7 +4,6 @@ import {
 } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
 import { fieldCls } from '@/components/equipe/osg/formKit';
 import { formGridCls, formScopeCls } from '@/lib/osgFormGrid';
@@ -24,14 +23,15 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
  * Considerando V. Terceiro que não é cliente também é pessoa: o cadastro de
  * pessoas é o dossiê do cliente, não a lista de clientes.
  *
- * Ficam aqui só os dois dados que são da RELAÇÃO, e não da pessoa: o capital
- * social na data daquele contrato (retrato histórico, que `pessoa` não guarda) e
- * quem representou a empresa naquele ato.
+ * Fica aqui só o dado que é da RELAÇÃO, e não da pessoa: quem representou a
+ * empresa naquele ato — porque quem assinou por ela num contrato antigo pode não
+ * ser quem a representa hoje. Anulável por evidência, não por preguiça.
  *
- * Ambos são anuláveis por evidência, não por preguiça: o achado E do relatório 14
- * mostra a própria banca emitindo um Considerando V **sem capital social**, num
- * contrato em que a exigência do template pedia. Bloquear aqui impediria de
- * registrar o contrato real como ele é.
+ * O CAPITAL SOCIAL saiu daqui em 16/09/2026 (decisão do Alexandre). Instrumento e
+ * origem da posse são duas entidades independentes, e o capital é retrato do
+ * INSTRUMENTO: quando a origem é interna, ele já vem da exploração rural apontada
+ * (`exploracao_rural.outorgante_capital_social_na_assinatura`); guardar uma
+ * segunda cópia aqui punha o mesmo fato em duas fontes, livres para divergir.
  */
 interface Props {
   open: boolean;
@@ -93,7 +93,7 @@ export function OrigemExternaDialog({ open, origem, imoveisQueUsam, pessoas, onS
               value={draft.titulo_instrumento}
               onChange={(e) => set('titulo_instrumento', e.target.value)}
               className={fieldCls}
-              placeholder="ex: Contrato de Parceria Agrícola e Outras Avenças"
+              placeholder="Ex: Contrato de Parceria Agrícola e Outras Avenças"
             />
           </Campo>
           <Campo
@@ -119,16 +119,6 @@ export function OrigemExternaDialog({ open, origem, imoveisQueUsam, pessoas, onS
             />
           </Campo>
           <Campo
-            label="Capital social na assinatura"
-            dica="O capital que a empresa tinha na data em que aquele contrato foi assinado — valor histórico, não o de hoje."
-          >
-            <CurrencyInput
-              value={draft.outorgante_capital_social_na_assinatura}
-              onChange={(v) => set('outorgante_capital_social_na_assinatura', v)}
-              className={`${fieldCls} font-mono`}
-            />
-          </Campo>
-          <Campo
             label="Representada por"
             dica="Quem assinou pela empresa naquele contrato. Fica na origem, e não na pessoa, porque quem representou a empresa em um contrato antigo pode não ser quem a representa hoje."
           >
@@ -136,7 +126,7 @@ export function OrigemExternaDialog({ open, origem, imoveisQueUsam, pessoas, onS
               value={draft.outorgante_representante}
               onChange={(e) => set('outorgante_representante', e.target.value)}
               className={fieldCls}
-              placeholder="ex: seus administradores Fulano e Beltrana"
+              placeholder="Ex: seus administradores Fulano e Beltrana"
             />
           </Campo>
         </div>

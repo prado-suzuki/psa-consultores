@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useDiagnosticoPatrimonial';
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
 import { formatArea } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 type FiltroVinculo = '__todas__' | 'orfas' | 'vinculadas';
 
@@ -91,7 +92,7 @@ const ControleMatriculas = () => {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para gerenciar suas matrículas.</p>
+            <p className="text-sm">Selecione um cliente na barra acima para abrir as matrículas deste cliente.</p>
           </CardContent>
         </Card>
       </OsgLayout>
@@ -128,7 +129,7 @@ const ControleMatriculas = () => {
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__todas__">Todas</SelectItem>
-                    <SelectItem value="orfas">Órfãs (!)</SelectItem>
+                    <SelectItem value="orfas">Órfãs</SelectItem>
                     <SelectItem value="vinculadas">Vinculadas</SelectItem>
                   </SelectContent>
                 </Select>
@@ -137,7 +138,7 @@ const ControleMatriculas = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="tabela">
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -182,12 +183,13 @@ const ControleMatriculas = () => {
                         <TableRow key={m.id} {...rowActivateProps(() => setModal({ open: true, matricula: m }))}>
                           <TableCell>
                             {orfa && (
-                              <span
-                                title="Matrícula órfã (sem bem vinculado)"
+                              <ElementTooltip text="Matrícula órfã (sem bem vinculado)">
+                                <span
                                 className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-warning/10 text-warning font-bold text-xs"
                               >
                                 !
                               </span>
+                              </ElementTooltip>
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-xs font-medium">{m.numero}</TableCell>
@@ -326,7 +328,7 @@ function VincularBemDialog({
           </DialogTitle>
         </DialogHeader>
         <Command className="rounded-none border-t">
-          <CommandInput placeholder="Buscar bem (referência, denominação)..." />
+          <CommandInput placeholder="Buscar…" />
           <CommandList>
             {isLoading ? (
               <div className="py-8 text-center text-sm text-muted-foreground">

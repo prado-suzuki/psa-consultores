@@ -26,6 +26,7 @@ import {
   type Granularidade,
   type ItemSolicitacao,
 } from '@/lib/solicitacao';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O que o modal devolve.
@@ -281,7 +282,7 @@ export function DocumentEditorDialog({
                 }))}
               >
                 <SelectTrigger className={fieldCls}>
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione…" />
                 </SelectTrigger>
                 <SelectContent>
                   {GRAOS_DE_BENS_IMOVEIS.map((grao) => (
@@ -340,9 +341,11 @@ export function DocumentEditorDialog({
             <Field label="Modelo que vai junto do pedido">
               <div className="flex items-center gap-3 rounded-lg border border-osg-200/70 bg-osg-50/40 px-3 py-2">
                 <FileSpreadsheet className="h-4 w-4 shrink-0 text-osg-500/70" />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={modelo.nome}>
+                <ElementTooltip text={modelo.nome}>
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                   {modelo.nome}
                 </span>
+                </ElementTooltip>
                 <BotaoModelo modelo={modelo} tom="osg" />
               </div>
               <p className="px-1 pt-1.5 text-xs leading-relaxed text-muted-foreground">

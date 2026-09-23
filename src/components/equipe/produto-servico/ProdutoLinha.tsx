@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { listRowAria, listRowClasses, listRowFocusClasses } from '@/lib/listRowStates';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 export interface ProdutoLinhaProps {
   codigo: string | null;
@@ -94,14 +95,15 @@ export default function ProdutoLinha({
             style={{ width: `${proporcao}%` }}
           />
         </span>
-        <span
-          className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground"
-          title={vinculados === 0
+        <ElementTooltip text={vinculados === 0
             ? 'Nenhum serviço vinculado: projetos deste produto nascem sem tarefa'
-            : `${vinculados} de ${total} serviços vinculados`}
+            : `${vinculados} de ${total} serviços vinculados`}>
+          <span
+          className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground"
         >
           {vinculados}/{total}
         </span>
+        </ElementTooltip>
       </span>
     </button>
   );

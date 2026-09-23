@@ -8,6 +8,7 @@ import { formatKanbanDate } from '@/lib/taskKanbanFormat';
 import { statusColors } from '@/lib/taskStatusColors';
 import { taskKanbanCopyKey, type TaskKanbanEntry } from '@/lib/taskKanbanHierarchy';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface TaskKanbanCardProps {
   entry: TaskKanbanEntry<OrgTask>;
@@ -93,9 +94,9 @@ export function TaskKanbanCard({
                 <Layers className="h-3 w-3 shrink-0" />
                 Subtarefas de
               </span>
-              <button
+              <ButtonTooltip text={`A tarefa-pai está em ${statusReal.label} — clique para ir até o card dela`}>
+                <button aria-label={`A tarefa-pai está em ${statusReal.label} — clique para ir até o card dela`}
                 type="button"
-                title={`A tarefa-pai está em ${statusReal.label} — clique para ir até o card dela`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onReveal([task.id]);
@@ -108,6 +109,7 @@ export function TaskKanbanCard({
                 <Crosshair className="h-2.5 w-2.5 shrink-0" />
                 {statusReal.label}
               </button>
+              </ButtonTooltip>
             </div>
           )}
 
@@ -186,10 +188,10 @@ export function TaskKanbanCard({
                       destaca as subtarefas. */}
                   <div className="flex flex-wrap items-center gap-1">
                     {elsewhere.map((grupo) => (
-                      <button
-                        key={grupo.status}
+                      <ButtonTooltip key={grupo.status} text={`Mostrar no quadro: ${grupo.count} subtarefa(s) em ${statusColors[grupo.status].label}`}>
+                        <button aria-label={`Mostrar no quadro: ${grupo.count} subtarefa(s) em ${statusColors[grupo.status].label}`}
+                       
                         type="button"
-                        title={`Mostrar no quadro: ${grupo.count} subtarefa(s) em ${statusColors[grupo.status].label}`}
                         onClick={(event) => {
                           event.stopPropagation();
                           onReveal(grupo.taskIds, taskKanbanCopyKey(task.id, grupo.status));
@@ -202,6 +204,7 @@ export function TaskKanbanCard({
                         <Crosshair className="h-2.5 w-2.5 shrink-0" />
                         {grupo.count} {statusColors[grupo.status].label}
                       </button>
+                      </ButtonTooltip>
                     ))}
                   </div>
                 </div>
