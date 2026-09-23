@@ -2287,7 +2287,8 @@ export type Database = {
       }
       deliverable_attachments: {
         Row: {
-          deliverable_id: string
+          backlog_item_id: string | null
+          deliverable_id: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -2297,7 +2298,8 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
-          deliverable_id: string
+          backlog_item_id?: string | null
+          deliverable_id?: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -2307,7 +2309,8 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
-          deliverable_id?: string
+          backlog_item_id?: string | null
+          deliverable_id?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
@@ -2317,6 +2320,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deliverable_attachments_backlog_item_id_fkey"
+            columns: ["backlog_item_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_backlog_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliverable_attachments_deliverable_id_fkey"
             columns: ["deliverable_id"]
