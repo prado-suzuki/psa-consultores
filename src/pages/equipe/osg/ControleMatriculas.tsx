@@ -112,10 +112,11 @@ const ControleMatriculas = () => {
           <CardContent>
             <div className="flex flex-col md:flex-row gap-3 md:items-end">
               <div className="flex-1 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Buscar</Label>
+                <Label htmlFor="busca-matriculas" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="busca-matriculas"
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     placeholder="Nº, cartório, município ou bem"
@@ -126,7 +127,7 @@ const ControleMatriculas = () => {
               <div className="w-full md:w-56 space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
                 <Select value={filtro} onValueChange={(v: FiltroVinculo) => setFiltro(v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9" aria-label="Status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__todas__">Todas</SelectItem>
                     <SelectItem value="orfas">Órfãs</SelectItem>

@@ -144,6 +144,7 @@ export const TabelaSocios = ({
       <div className="group relative w-56">
         <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-osg-moss" />
         <Input
+          aria-label="Buscar sócio"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar sócio..."

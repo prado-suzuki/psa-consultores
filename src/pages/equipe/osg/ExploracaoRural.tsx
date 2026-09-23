@@ -126,10 +126,11 @@ const ExploracaoRural = () => {
               <CardContent>
                 <div className="flex flex-col gap-3 md:flex-row md:items-end">
                   <div className="flex-1 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Buscar</Label>
+                    <Label htmlFor="busca-exploracoes" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
+                        id="busca-exploracoes"
                         value={busca}
                         onChange={(e) => setBusca(e.target.value)}
                         placeholder="Referência, parte ou nº de matrícula"
@@ -140,7 +141,7 @@ const ExploracaoRural = () => {
                   <div className="w-full space-y-1.5 md:w-56">
                     <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
                     <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9" aria-label="Tipo"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={TODOS}>Todos</SelectItem>
                         {TIPOS_EXPLORACAO_OPCOES.map((t) => (

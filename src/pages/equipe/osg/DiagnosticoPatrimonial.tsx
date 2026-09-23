@@ -120,10 +120,11 @@ const DiagnosticoPatrimonial = () => {
               <CardContent>
                 <div className="flex flex-col md:flex-row gap-3 md:items-end">
                   <div className="flex-1 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Buscar</Label>
+                    <Label htmlFor="busca-bens" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
+                        id="busca-bens"
                         value={busca}
                         onChange={(e) => setBusca(e.target.value)}
                         placeholder="Referência, nome, CCIR ou inscrição"
@@ -134,7 +135,7 @@ const DiagnosticoPatrimonial = () => {
                   <div className="w-full md:w-56 space-y-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
                     <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9" aria-label="Tipo"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__todos__">Todos</SelectItem>
                         {TIPO_BEM_OPTIONS.map((o) => (
@@ -151,7 +152,7 @@ const DiagnosticoPatrimonial = () => {
                       value={filtroEstruturacao}
                       onValueChange={(v) => setFiltroEstruturacao(v as typeof filtroEstruturacao)}
                     >
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9" aria-label="Participa da estruturação"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__todos__">Todos</SelectItem>
                         <SelectItem value="dentro">Participa</SelectItem>
