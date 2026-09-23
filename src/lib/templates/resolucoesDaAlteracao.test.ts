@@ -6,10 +6,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { gerarComposicao } from './index';
-import { redacaoDoCapital, vocabularioDaPreferencia, vocabularioDaRetirada, type CessaoParaMapear } from './mapeadores';
+import {
+  mapearOrgaoGovernanca, redacaoDaGovernanca, redacaoDoCapital, vocabularioDaPreferencia, vocabularioDaRetirada,
+  type CessaoParaMapear,
+} from './mapeadores';
+import type { RegistroFamilias } from './familia';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { removerMarcas } from './marcas';
-import type { Bloco, Contexto } from './types';
+import type { Bloco, Contexto, Template } from './types';
 
 /** As tuplas (bloco, texto antigo, texto novo) de uma migration de redação. */
 function redacoes(arquivo: string): Map<string, { antigo: string; novo: string }> {
@@ -239,5 +243,137 @@ describe('cessão total: os cedentes comparecem e ninguém renuncia por quem nã
     expect(renuncia([cessao(LUCAS, JATOBA)], [JATOBA, HEITOR, MARINA])[0]).toContain(
       'Os demais sócios, cientes da cessão de quotas formalizada neste instrumento, renunciam expressamente',
     );
+  });
+});
+
+describe('as resoluções de governança transcrevem o capítulo da administração', () => {
+  const textos = redacoes('20260923181010_resolucoes_de_governanca_transcrevem_o_capitulo.sql');
+  const INSTALACAO = '01a20156-0ae5-4011-9919-d50b3b9e852b';
+  const ALTERACAO = '22d227a0-0b64-4932-b2db-0388f893d587';
+  const MUDANCA = '40dd930b-701b-4c6d-821d-b4f6b6d5ae23';
+
+  // Os blocos do capítulo, na ordem em que a migration da governança os semeia.
+  const capitulo: Bloco[] = [...readFileSync(
+    'supabase/migrations/20260915201913_capitulo_da_governanca_no_contrato_social.sql', 'utf8',
+  ).matchAll(
+    /pg_temp\.bloco\(\s*'([0-9a-f-]{36})'::uuid,\s*'[^']*',\s*'(\w+)',\s*\$txt\$([\s\S]*?)\$txt\$(?:,\s*(?:null|'(\w+)'))?(?:,\s*'(\w+)')?\s*\)/g,
+  )]
+    .filter(([, id]) => id !== INSTALACAO && id !== ALTERACAO)
+    .map(([, id, tipo, conteudo, ancora, repete]) => ({
+      id, tipo: tipo as Bloco['tipo'], conteudo, ancora, repeteColecao: repete,
+      flagsRequeridas: ['governanca_por_orgaos'],
+    }));
+
+  const familias: RegistroFamilias = {
+    'Alínea de competência': [{
+      id: 'alinea-padrao', rotulo: null, ordem: 1, seletor: {},
+      conteudo: '{{ competencia.papeisInfinitivo }} {{ competencia.atividadeMinuscula }}',
+    }],
+  };
+
+  const conselho = mapearOrgaoGovernanca({
+    id: 'c', nome: 'Conselho de Administração', genero: 'M', membros_minimo: 3, membros_maximo: 4, mandato_anos: 2,
+  });
+  const diretoria = mapearOrgaoGovernanca({
+    id: 'd', nome: 'Diretoria', genero: 'F', membros_minimo: 3, membros_maximo: 3, mandato_anos: 3,
+  });
+  const competencia = (alinea: string, papeisInfinitivo: string, atividadeMinuscula: string) =>
+    ({ competencia: { alinea, papeisInfinitivo, atividadeMinuscula } });
+  const ctx: Contexto = {
+    conselhoAdministracao: conselho,
+    diretoria,
+    orgaosComCompetencia: [
+      { orgao: conselho, competencias: [competencia('a', 'Aprovar', 'o orçamento anual'), competencia('b', 'Eleger', 'os diretores')] },
+      { orgao: diretoria, competencias: [competencia('a', 'Executar', 'o planejamento estratégico')] },
+    ],
+  };
+
+  const obrigatorio = (id: string, tipo: Bloco['tipo'], conteudo: string, extra: Partial<Bloco> = {}): Bloco =>
+    ({ id, tipo, conteudo, obrigatorio: true, ...extra });
+  const RESOLUCOES = [INSTALACAO, ALTERACAO, MUDANCA];
+  const modelo = (): Template => ({
+    id: 'ac',
+    nome: 'Contrato Social',
+    blocos: [
+      obrigatorio('secao', 'livre', 'DAS ALTERAÇÕES CONTRATUAIS'),
+      { id: 'sede', tipo: 'clausula', conteudo: 'Altera-se a sede.', flagsRequeridas: ['evento_sede'] },
+      { id: INSTALACAO, tipo: 'clausula', conteudo: textos.get(INSTALACAO)!.novo, flagsRequeridas: ['evento_governanca', 'governanca_instalada'] },
+      { id: ALTERACAO, tipo: 'clausula', conteudo: textos.get(ALTERACAO)!.novo, flagsRequeridas: ['evento_governanca', 'governanca_alterada'] },
+      { id: MUDANCA, tipo: 'clausula', conteudo: textos.get(MUDANCA)!.novo, flagsRequeridas: ['evento_mudanca_administracao', 'governanca_por_orgaos'] },
+      obrigatorio('ratificacao', 'clausula', 'As demais cláusulas permanecem.'),
+      obrigatorio('cabecalho', 'livre', 'CONSOLIDAÇÃO', { reiniciaNumeracao: true }),
+      obrigatorio('cap-denominacao', 'capitulo', 'Denominação, Sede e Prazo'),
+      obrigatorio('denominacao', 'clausula', 'A sociedade gira sob o nome X.'),
+      obrigatorio('sede-c', 'clausula', 'A sede é em Y.'),
+      obrigatorio('cap-capital', 'capitulo', 'Capital Social'),
+      obrigatorio('capital', 'clausula', 'O capital é de R$ 10,00.'),
+      obrigatorio('cap-admin', 'capitulo', 'Administração', { ancora: 'capituloAdministracao' }),
+      { id: 'admin-simples', tipo: 'clausula', conteudo: 'A sociedade é administrada isoladamente por Z.', flagsRequeridas: ['administracao_simples'] },
+      ...capitulo,
+      obrigatorio('cap-falecimento', 'capitulo', 'Falecimento'),
+      obrigatorio('falecimento', 'clausula', 'O falecimento não dissolve a sociedade.'),
+    ],
+  });
+
+  const GOVERNANCA = ['e_alteracao', 'governanca_por_orgaos'];
+  const gerar = (flags: string[], template = modelo()) => gerarComposicao(
+    template, { ...ctx, redacaoGovernanca: redacaoDaGovernanca(flags) }, flags, familias,
+  );
+  const texto = (blocos: { conteudo: string }[]) => blocos.map((b) => removerMarcas(b.conteudo));
+  const rotulos = (t: string) => t.match(/CLÁUSULA [^:]+:/g) ?? [];
+
+  it('a guarda confere o texto vigente, que só remetia à consolidação', () => {
+    expect([...textos.keys()].sort()).toEqual([...RESOLUCOES].sort());
+    for (const { antigo, novo } of textos.values()) {
+      expect(antigo).toContain('passa a vigorar com a redação da consolidação deste instrumento');
+      expect(novo).toContain('{{transcricao capitulo="capituloAdministracao"}}');
+    }
+  });
+
+  it('instalação: cita o intervalo e transcreve o capítulo como o consolidado o numera', () => {
+    const { blocos, descartados } = gerar([...GOVERNANCA, 'evento_governanca', 'governanca_instalada']);
+    expect(descartados).toEqual([]);
+    const linhas = texto(blocos);
+    const resolucao = linhas[1];
+    expect(resolucao).toMatch(/^CLÁUSULA PRIMEIRA: Neste ato, a sociedade passa a ser administrada pelo Conselho de Administração e pela Diretoria, órgãos instituídos por meio do presente, alterando todo o regramento elencado junto ao Capítulo III, que trata da administração da sociedade, de modo que se alteram das Cláusulas Quarta à Vigésima deste Contrato Social, de modo que vigorarão nos seguintes termos e forma:\n\n\t\tCAPÍTULO III\n\t\tAdministração\n\tCLÁUSULA QUARTA: A sociedade é administrada pelo Conselho de Administração e pela Diretoria/);
+    expect(linhas[2]).toBe('CLÁUSULA SEGUNDA: As demais cláusulas permanecem.');
+
+    const inicio = blocos.findIndex((b) => b.id === 'cap-admin');
+    const fim = blocos.findIndex((b) => b.id === 'cap-falecimento');
+    const consolidado = texto(blocos.slice(inicio, fim)).join('\n');
+    const transcrito = resolucao.slice(resolucao.indexOf('\t\tCAPÍTULO III')).replace(/^\t+/gm, '');
+    for (const linha of consolidado.split('\n')) expect(transcrito).toContain(linha);
+    // Cada número uma vez só na transcrição, e os mesmos do consolidado.
+    expect(rotulos(transcrito)).toEqual(rotulos(consolidado));
+    expect(new Set(rotulos(transcrito)).size).toBe(17);
+    // A competência sai uma cláusula por órgão, igual ao consolidado.
+    expect(transcrito).toContain('Compete ao Conselho de Administração, além de outras matérias previstas neste contrato social:\na) Aprovar o orçamento anual;\nb) Eleger os diretores.');
+    expect(transcrito).toContain('Compete à Diretoria, além de outras matérias previstas neste contrato social:\na) Executar o planejamento estratégico.');
+    expect(linhas.at(-1)).toBe('CLÁUSULA VIGÉSIMA PRIMEIRA: O falecimento não dissolve a sociedade.');
+  });
+
+  it('instalação com mudança na administração: o capítulo é transcrito uma vez só', () => {
+    const { blocos, descartados } = gerar([...GOVERNANCA, 'evento_governanca', 'governanca_instalada', 'evento_mudanca_administracao']);
+    expect(descartados.map((d) => d.id)).toEqual([MUDANCA]);
+    expect(texto(blocos).join('\n').split('\t\tCAPÍTULO III').length - 1).toBe(1);
+  });
+
+  it('alteração da governança: órgãos já instituídos', () => {
+    const [, resolucao] = texto(gerar([...GOVERNANCA, 'evento_governanca', 'governanca_alterada']).blocos);
+    expect(resolucao).toMatch(/^CLÁUSULA PRIMEIRA: Neste ato, alteram-se a composição, as competências e as alçadas do Conselho de Administração e da Diretoria, órgãos já instituídos, alterando o regramento elencado junto ao Capítulo III, que trata da administração da sociedade, de modo que se alteram das Cláusulas Quarta à Vigésima deste Contrato Social, de modo que vigorarão nos seguintes termos e forma:\n\n\t\tCAPÍTULO III/);
+  });
+
+  it('só a mudança na administração: mantém o regramento e transcreve', () => {
+    const [, resolucao] = texto(gerar([...GOVERNANCA, 'evento_mudanca_administracao']).blocos);
+    expect(resolucao).toMatch(/^CLÁUSULA PRIMEIRA: Neste ato, altera-se a administração da sociedade, mantendo todo o regramento elencado junto ao Capítulo III, que trata da administração da sociedade, de modo que alteram-se as Cláusulas Quarta à Vigésima deste Contrato Social, que vigorarão nos seguintes termos e forma:\n\n\t\tCAPÍTULO III/);
+  });
+
+  it('AC sem governança sai igual a um modelo sem as resoluções de governança', () => {
+    const flags = ['e_alteracao', 'administracao_simples', 'evento_sede'];
+    const semResolucoes = { ...modelo(), blocos: modelo().blocos.filter((b) => !RESOLUCOES.includes(b.id)) };
+    const com = gerar(flags);
+    expect(com.blocos).toEqual(gerar(flags, semResolucoes).blocos);
+    expect(texto(com.blocos).join('\n')).not.toContain('\t');
+    expect(texto(com.blocos)[1]).toBe('CLÁUSULA PRIMEIRA: Altera-se a sede.');
   });
 });

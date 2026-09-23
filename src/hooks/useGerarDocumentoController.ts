@@ -6,7 +6,7 @@ import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from 
 import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada, semVocabularioDaGeracao } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, redacaoDoCapital, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaPreferencia, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, redacaoDaGovernanca, redacaoDoCapital, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaPreferencia, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -2341,6 +2341,7 @@ export function useGerarDocumentoController() {
       ),
     );
     ctx.redacaoCapital = redacaoDoCapital(flagsAtivas);
+    ctx.redacaoGovernanca = redacaoDaGovernanca(flagsAtivas);
     // A administração passou a ser exercida de FORA do quadro. É a condicional
     // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
     // sem ela o consolidado afirmava "administrada isoladamente por X e Y" logo

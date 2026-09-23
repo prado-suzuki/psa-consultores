@@ -326,14 +326,47 @@ Todos os blocos do capítulo de governança levam `governanca_por_orgaos`. O que
    impede a citação do §6.6: `refs.<ancora>` só é publicada para bloco **sem** `escopo`
    (`index.ts`, `renderizarComReferencias`); instância de repetidor recebe `ref` carimbada no item
    e não publica âncora nenhuma. Bloco fixo depois do repetidor é o único que fecha o intervalo.
-6. **Dois blocos de resolução da AC**, um para a instalação (`evento_governanca` +
-   `governanca_instalada`) e um para a mudança (`evento_governanca` + `governanca_alterada`),
-   conforme o §5.1. A citação do que muda é **pelo capítulo**, com uma âncora só
-   (`{{ refs.capituloAdministracao }}` no cabeçalho compartilhado, que devolve "Capítulo IV"): é
-   robusta a órgão descartado, e é como o Zamo escreve ("altera-se todo o regramento do capítulo
-   da Administração"). Se algum contrato exigir o intervalo de cláusulas, as duas âncoras são a
-   da primeira cláusula de composição e a da cauda do item 5, ciente de que cláusula de composição
-   descartada por falta de órgão devolve referência vazia.
+6. **Os blocos de resolução da AC**, um para a instalação (`evento_governanca` +
+   `governanca_instalada`), um para a mudança (`evento_governanca` + `governanca_alterada`),
+   conforme o §5.1, e a "mudança na administração (governança)" da migration
+   `20260923154552`. **Corrigido em 23/09/2026:** a versão anterior deste item decidia citar só
+   pelo capítulo e remeter à consolidação, dizendo que "é como o Zamo escreve". Estava errado: o
+   Zamo é contrato de **constituição**, e a frase ("alterando todo o regramento elencado junto ao
+   Capítulo IV") é da 4ª AC da Bela Vista, que **transcreve** o capítulo inteiro logo depois dela.
+   O corpus de ACs registradas é unânime: a Bela Vista 4ª e a Perci 9ª abrem UMA resolução
+   ("Neste ato, a sociedade passa a ser administrada por um Conselho de Administração [...], de
+   modo que se alteram das Cláusulas Sexta à Vigésima Primeira deste Contrato Social, de modo
+   que vigorarão nos seguintes termos e forma:") e transcrevem o Capítulo IV com a numeração do
+   consolidado, recuado. A VF 5ª do Perci transcreve cláusula por cláusula em resoluções
+   próprias, e não é o padrão seguido.
+
+   **Como ficou** (migration `20260923181010_resolucoes_de_governanca_transcrevem_o_capitulo.sql`
+   e `src/lib/templates/transcricao.ts`): o motor ganhou a diretiva
+   `{{transcricao capitulo="capituloAdministracao"}}`, que escreve no lugar o capítulo do
+   consolidado **da mesma composição**, depois da numeração: sem duplicar o texto dos blocos, sem
+   consumir número de nenhuma série, com as referências internas apontando para o consolidado e
+   os repetidores de competência iguais aos dele. O capítulo vai do cabeçalho ancorado até o
+   próximo capítulo. Cada capítulo ancorado publica também `{{ refs.<ancora>Clausulas }}`
+   ("Cláusulas Sexta à Vigésima Primeira"), o que dispensa âncora na primeira e na última cláusula
+   e não quebra com órgão descartado. No .docx a transcrição sai recuada a 1,5 cm, o título do
+   capítulo centralizado, como no registrado da Bela Vista. Quando a instalação ou a alteração
+   estão na mesma peça que a mudança na administração, só elas transcrevem
+   (`redacaoDaGovernanca`, em `mapeadores.ts`), e a da mudança é descartada.
+
+   **Pendente: a cláusula de renumeração.** O corpus fecha com "Em razão das alterações
+   supramencionadas, os conteúdos antes tratados nas Cláusulas Oitava à Vigésima Primeira serão
+   realocados para as novas Cláusulas Vigésima Segunda à Trigésima Sexta do contrato social, em
+   ordem sequencial". Ela cita a numeração **anterior**, e calcular essa numeração a partir do
+   snapshot da peça registrada não é confiável hoje, por dois motivos medidos no sandbox em
+   23/09/2026: (a) dos 13 contratos societários registrados, 6 não têm `contextoRender` no
+   `snapshot_versoes_blocos`, e a numeração do capítulo depende do contexto (o repetidor de
+   competência vira uma cláusula por órgão, e o descarte tira cláusula sem dado), então a peça
+   anterior nem sempre se reproduz; (b) para o cliente cujo contrato vigente foi registrado fora
+   do sistema, a peça "registrada" é o modelo da casa renderizado, não o texto da Junta, e as
+   cláusulas "antes tratadas" citariam números que o contrato registrado nunca teve (a Bela Vista
+   tinha o Capítulo IV nas Cláusulas Sexta e Sétima; o modelo da casa não). O caminho, quando a
+   base for confiável, é casar os blocos posteriores ao capítulo por id entre a composição
+   anterior e a nova e só emitir a cláusula quando o deslocamento for uniforme.
 
 ---
 
@@ -367,7 +400,8 @@ As duas mudam o desenho da tela conforme a resposta, e por isso vêm antes dos b
   - Há 0 órgãos e 0 matrizes em produção, e as 9 flags `evento_*` estão lá.
 - **`{{ refs.ancora }}` devolve "Cláusula Sexta", com a palavra junto.** Escrever "das Cláusulas
   {{refs.a}} à {{refs.b}}" duplica a palavra. "alteram-se da {{refs.a}} à {{refs.b}}" sai correto.
-  Para capítulo devolve "Capítulo IV".
+  Para capítulo devolve "Capítulo IV", e `{{ refs.<ancora>Clausulas }}` devolve o intervalo
+  inteiro, já no plural ("Cláusulas Sexta à Vigésima Primeira").
 - **Nome de campo que não existe no vocabulário não dá erro**, só nunca casa. Foi assim que
   `capitalValorExtenso` fez o aumento sair com o algarismo novo e o extenso velho. Vale o mesmo
   teste de caracterização para os campos novos de alçada, e para o nome da lista em

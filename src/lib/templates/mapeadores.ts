@@ -2069,6 +2069,15 @@ export function redacaoDoCapital(flagsAtivas: Iterable<string>): Campos {
 }
 
 /**
+ * A mudança na administração com governança só transcreve o capítulo quando a
+ * instalação ou a alteração da governança não o transcrevem na mesma peça.
+ */
+export function redacaoDaGovernanca(flagsAtivas: Iterable<string>): Campos {
+  const ativas = new Set(flagsAtivas);
+  return { naMudanca: ativas.has('evento_governanca') ? '' : 'sim' };
+}
+
+/**
  * Itens da seção {{#requalificados}}: os sócios que esta alteração requalifica.
  *
  * Recebe CAMPOS já compostos (o estado proposto: base + o endereço aprovado), e
