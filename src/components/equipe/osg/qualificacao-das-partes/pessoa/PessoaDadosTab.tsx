@@ -10,9 +10,11 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { aplicarCepNoRascunho, ehEstadoCivilComConjuge, enderecoDoRascunho, type PessoaDraft } from '@/lib/pessoaModalModel';
+import { aplicarCepNoRascunho, aplicarCnpjNoRascunho, ehEstadoCivilComConjuge, enderecoDoRascunho, type PessoaDraft } from '@/lib/pessoaModalModel';
 import { digitosDoCep } from '@/lib/viaCep';
+import { digitosDoCnpj } from '@/lib/brasilApiCnpj';
 import { useBuscaCep } from '@/hooks/useBuscaCep';
+import { useBuscaCnpj } from '@/hooks/useBuscaCnpj';
 import { FiliacaoCombobox } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/FiliacaoCombobox';
 import { ParentescoPanel } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/ParentescoPanel';
 import { NATUREZAS_PARENTESCO, TIPOS_PARENTESCO } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/parentescoOpcoes';
@@ -60,6 +62,18 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
       if (encontrado) setDraft((old) => aplicarCepNoRascunho(old, cep, antes, encontrado));
     });
   };
+  const { buscar: buscarCnpj, buscando: buscandoCnpj } = useBuscaCnpj();
+  // Mesma regra do CEP: consulta a Receita só quando o CNPJ de PJ acaba de ficar completo.
+  const trocarDocumento = (valor: string) => {
+    const documento = formatCpfCnpj(valor, draft.tipo_pessoa);
+    setField('cpf_cnpj', documento);
+    const digitos = digitosDoCnpj(documento);
+    if (isPF || digitos.length !== 14 || digitos === digitosDoCnpj(draft.cpf_cnpj)) return;
+    const antes = { ...draft, cpf_cnpj: documento };
+    void buscarCnpj(documento).then((encontrado) => {
+      if (encontrado) setDraft((old) => aplicarCnpjNoRascunho(old, documento, antes, encontrado));
+    });
+  };
   let section = 0;
   const next = () => String(++section).padStart(2, '0');
 
@@ -67,7 +81,7 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
     <div>
       <FieldSection number={next()} title="Identificação">
         <div className={`${formGridCls(2)} gap-3`}>
-          <TextField label={isPF ? 'CPF' : 'CNPJ'} value={draft.cpf_cnpj} onChange={(value) => setField('cpf_cnpj', formatCpfCnpj(value, draft.tipo_pessoa))} placeholder={isPF ? '000.000.000-00' : '00.000.000/0000-00'} mono />
+          <TextField label={isPF ? 'CPF' : buscandoCnpj ? 'CNPJ (buscando na Receita...)' : 'CNPJ'} value={draft.cpf_cnpj} onChange={trocarDocumento} placeholder={isPF ? '000.000.000-00' : '00.000.000/0000-00'} mono />
           <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>{isPF ? 'Nome completo' : 'Razão social'}<RequiredMark /></Label><Input value={draft.denominacao} onChange={(event) => setField('denominacao', event.target.value)} className={fieldCls} /></div>
         </div>
       </FieldSection>

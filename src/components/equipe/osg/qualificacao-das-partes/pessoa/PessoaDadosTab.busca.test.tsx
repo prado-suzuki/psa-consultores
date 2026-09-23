@@ -62,3 +62,25 @@ describe('busca de CEP no cadastro de pessoa', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('busca de CNPJ no cadastro de PJ', () => {
+  it('preenche razão social e endereço ao completar 14 dígitos', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ razao_social: 'AGRO PRADO LTDA', cep: '06020902', logradouro: 'AVENIDA DOS AUTONOMISTAS', municipio: 'OSASCO', uf: 'SP', descricao_situacao_cadastral: 'ATIVA' }) });
+    render(<Hospedeiro inicial={{ ...emptyPessoaDraft(), tipo_pessoa: 'PJ' }} />);
+    const cnpj = screen.getByPlaceholderText('00.000.000/0000-00');
+
+    fireEvent.change(cnpj, { target: { value: '1438020000012' } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.change(cnpj, { target: { value: '14380200000121' } });
+    expect(fetchMock).toHaveBeenCalledWith('https://brasilapi.com.br/api/cnpj/v1/14380200000121');
+    await waitFor(() => expect(ultimoDraft.denominacao).toBe('AGRO PRADO LTDA'));
+    expect(ultimoDraft).toMatchObject({ cpf_cnpj: '14.380.200/0001-21', endereco_cep: '06020-902', endereco_municipio: 'OSASCO', status_constituicao: 'Ativa' });
+  });
+
+  it('CPF não consulta a Receita', () => {
+    render(<Hospedeiro inicial={emptyPessoaDraft()} />);
+    fireEvent.change(screen.getByPlaceholderText('000.000.000-00'), { target: { value: '12345678901' } });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

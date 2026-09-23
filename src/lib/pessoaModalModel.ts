@@ -1,5 +1,7 @@
 import type { PessoaInsert, PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
 import { digitosDoCep, mesclarEnderecoDoCep, type EnderecoDoCep } from '@/lib/viaCep';
+import { digitosDoCnpj, type DadosDoCnpj } from '@/lib/brasilApiCnpj';
+import { formatCep } from '@/components/equipe/client-form/constants';
 
 export type PessoaDraft = {
   tipo_pessoa: TipoPessoa;
@@ -72,6 +74,34 @@ export function aplicarCepNoRascunho(draft: PessoaDraft, cepBuscado: string, ant
   if (digitosDoCep(draft.endereco_cep) !== digitosDoCep(cepBuscado)) return draft;
   const e = mesclarEnderecoDoCep(enderecoDoRascunho(draft), antes, encontrado);
   return { ...draft, endereco_logradouro: e.logradouro, endereco_bairro: e.bairro, endereco_municipio: e.municipio, endereco_uf: e.uf };
+}
+
+const CAMPOS_DO_CNPJ = {
+  denominacao: 'razao_social',
+  nome_fantasia: 'nome_fantasia',
+  endereco_cep: 'cep',
+  endereco_logradouro: 'logradouro',
+  endereco_numero: 'numero',
+  endereco_complemento: 'complemento',
+  endereco_bairro: 'bairro',
+  endereco_municipio: 'municipio',
+  endereco_uf: 'uf',
+  data_constituicao: 'data_constituicao',
+  status_constituicao: 'status_constituicao',
+} as const satisfies Partial<Record<keyof PessoaDraft, keyof DadosDoCnpj>>;
+
+/**
+ * Descarta a resposta se o CNPJ do rascunho mudou desde a busca. Campo editado
+ * enquanto a busca corria (difere de `antes`) fica; valor vazio da Receita não apaga.
+ */
+export function aplicarCnpjNoRascunho(draft: PessoaDraft, cnpjBuscado: string, antes: PessoaDraft, encontrado: DadosDoCnpj): PessoaDraft {
+  if (digitosDoCnpj(draft.cpf_cnpj) !== digitosDoCnpj(cnpjBuscado)) return draft;
+  const proximo = { ...draft };
+  for (const [campo, origem] of Object.entries(CAMPOS_DO_CNPJ) as [keyof typeof CAMPOS_DO_CNPJ, keyof DadosDoCnpj][]) {
+    const valor = campo === 'endereco_cep' ? formatCep(encontrado[origem]) : encontrado[origem];
+    if (valor && draft[campo] === antes[campo]) proximo[campo] = valor;
+  }
+  return proximo;
 }
 
 /**
