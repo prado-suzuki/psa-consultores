@@ -182,6 +182,12 @@ export function lerArquivoDeTarefas(arquivo: string, texto: string): TarefaImpor
     .map((s) => montar(s.titulo, s.linhas, arquivo, juntarParagrafos));
 }
 
+/** Diz se um título já está no backlog, sem diferenciar acento, caixa e espaço nas pontas. */
+export function verificadorDeDuplicada(titulosNoBacklog: string[]): (titulo: string) => boolean {
+  const existentes = new Set(titulosNoBacklog.map(normalizar));
+  return (titulo) => existentes.has(normalizar(titulo));
+}
+
 /** Casa o nome escrito no arquivo com um projeto cadastrado, sem diferenciar acento e caixa. */
 export function casarProjeto(nome: string | null, projetos: ProjetoParaCasar[]): string | null {
   if (!nome) return null;

@@ -24,6 +24,8 @@ interface GerarDemandasDialogProps {
   processes: Process[];
   projectProcesses?: { process_id: string; project_id: string }[];
   onSaved: () => void;
+  /** `ditado`: o texto já são as tarefas (faladas ou escritas); a IA só organiza cada uma. */
+  modo?: 'decompor' | 'ditado';
 }
 
 interface DemandaEditavel extends DemandaGerada {
@@ -37,7 +39,9 @@ export function GerarDemandasDialog({
   processes,
   projectProcesses = [],
   onSaved,
+  modo = 'decompor',
 }: GerarDemandasDialogProps) {
+  const ditado = modo === 'ditado';
   const { gerar, isLoading } = useGerarDemandas();
   const { salvar, isSaving } = useCriarDemandasBacklog();
 
@@ -76,6 +80,7 @@ export function GerarDemandasDialog({
       process_id: processId || null,
       capacidade_horas: capacidade ? parseFloat(capacidade) : null,
       contexto_extra: contextoExtra || null,
+      modo,
     });
     if (geradas.length > 0) {
       setItens(geradas.map((d) => ({ ...d, _selected: true })));
@@ -100,7 +105,8 @@ export function GerarDemandasDialog({
         priority: it.priority,
         justificativa: it.justificativa,
         project_id: projectId || null,
-      }))
+      })),
+      ditado ? { origem: 'Ditada e organizada por IA' } : undefined,
     );
     if (ok) {
       resetTudo();
@@ -115,12 +121,14 @@ export function GerarDemandasDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Gerar Demandas com IA
+            {ditado ? 'Ditar tarefas' : 'Gerar Demandas com IA'}
           </DialogTitle>
           <DialogDescription>
             {itens
               ? 'Revise, edite e selecione as demandas antes de adicionar ao backlog.'
-              : 'Descreva o objetivo da sprint e a IA decompõe em demandas estimadas.'}
+              : ditado
+                ? 'Fale ou escreva as tarefas. A IA organiza cada uma em título, descrição, prioridade e horas, e você revisa antes de gravar.'
+                : 'Descreva o objetivo da sprint e a IA decompõe em demandas estimadas.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -128,14 +136,24 @@ export function GerarDemandasDialog({
           // ---- FASE 1: BRIEFING ----
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="objetivo">Objetivo da sprint *</Label>
+              <Label htmlFor="objetivo">{ditado ? 'O que precisa ser feito *' : 'Objetivo da sprint *'}</Label>
               <Textarea
                 id="objetivo"
                 value={objetivo}
                 onChange={(e) => setObjetivo(e.target.value)}
-                placeholder="Ex: Automatizar a apuração de ICMS do cliente X, reduzindo o tempo manual e os erros de digitação. Entregar relatório validado pela equipe fiscal."
-                rows={4}
+                placeholder={
+                  ditado
+                    ? 'Ex: Preciso de uma tela com todas as solicitações de documentos, filtrando por status. É prioridade alta. E outra tarefa: mostrar para quem o aviso de e-mail foi enviado.'
+                    : 'Ex: Automatizar a apuração de ICMS do cliente X, reduzindo o tempo manual e os erros de digitação. Entregar relatório validado pela equipe fiscal.'
+                }
+                rows={ditado ? 6 : 4}
+                autoFocus={ditado}
               />
+              {ditado && (
+                <p className="text-xs text-muted-foreground">
+                  Para falar em vez de digitar, clique na caixa e use o atalho de ditado do Wispr Flow. Pode ditar várias tarefas de uma vez.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -158,20 +176,24 @@ export function GerarDemandasDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Processo (opcional)</Label>
-                <Select value={processId || NONE} onValueChange={(v) => setProcessId(v === NONE ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar processo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Nenhum</SelectItem>
-                    {processosFiltrados.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!ditado && (
+                <div className="space-y-2">
+                  <Label>Processo (opcional)</Label>
+                  <Select value={processId || NONE} onValueChange={(v) => setProcessId(v === NONE ? '' : v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar processo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Nenhum</SelectItem>
+                      {processosFiltrados.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
+            {!ditado && (
+            <>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="capacidade">Capacidade do período (h, opcional)</Label>
@@ -197,6 +219,8 @@ export function GerarDemandasDialog({
                 rows={2}
               />
             </div>
+            </>
+            )}
           </div>
         ) : (
           // ---- FASE 2: PREVIEW EDITÁVEL ----
@@ -281,9 +305,9 @@ export function GerarDemandasDialog({
               <Button variant="outline" onClick={() => handleClose(false)}>Cancelar</Button>
               <Button onClick={handleGerar} disabled={isLoading || !objetivo.trim()}>
                 {isLoading ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {ditado ? 'Organizando...' : 'Gerando...'}</>
                 ) : (
-                  <><Sparkles className="h-4 w-4 mr-2" /> Gerar Demandas</>
+                  <><Sparkles className="h-4 w-4 mr-2" /> {ditado ? 'Organizar tarefas' : 'Gerar Demandas'}</>
                 )}
               </Button>
             </>

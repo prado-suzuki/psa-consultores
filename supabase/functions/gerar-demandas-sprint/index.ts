@@ -9,6 +9,8 @@ interface RequestBody {
   process_id?: string | null;
   capacidade_horas?: number | null; // capacidade da equipe no período (horas)
   contexto_extra?: string | null;
+  // 'ditado': o texto já são as tarefas (falas da coordenadora); não decompor nem inventar escopo.
+  modo?: "decompor" | "ditado" | null;
 }
 
 interface DemandaGerada {
@@ -56,10 +58,11 @@ serve(async (req) => {
 
     const body: RequestBody = await req.json().catch(() => ({}));
 
+    const ditado = body.modo === "ditado";
     const objetivo = (body.objetivo || "").trim();
     if (!objetivo) {
       return new Response(
-        JSON.stringify({ error: "Informe o objetivo da sprint para gerar as demandas." }),
+        JSON.stringify({ error: ditado ? "Fale ou escreva as tarefas." : "Informe o objetivo da sprint para gerar as demandas." }),
         { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
       );
     }
@@ -105,7 +108,7 @@ serve(async (req) => {
       : null;
 
     const contextoDados = `
-OBJETIVO DA SPRINT (descrito pela coordenadora):
+${ditado ? "TAREFAS DITADAS PELA COORDENADORA (transcrição da fala):" : "OBJETIVO DA SPRINT (descrito pela coordenadora):"}
 ${objetivo}
 ${body.contexto_extra ? `\nCONTEXTO ADICIONAL:\n${body.contexto_extra}` : ""}
 
@@ -122,7 +125,23 @@ BLOQUEIOS RECENTES REPORTADOS NAS DAILYS (priorize demandas que destravem estes 
 ${bloqueiosRecentes.length ? bloqueiosRecentes.join("\n") : "Nenhum bloqueio recente registrado"}
 `.trim();
 
-    const prompt = `Você é uma coordenadora sênior de tecnologia da PSA Consultores (consultoria tributária), especialista em planejamento ágil. Sua tarefa é decompor o objetivo de uma sprint em uma lista de demandas (entregáveis) claras, acionáveis e bem estimadas, que serão colocadas no backlog para distribuição.
+    const promptDitado = `Você é uma coordenadora sênior de tecnologia da PSA Consultores (consultoria tributária). A coordenadora ditou em voz alta as tarefas que precisam entrar no backlog, e sua função é registrá-las como itens de backlog.
+
+${contextoDados}
+
+Regras:
+- Crie UMA demanda para cada tarefa que ela mencionou. Não invente tarefas que ela não pediu e não quebre uma tarefa em várias.
+- Título específico e orientado a entrega (verbo + objeto).
+- A descrição organiza o que ela falou: tire hesitações e repetições da fala, mas não acrescente escopo, requisito ou solução que ela não disse.
+- Prioridade: use a que ela disser (urgente/alta = high, baixa = low); se não disser, medium.
+- Horas: use a estimativa que ela disser; se não disser, estime de forma realista pela referência histórica.
+- Sugira responsável (suggested_assignee_name) só se ela citar alguém da equipe disponível; senão, nulo.
+- Justificativa: 1 frase com o motivo que ela deu, ou "Ditada pela coordenadora" se não deu motivo.
+- Escreva tudo em português brasileiro.
+
+Retorne a lista no formato estruturado solicitado.`;
+
+    const promptDecompor = `Você é uma coordenadora sênior de tecnologia da PSA Consultores (consultoria tributária), especialista em planejamento ágil. Sua tarefa é decompor o objetivo de uma sprint em uma lista de demandas (entregáveis) claras, acionáveis e bem estimadas, que serão colocadas no backlog para distribuição.
 
 ${contextoDados}
 
@@ -137,6 +156,8 @@ Regras para gerar as demandas:
 - Escreva tudo em português brasileiro.
 
 Retorne a lista no formato estruturado solicitado.`;
+
+    const prompt = ditado ? promptDitado : promptDecompor;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

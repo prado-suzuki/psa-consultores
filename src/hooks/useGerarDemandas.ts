@@ -17,6 +17,8 @@ export interface GerarDemandasInput {
   process_id?: string | null;
   capacidade_horas?: number | null;
   contexto_extra?: string | null;
+  /** `ditado`: o texto já são as tarefas faladas; a IA só as organiza, sem decompor. */
+  modo?: 'decompor' | 'ditado';
 }
 
 interface GerarDemandasResumo {
@@ -38,7 +40,10 @@ export const useGerarDemandas = () => {
 
   const gerar = useCallback(async (input: GerarDemandasInput): Promise<DemandaGerada[]> => {
     if (!input.objetivo?.trim()) {
-      toast({ title: 'Descreva o objetivo da sprint', variant: 'destructive' });
+      toast({
+        title: input.modo === 'ditado' ? 'Fale ou escreva as tarefas' : 'Descreva o objetivo da sprint',
+        variant: 'destructive',
+      });
       return [];
     }
 
@@ -51,6 +56,7 @@ export const useGerarDemandas = () => {
           process_id: input.process_id || null,
           capacidade_horas: input.capacidade_horas ?? null,
           contexto_extra: input.contexto_extra || null,
+          modo: input.modo ?? 'decompor',
         },
       });
 

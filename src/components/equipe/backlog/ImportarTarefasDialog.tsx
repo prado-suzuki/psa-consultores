@@ -9,7 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertTriangle, ArrowLeft, FileUp, Loader2, Upload } from 'lucide-react';
 import { ImportarTarefasAjuda } from '@/components/equipe/backlog/ImportarTarefasAjuda';
 import { useCriarDemandasBacklog } from '@/hooks/useCriarDemandasBacklog';
-import { casarProjeto, ehIndiceDaSprint, lerArquivoDeTarefas, type PrioridadeImportada, type TarefaImportada } from '@/lib/importarTarefasBacklog';
+import {
+  casarProjeto,
+  ehIndiceDaSprint,
+  lerArquivoDeTarefas,
+  verificadorDeDuplicada,
+  type PrioridadeImportada,
+  type TarefaImportada,
+} from '@/lib/importarTarefasBacklog';
 
 const NONE = '__none__';
 
@@ -25,10 +32,12 @@ interface TarefaEmRevisao extends TarefaImportada {
 
 interface ImportarTarefasBotaoProps {
   projects: Projeto[];
+  /** Títulos já no backlog: tarefa com o mesmo título entra desmarcada. */
+  titulosNoBacklog: string[];
 }
 
 /** Botão "Importar tarefas" do backlog: lê .md, mostra para revisão e grava só o que ficou marcado. */
-export function ImportarTarefasBotao({ projects }: ImportarTarefasBotaoProps) {
+export function ImportarTarefasBotao({ projects, titulosNoBacklog }: ImportarTarefasBotaoProps) {
   const { salvar, isSaving } = useCriarDemandasBacklog();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -55,13 +64,15 @@ export function ImportarTarefasBotao({ projects }: ImportarTarefasBotaoProps) {
         Array.from(files).map(async (f) => ({ nome: f.name, tarefas: lerArquivoDeTarefas(f.name, await f.text()) })),
       );
       setSemTarefa(lidos.filter((l) => l.tarefas.length === 0 && !ehIndiceDaSprint(l.nome)).map((l) => l.nome));
+      const jaExiste = verificadorDeDuplicada(titulosNoBacklog);
       setItens(
         lidos.flatMap((l) => l.tarefas).map((t) => {
           const project_id = casarProjeto(t.projeto_nome, projects) ?? '';
-          const avisos = t.projeto_nome && !project_id
-            ? [...t.avisos, `Projeto "${t.projeto_nome}" não encontrado; escolha abaixo.`]
-            : t.avisos;
-          return { ...t, avisos, project_id, selecionada: t.sugerida };
+          const avisos = [...t.avisos];
+          if (t.projeto_nome && !project_id) avisos.push(`Projeto "${t.projeto_nome}" não encontrado; escolha abaixo.`);
+          const duplicada = jaExiste(t.title);
+          if (duplicada) avisos.push('Já existe uma tarefa com este título no backlog.');
+          return { ...t, avisos, project_id, selecionada: t.sugerida && !duplicada };
         }),
       );
     } finally {

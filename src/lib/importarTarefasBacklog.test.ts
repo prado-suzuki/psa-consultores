@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { casarProjeto, lerArquivoDeTarefas } from './importarTarefasBacklog';
+import { casarProjeto, lerArquivoDeTarefas, verificadorDeDuplicada } from './importarTarefasBacklog';
 
 describe('lerArquivoDeTarefas', () => {
   it('lista: cada ## vira uma tarefa, com os campos opcionais', () => {
@@ -120,6 +120,14 @@ describe('lerArquivoDeTarefas', () => {
 
   it('arquivo sem título nenhum devolve lista vazia', () => {
     expect(lerArquivoDeTarefas('x.md', 'só texto')).toEqual([]);
+  });
+});
+
+describe('verificadorDeDuplicada', () => {
+  it('reconhece o mesmo título com outro acento, caixa e espaço', () => {
+    const jaExiste = verificadorDeDuplicada(['O histórico de solicitações de um cliente']);
+    expect(jaExiste('  o historico de SOLICITACOES de um cliente ')).toBe(true);
+    expect(jaExiste('Outra tarefa')).toBe(false);
   });
 });
 
