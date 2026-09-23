@@ -267,9 +267,11 @@ governança". A saída é a mesma que o motor já usa em `membrosFixo`/`membrosE
 3. **Migration retaggeando os sete blocos de administração simples** com `administracao_simples`
    (as duas cláusulas somam a flag às que já têm; os cinco sem flag ganham a primeira). O
    cabeçalho "Capítulo — Administração" **fica sem flag e compartilhado**: os dois regramentos
-   moram no mesmo capítulo, e um segundo cabeçalho daria dois "Capítulo IV". O bloco de
-   resolução e o de desimpedimento continuam com `evento_mudanca_administracao`, que é matéria
-   diferente.
+   moram no mesmo capítulo, e um segundo cabeçalho daria dois "Capítulo IV". O desimpedimento
+   continua só com `evento_mudanca_administracao`. A "Resolução: mudança na administração"
+   ganhou `administracao_simples` (ela cita `refs.administracao_social` e reescreve a
+   administração isolada), e o lado da governança tem a própria resolução, que cita
+   `refs.capituloAdministracao` (migration `20260923154552_resolucao_mudanca_administracao_na_governanca.sql`).
 4. **Retroatividade para documento validado.** A versão anterior afirmava que "documento já
    validado não corre risco: ele renderiza dos flags congelados". **É o contrário.** Só peça com
    `status = 'registrado'` renderiza os blocos do snapshot (controller, linha 447); peça
