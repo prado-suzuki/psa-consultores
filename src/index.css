@@ -955,9 +955,11 @@ All colors MUST be HSL.
     --tool-icon: var(--primary);
     --tool-icon-bg: 192 60% 95%;
     --destructive: var(--status-ajuste);
-    --foreground: 20 81% 10%;
-    --card-foreground: 20 81% 10%;
-    --popover-foreground: 20 81% 10%;
+    /* O mesmo quase-preto com cast de teal do piso. Aqui ficou o marrom cru do
+       `:root` (`20 81% 10%`), que a `.base-theme` já tinha trocado. */
+    --foreground: 178 30% 9%;
+    --card-foreground: 178 30% 9%;
+    --popover-foreground: 178 30% 9%;
     /* A Tax não tem superfície escura hoje. Declara o par do piso para o
        contrato ficar honesto e para ter o fundo certo se um dia tiver. */
     --surface-escura: 229 84% 5%;
