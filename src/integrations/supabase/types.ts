@@ -149,7 +149,6 @@ export type Database = {
           consolida_composse: boolean
           created_at: string
           created_by: string | null
-          data_referencia: string | null
           excluido: boolean
           foro_eleito_comarca: string | null
           foro_eleito_estado: string | null
@@ -164,11 +163,9 @@ export type Database = {
           nao_concorrencia_multa: string | null
           nao_concorrencia_prazo_anos: number | null
           objetos_preferencia: string[] | null
-          opcao_compra_preco: string | null
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
-          prazo_sigilo_anos: number | null
           regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
@@ -186,7 +183,6 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
-          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -201,11 +197,9 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
-          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
@@ -223,7 +217,6 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
-          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -238,11 +231,9 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
-          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
