@@ -6,7 +6,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { gerarComposicao } from './index';
-import { redacaoDoCapital } from './mapeadores';
+import { redacaoDoCapital, vocabularioDaPreferencia, vocabularioDaRetirada, type CessaoParaMapear } from './mapeadores';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { removerMarcas } from './marcas';
 import type { Bloco, Contexto } from './types';
 
@@ -177,5 +178,66 @@ describe('a nova redação da cláusula de capital é transcrita uma vez só', (
     for (const flags of [['evento_aumento_capital'], ['evento_cessao_quotas'], ['evento_aumento_capital', 'evento_integralizacao']]) {
       expect(transcricoes(flags).vezes).toBe(1);
     }
+  });
+});
+
+describe('cessão total: os cedentes comparecem e ninguém renuncia por quem não existe', () => {
+  const textos = redacoes('20260923160238_retirantes_no_preambulo_e_renuncia_so_com_terceiros.sql');
+  const PREAMBULO = textos.get('ac000002-0000-4000-8000-000000000001')!.novo;
+  const RENUNCIA = textos.get('ac000003-0000-4000-8000-000000000001')!.novo;
+
+  const pessoa = (id: string, genero: 'M' | 'F' | null, tipo_pessoa = 'PF') =>
+    ({ id, denominacao: id, genero, tipo_pessoa }) as unknown as PessoaRow;
+  const JATOBA = pessoa('JATOBÁ SEMENTES S.A.', null, 'PJ');
+  const LUCAS = pessoa('LUCAS NOGUEIRA', 'M');
+  const HEITOR = pessoa('HEITOR CARDOSO', 'M');
+  const MARINA = pessoa('MARINA SALGADO', 'F');
+  const cessao = (cedente: PessoaRow, cessionario: PessoaRow) =>
+    ({ id: cedente.id, cedente, cessionario, quotas: 1, valor: 1 }) as CessaoParaMapear;
+  const item = (chave: string) => (p: PessoaRow) => ({ [chave]: { qualificacao: `${p.id}, qualificado` } });
+
+  const preambulo = (socios: PessoaRow[], retirantes: PessoaRow[]) => renderizar(
+    [{ id: 'p', tipo: 'livre', conteudo: PREAMBULO }],
+    {
+      socios: socios.map(item('socio')),
+      retirantes: retirantes.map(item('retirante')),
+      retirada: vocabularioDaRetirada(retirantes, socios),
+      sociedade: {
+        tituloColetivoSocios: socios.length === 1 ? 'Única sócia' : 'Únicos sócios',
+        razaoSocial: 'Farroupilha Comércio Ltda', cnpj: '07.781.351/8252-30', juntaUfExtenso: 'Mato Grosso',
+        nire: '51202129910', sede: 'Rua Vitor Dias, n.º 1094',
+      },
+    },
+  )[0];
+
+  it('o preâmbulo qualifica os retirantes e o fecho conta todas as partes', () => {
+    const texto = preambulo([JATOBA], [LUCAS, HEITOR, MARINA]);
+    expect(texto).toContain('JATOBÁ SEMENTES S.A., qualificado; e, na qualidade de sócios retirantes,\n\nLUCAS NOGUEIRA, qualificado;\n\nHEITOR CARDOSO, qualificado; e\n\nMARINA SALGADO, qualificado.');
+    expect(texto).toContain('Únicos sócios da sociedade limitada Farroupilha Comércio Ltda');
+    expect(texto).not.toContain('Única sócia');
+  });
+
+  it('sem retirante, o preâmbulo sai como sempre saiu', () => {
+    const texto = preambulo([LUCAS, JATOBA], []);
+    expect(texto).toMatch(/^LUCAS NOGUEIRA, qualificado; e\n\nJATOBÁ SEMENTES S\.A\., qualificado\.\n\n {2}Únicos sócios da sociedade limitada/);
+    expect(texto).not.toContain('retirante');
+  });
+
+  const renuncia = (cessoes: CessaoParaMapear[], socios: PessoaRow[]) => renderizar(
+    [{ id: 'r', tipo: 'clausula', conteudo: RENUNCIA }],
+    { preferencia: vocabularioDaPreferencia(cessoes, socios) },
+  );
+
+  it('todos cedem à controladora: não há demais sócios, e a renúncia não sai', () => {
+    expect(renuncia([cessao(LUCAS, JATOBA), cessao(HEITOR, JATOBA), cessao(MARINA, JATOBA)], [JATOBA])).toEqual([]);
+  });
+
+  it('com sócio fora da cessão, a renúncia sai e concorda com ele', () => {
+    expect(renuncia([cessao(LUCAS, HEITOR)], [HEITOR, MARINA])).toEqual([
+      'CLÁUSULA PRIMEIRA: A outra sócia, ciente da cessão de quotas formalizada neste instrumento, renuncia expressamente ao direito de preferência previsto no contrato social.',
+    ]);
+    expect(renuncia([cessao(LUCAS, JATOBA)], [JATOBA, HEITOR, MARINA])[0]).toContain(
+      'Os demais sócios, cientes da cessão de quotas formalizada neste instrumento, renunciam expressamente',
+    );
   });
 });

@@ -6,7 +6,7 @@ import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from 
 import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada, semVocabularioDaGeracao } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, redacaoDoCapital, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, redacaoDoCapital, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaPreferencia, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -2316,7 +2316,12 @@ export function useGerarDocumentoController() {
     const retirantesEfetivos = dados && folhaPelaProposta
       ? (((dados.itensPorLista?.retirantes ?? []).length > 0) ? retirantes : [])
       : retirantes;
-    ctx.retirada = vocabularioDaRetirada(retirantesEfetivos);
+    const pessoasDoQuadro = socios.map((s) => s.pessoa);
+    ctx.retirada = vocabularioDaRetirada(retirantesEfetivos, pessoasDoQuadro);
+    const cessoesEfetivas = dados && folhaPelaProposta
+      ? (((dados.itensPorLista?.cessoes ?? []).length > 0) ? cessoes : [])
+      : cessoes;
+    ctx.preferencia = vocabularioDaPreferencia(cessoesEfetivas, pessoasDoQuadro);
     // Idem para a resolução de qualificação, com uma diferença: quem responde é
     // sempre a LISTA do contexto, porque ela já é a do ato (o estado proposto a
     // compôs dos candidatos confirmados) tanto na folha viva quanto na versão
@@ -2394,7 +2399,7 @@ export function useGerarDocumentoController() {
     }
     // `montarContextoDaFolha` é recriada a cada render; as deps são as fontes que ela lê.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, dadosDaFolha, folhaPelaProposta, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios, reproduzindoRegistrado, snapshotRegistrado, snapshotFlags, snapshotDados, propostaAC, causaQualificacao]);
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, dadosDaFolha, folhaPelaProposta, bindingMatricula, georefCabecalhoCampos, retirantes, socios, cessoes, administradoresNaoSocios, reproduzindoRegistrado, snapshotRegistrado, snapshotFlags, snapshotDados, propostaAC, causaQualificacao]);
 
   // As famílias que o texto desta peça cita, transitivamente: o snapshot é o
   // retrato deste documento, não da Biblioteca. O conjunto também interrompe

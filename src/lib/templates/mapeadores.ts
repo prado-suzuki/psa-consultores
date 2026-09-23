@@ -1964,7 +1964,11 @@ export function mapearRetirantes(retirantes: readonly PessoaRow[]): ItemLista[] 
  * sai é a mesma classe de erro que o fecho cometia ao chamar de "Sócio" quem
  * assina no feminino, e nenhum `sep`/`fim` de seção resolve flexão de verbo.
  */
-export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos {
+export function vocabularioDaRetirada(
+  retirantes: readonly PessoaRow[],
+  /** O quadro resultante: com os retirantes, são as partes do preâmbulo. */
+  socios: readonly PessoaRow[] = [],
+): Campos {
   // NINGUÉM sai: as três palavras saem VAZIAS, e não no plural.
   //
   // Não é preciosismo de concordância, é o que faz o bloco SUMIR. A cláusula de
@@ -1980,22 +1984,63 @@ export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos 
   // 'lista-vazia' tira o bloco da composição, que é o comportamento correto: numa
   // alteração em que ninguém se retirou, a cláusula de retirada não existe.
   if (retirantes.length === 0) {
-    return { titulo: '', porTerCedido: '', verbo: '' };
+    return { titulo: '', porTerCedido: '', verbo: '', qualidade: '', tituloColetivoDasPartes: '', haRetirantes: '', semRetirantes: 'sim' };
   }
 
   const umSo = retirantes.length === 1;
-  const todasFemininas = retirantes.every(
-    (p) => generoDeConcordancia(
-      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
-      p.tipo_pessoa,
-    ) === 'F',
-  );
+  const todasFemininas = retirantes.every(ehFeminina);
+  const partes = [...socios, ...retirantes];
+  const partesFemininas = partes.every(ehFeminina);
   return {
     titulo: umSo
       ? (todasFemininas ? 'a sócia' : 'o sócio')
       : (todasFemininas ? 'as sócias' : 'os sócios'),
     porTerCedido: umSo ? 'por ter cedido' : 'por terem cedido',
     verbo: umSo ? 'retira-se' : 'retiram-se',
+    qualidade: umSo
+      ? (todasFemininas ? 'sócia retirante' : 'sócio retirante')
+      : (todasFemininas ? 'sócias retirantes' : 'sócios retirantes'),
+    // Quem sai também é parte do instrumento, então o fecho do preâmbulo conta os dois.
+    tituloColetivoDasPartes: partes.length === 1
+      ? (partesFemininas ? 'Única sócia' : 'Único sócio')
+      : (partesFemininas ? 'Únicas sócias' : 'Únicos sócios'),
+    haRetirantes: 'sim',
+    semRetirantes: '',
+  };
+}
+
+function ehFeminina(p: PessoaRow): boolean {
+  return generoDeConcordancia(
+    p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+    p.tipo_pessoa,
+  ) === 'F';
+}
+
+/**
+ * Quem renuncia à preferência numa cessão onerosa: os sócios do quadro que não
+ * cederam nem receberam. Sem nenhum, as palavras saem vazias e o descarte tira a
+ * cláusula, porque quem é parte da cessão já consente ao assinar.
+ */
+export function vocabularioDaPreferencia(
+  cessoes: readonly CessaoParaMapear[],
+  socios: readonly PessoaRow[],
+): Campos {
+  const participantes = new Set(
+    cessoes.filter((c) => !c.doacao).flatMap((c) => [c.cedente.id, c.cessionario.id]),
+  );
+  const demais = participantes.size === 0
+    ? []
+    : socios.filter((p) => p.id && !participantes.has(p.id));
+  if (demais.length === 0) return { sujeito: '', ciente: '', verbo: '' };
+
+  const umSo = demais.length === 1;
+  const femininas = demais.every(ehFeminina);
+  return {
+    sujeito: umSo
+      ? (femininas ? 'A outra sócia' : 'O outro sócio')
+      : (femininas ? 'As demais sócias' : 'Os demais sócios'),
+    ciente: umSo ? 'ciente' : 'cientes',
+    verbo: umSo ? 'renuncia' : 'renunciam',
   };
 }
 
