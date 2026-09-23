@@ -12374,6 +12374,7 @@ export type Database = {
         | "tarefa_atrasada"
         | "papel_de_trabalho_importado"
         | "tarefa_inativa"
+        | "projeto_inativo"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -12663,6 +12664,7 @@ export const Constants = {
         "tarefa_atrasada",
         "papel_de_trabalho_importado",
         "tarefa_inativa",
+        "projeto_inativo",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [

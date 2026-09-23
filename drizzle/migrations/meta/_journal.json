@@ -50,6 +50,13 @@
       "when": 1790166484747,
       "tag": "0006_ges01b_movimentacao_relevante",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790166535207,
+      "tag": "0007_ges01b_tipo_de_aviso_projeto_inativo",
+      "breakpoints": true
     }
   ]
 }
