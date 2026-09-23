@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { matchCluster, SEM_CLUSTER } from "@/lib/clusterFilter";
 import { isTarefaRichTextEmpty, tarefaRichTextToPlain } from "@/lib/tarefaRichText";
 import { BacklogItemDialog } from "@/components/equipe/backlog/BacklogItemDialog";
+import { ImportarTarefasBotao } from "@/components/equipe/backlog/ImportarTarefasDialog";
 import { blankBacklogItemForm, type BacklogItemForm } from "@/lib/backlogItemForm";
 
 const UNASSIGNED = '__unassigned__';
@@ -293,9 +294,12 @@ export default function EquipeBacklog() {
       title="Backlog" 
       subtitle="Repositório de atividades para distribuir nas sprints"
       headerActions={
-        <Button onClick={() => openFormModal()}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Tarefa
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportarTarefasBotao projects={projects} />
+          <Button onClick={() => openFormModal()}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Tarefa
+          </Button>
+        </div>
       }
     >
       <div className="space-y-6">

@@ -1,16 +1,24 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useToast } from '@/hooks/use-toast';
+import { domainBacklogQueryKeys } from '@/hooks/useDomainBacklog';
 import type { DemandaGerada } from '@/hooks/useGerarDemandas';
 
-export interface DemandaParaSalvar extends DemandaGerada {
+export interface DemandaParaSalvar extends Omit<DemandaGerada, 'estimated_hours'> {
+  estimated_hours: number | null;
   project_id?: string | null;
 }
 
+interface OpcoesDeSalvar {
+  /** Abre o `details` da auditoria; a justificativa de cada demanda vem depois dos dois-pontos. */
+  origem?: string;
+}
+
 /**
- * Grava em lote demandas (geradas por IA e revisadas pela coordenadora) na
+ * Grava em lote demandas (geradas por IA ou importadas de arquivo, revisadas antes) na
  * tabela `sprint_backlog_items`. Itens entram no backlog global (sprint_id
  * nulo) e são distribuídos depois via "Mover para Sprint".
  *
@@ -21,9 +29,13 @@ export const useCriarDemandasBacklog = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
-  const salvar = useCallback(async (demandas: DemandaParaSalvar[]): Promise<boolean> => {
+  const salvar = useCallback(async (
+    demandas: DemandaParaSalvar[],
+    { origem = 'Demanda gerada por IA' }: OpcoesDeSalvar = {},
+  ): Promise<boolean> => {
     if (!demandas.length) {
       toast({ title: 'Nenhuma demanda selecionada', variant: 'destructive' });
       return false;
@@ -35,7 +47,7 @@ export const useCriarDemandasBacklog = () => {
         title: d.title,
         description: d.description || null,
         priority: d.priority,
-        estimated_hours: Number.isFinite(d.estimated_hours) ? d.estimated_hours : null,
+        estimated_hours: d.estimated_hours != null && Number.isFinite(d.estimated_hours) ? d.estimated_hours : null,
         sprint_id: null, // backlog global
         project_id: d.project_id || null,
         suggested_by: user?.id ?? null,
@@ -69,10 +81,12 @@ export const useCriarDemandasBacklog = () => {
               estimated_hours: { old: null, new: item.estimated_hours },
               project_id: { old: null, new: item.project_id },
             },
-            details: `Demanda gerada por IA${demandas[idx]?.justificativa ? `: ${demandas[idx].justificativa}` : ''}`,
+            details: `${origem}${demandas[idx]?.justificativa ? `: ${demandas[idx].justificativa}` : ''}`,
           })
         )
       );
+
+      void queryClient.invalidateQueries({ queryKey: domainBacklogQueryKeys.data });
 
       toast({
         title: `${created.length} ${created.length === 1 ? 'demanda adicionada' : 'demandas adicionadas'} ao backlog`,
@@ -86,7 +100,7 @@ export const useCriarDemandasBacklog = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [user?.id, logAction, toast]);
+  }, [user?.id, logAction, toast, queryClient]);
 
   return { salvar, isSaving };
 };
