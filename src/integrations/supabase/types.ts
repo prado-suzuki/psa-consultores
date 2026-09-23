@@ -11618,8 +11618,20 @@ export type Database = {
     }
     Functions: {
       acordo_visivel_para: { Args: { _acordo_id: string }; Returns: boolean }
-      alertar_tarefas_inativas: {
+      alertar_projetos_inativos: {
         Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
+        Returns: {
+          avisos_criados: number
+          reservas_negadas: number
+        }[]
+      }
+      alertar_tarefas_inativas: {
+        Args: {
+          _ambiente?: string
+          _atraso_gestor?: number
+          _hoje?: string
+          _limiar?: number
+        }
         Returns: {
           avisos_criados: number
           reservas_negadas: number
@@ -12152,6 +12164,18 @@ export type Database = {
         Args: { _etapa_id: string }
         Returns: boolean
       }
+      projetos_inativos: {
+        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
+        Returns: {
+          destinatario_id: string
+          dias_parado: number
+          project_id: string
+          project_name: string
+          tarefas_abertas: number
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          ultima_movimentacao: string
+        }[]
+      }
       protocolo_linha_visivel_para: {
         Args: { _linha_id: string }
         Returns: boolean
@@ -12270,6 +12294,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["itcd_simulacao_status"]
       }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
+      tarefa_movimentacao_relevante: {
+        Args: never
+        Returns: {
+          o_que: string
+          quando: string
+          task_id: string
+        }[]
+      }
       tarefas_a_alertar: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
@@ -12285,7 +12317,12 @@ export type Database = {
         }[]
       }
       tarefas_inativas: {
-        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
+        Args: {
+          _ambiente?: string
+          _atraso_gestor?: number
+          _hoje?: string
+          _limiar?: number
+        }
         Returns: {
           destinatario_id: string
           dias_parado: number

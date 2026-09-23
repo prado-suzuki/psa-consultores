@@ -57,6 +57,13 @@
       "when": 1790166535207,
       "tag": "0007_ges01b_tipo_de_aviso_projeto_inativo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790166613011,
+      "tag": "0008_ges01b_escada_do_gestor_e_projeto",
+      "breakpoints": true
     }
   ]
 }
