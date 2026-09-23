@@ -43,6 +43,13 @@
       "when": 1790166409124,
       "tag": "0005_ges01b_alerta_inatividade",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790166484747,
+      "tag": "0006_ges01b_movimentacao_relevante",
+      "breakpoints": true
     }
   ]
 }

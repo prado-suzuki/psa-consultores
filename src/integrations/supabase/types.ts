@@ -12288,14 +12288,15 @@ export type Database = {
         Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
         Returns: {
           destinatario_id: string
-          dias_parada: number
+          dias_parado: number
           dono_nome: string
+          o_que_mudou: string
           papel: string
           task_id: string
           task_status: Database["public"]["Enums"]["fiscal_task_status"]
           task_title: string
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
-          ultima_alteracao: string
+          ultima_movimentacao: string
         }[]
       }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
