@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       access_change_log: {
@@ -71,6 +46,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      acordo_ordem_preferencia: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ordem: number
+          quem: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_ordem_preferencia_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       acordo_quorum: {
         Row: {
@@ -133,6 +149,7 @@ export type Database = {
           consolida_composse: boolean
           created_at: string
           created_by: string | null
+          data_referencia: string | null
           excluido: boolean
           foro_eleito_comarca: string | null
           foro_eleito_estado: string | null
@@ -147,13 +164,16 @@ export type Database = {
           nao_concorrencia_multa: string | null
           nao_concorrencia_prazo_anos: number | null
           objetos_preferencia: string[] | null
+          opcao_compra_preco: string | null
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
+          prazo_sigilo_anos: number | null
           regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
+          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -166,6 +186,7 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
+          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -180,13 +201,16 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
+          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -199,6 +223,7 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
+          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -213,13 +238,16 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
+          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -236,6 +264,13 @@ export type Database = {
           {
             foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
             columns: ["representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
+            columns: ["substituto_representante_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -325,6 +360,54 @@ export type Database = {
           {
             foreignKeyName: "acordo_signatario_pessoa_id_fkey"
             columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_sociedade_relacionada: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          id: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -1147,106 +1230,6 @@ export type Database = {
           },
           {
             foreignKeyName: "bem_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      capital_integralizacao: {
-        Row: {
-          bem_id: string
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          empresa_destino_pessoa_id: string
-          id: string
-          pct_capital: number | null
-          pct_vlr_contabil: number | null
-          pct_vlr_mercado: number | null
-          reserva_capital: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_capital_arredondado: number | null
-          vlr_contabil: number | null
-          vlr_mercado: number | null
-        }
-        Insert: {
-          bem_id: string
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Update: {
-          bem_id?: string
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id?: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "capital_integralizacao_bem_id_fkey"
-            columns: ["bem_id"]
-            isOneToOne: false
-            referencedRelation: "bem"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
-            columns: ["empresa_destino_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2304,8 +2287,7 @@ export type Database = {
       }
       deliverable_attachments: {
         Row: {
-          backlog_item_id: string | null
-          deliverable_id: string | null
+          deliverable_id: string
           file_name: string
           file_path: string
           file_size: number
@@ -2315,8 +2297,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
-          backlog_item_id?: string | null
-          deliverable_id?: string | null
+          deliverable_id: string
           file_name: string
           file_path: string
           file_size: number
@@ -2326,8 +2307,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
-          backlog_item_id?: string | null
-          deliverable_id?: string | null
+          deliverable_id?: string
           file_name?: string
           file_path?: string
           file_size?: number
@@ -2337,13 +2317,6 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "deliverable_attachments_backlog_item_id_fkey"
-            columns: ["backlog_item_id"]
-            isOneToOne: false
-            referencedRelation: "sprint_backlog_items"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "deliverable_attachments_deliverable_id_fkey"
             columns: ["deliverable_id"]
@@ -3904,6 +3877,7 @@ export type Database = {
           data_assinatura: string | null
           exploracao_rural_id: string
           id: string
+          outorgante_capital_social_na_assinatura: number | null
           outorgante_pessoa_id: string | null
           outorgante_representante: string | null
           titulo_instrumento: string | null
@@ -3916,6 +3890,7 @@ export type Database = {
           data_assinatura?: string | null
           exploracao_rural_id: string
           id?: string
+          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
           outorgante_representante?: string | null
           titulo_instrumento?: string | null
@@ -3928,6 +3903,7 @@ export type Database = {
           data_assinatura?: string | null
           exploracao_rural_id?: string
           id?: string
+          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
           outorgante_representante?: string | null
           titulo_instrumento?: string | null
@@ -6735,7 +6711,6 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
-          review_hours: number | null
           reviewer_id: string | null
           servico_id: string | null
           start_date: string | null
@@ -6770,7 +6745,6 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
-          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -6805,7 +6779,6 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
-          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -8853,285 +8826,6 @@ export type Database = {
           },
         ]
       }
-      protocolo_beneficiario: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          id: string
-          nome: string
-          ordem: number
-          protocolo_id: string | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome: string
-          ordem?: number
-          protocolo_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome?: string
-          ordem?: number
-          protocolo_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_beneficiario_protocolo_id_fkey"
-            columns: ["protocolo_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_remuneracao"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      protocolo_item_governanca: {
-        Row: {
-          cliente_id: string | null
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          id: string
-          nome: string
-          ordem: number
-          tema_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome: string
-          ordem?: number
-          tema_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome?: string
-          ordem?: number
-          tema_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_item_governanca_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "protocolo_item_governanca_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_tema_governanca"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      protocolo_linha: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          item_id: string
-          ordem: number
-          protocolo_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          item_id: string
-          ordem?: number
-          protocolo_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          item_id?: string
-          ordem?: number
-          protocolo_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_linha_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_item_governanca"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "protocolo_linha_protocolo_id_fkey"
-            columns: ["protocolo_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_remuneracao"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      protocolo_regra: {
-        Row: {
-          beneficiario_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          linha_id: string
-          texto: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          beneficiario_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          linha_id: string
-          texto: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          beneficiario_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          linha_id?: string
-          texto?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_regra_beneficiario_id_fkey"
-            columns: ["beneficiario_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_beneficiario"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "protocolo_regra_linha_id_fkey"
-            columns: ["linha_id"]
-            isOneToOne: false
-            referencedRelation: "protocolo_linha"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      protocolo_remuneracao: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          id: string
-          updated_at: string
-          updated_by: string | null
-          versao: number
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          updated_at?: string
-          updated_by?: string | null
-          versao?: number
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          updated_at?: string
-          updated_by?: string | null
-          versao?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_remuneracao_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      protocolo_tema_governanca: {
-        Row: {
-          cliente_id: string | null
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "protocolo_tema_governanca_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       psa_migrations_aplicadas: {
         Row: {
           aplicada_em: string
@@ -9158,77 +8852,6 @@ export type Database = {
           sha256?: string
         }
         Relationships: []
-      }
-      quadro_societario: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          data_referencia: string | null
-          empresa_pessoa_id: string
-          id: string
-          percentual: number | null
-          quotas: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_total: number | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quadro_societario_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       relatorios_gerados: {
         Row: {
@@ -10568,7 +10191,6 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
-          quebra_pagina_antes: boolean
           reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
@@ -10593,7 +10215,6 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
-          quebra_pagina_antes?: boolean
           reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
@@ -10618,7 +10239,6 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
-          quebra_pagina_antes?: boolean
           reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
@@ -11713,25 +11333,6 @@ export type Database = {
     }
     Functions: {
       acordo_visivel_para: { Args: { _acordo_id: string }; Returns: boolean }
-      alertar_projetos_inativos: {
-        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
-        Returns: {
-          avisos_criados: number
-          reservas_negadas: number
-        }[]
-      }
-      alertar_tarefas_inativas: {
-        Args: {
-          _ambiente?: string
-          _atraso_gestor?: number
-          _hoje?: string
-          _limiar?: number
-        }
-        Returns: {
-          avisos_criados: number
-          reservas_negadas: number
-        }[]
-      }
       alertar_tarefas_por_prazo: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
@@ -12259,26 +11860,6 @@ export type Database = {
         Args: { _etapa_id: string }
         Returns: boolean
       }
-      projetos_inativos: {
-        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
-        Returns: {
-          destinatario_id: string
-          dias_parado: number
-          project_id: string
-          project_name: string
-          tarefas_abertas: number
-          tipo: Database["public"]["Enums"]["notificacao_tipo"]
-          ultima_movimentacao: string
-        }[]
-      }
-      protocolo_linha_visivel_para: {
-        Args: { _linha_id: string }
-        Returns: boolean
-      }
-      protocolo_visivel_para: {
-        Args: { _protocolo_id: string }
-        Returns: boolean
-      }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       registrar_download_documento: {
         Args: { _acao?: string; _documento_id: string }
@@ -12389,14 +11970,6 @@ export type Database = {
         Returns: Database["public"]["Enums"]["itcd_simulacao_status"]
       }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
-      tarefa_movimentacao_relevante: {
-        Args: never
-        Returns: {
-          o_que: string
-          quando: string
-          task_id: string
-        }[]
-      }
       tarefas_a_alertar: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
@@ -12409,26 +11982,6 @@ export type Database = {
           task_status: Database["public"]["Enums"]["fiscal_task_status"]
           task_title: string
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
-        }[]
-      }
-      tarefas_inativas: {
-        Args: {
-          _ambiente?: string
-          _atraso_gestor?: number
-          _hoje?: string
-          _limiar?: number
-        }
-        Returns: {
-          destinatario_id: string
-          dias_parado: number
-          dono_nome: string
-          o_que_mudou: string
-          papel: string
-          task_id: string
-          task_status: Database["public"]["Enums"]["fiscal_task_status"]
-          task_title: string
-          tipo: Database["public"]["Enums"]["notificacao_tipo"]
-          ultima_movimentacao: string
         }[]
       }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
@@ -12505,8 +12058,6 @@ export type Database = {
         | "tarefa_prazo_proximo"
         | "tarefa_atrasada"
         | "papel_de_trabalho_importado"
-        | "tarefa_inativa"
-        | "projeto_inativo"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -12737,9 +12288,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
@@ -12798,8 +12346,6 @@ export const Constants = {
         "tarefa_prazo_proximo",
         "tarefa_atrasada",
         "papel_de_trabalho_importado",
-        "tarefa_inativa",
-        "projeto_inativo",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
