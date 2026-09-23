@@ -21,6 +21,11 @@ import { cn } from '@/lib/utils';
  * rolagem lateral. Uma tabela só devolveria a rolagem que a primeira versão
  * tinha, com a diferença de mostrar uma linha em vez de 155.
  *
+ * ABAIXO DE `md` A TABELA DEITADA VIRA PARES EMPILHADOS. Quatro a seis colunas
+ * cabem no painel de um monitor e não cabem em 340px: no celular elas ficavam
+ * atrás de uma barra de rolagem lateral por quadro, e dado que exige rolar de
+ * lado para aparecer é dado que ninguém lê.
+ *
  * Só leitura: contribuinte, valores e rateio se trocam na aba de OS do cadastro
  * do cliente; o cadastro do contribuinte, em Contribuintes.
  */
@@ -68,6 +73,99 @@ const Th = ({ children, className }: { children: React.ReactNode; className?: st
 
 const NUMERICA = 'text-right tabular-nums whitespace-nowrap';
 
+/** Um campo do registro: vira coluna no monitor e par rótulo/valor no celular. */
+interface Campo {
+  rotulo: string;
+  valor: React.ReactNode;
+  /** Alinha à direita nos dois formatos. Só para dinheiro e contagem. */
+  numerica?: boolean;
+  /** Classes da célula da tabela deitada, quando ela precisa de mais que o padrão. */
+  celula?: string;
+}
+
+/**
+ * Os campos um por linha, rótulo à esquerda e valor à direita. Só existe abaixo
+ * de `md`, no lugar da tabela deitada.
+ *
+ * Campo sem valor fica em travessão, e não some: em "Produtos contratados" o
+ * rótulo é o nome do produto e o valor são as horas, então esconder o par vazio
+ * apagaria o produto da lista.
+ */
+const ParesEmpilhados = ({ campos, className }: { campos: Campo[]; className?: string }) => (
+  <dl className={cn('divide-y', className)}>
+    {campos.map((campo) => (
+      <div key={campo.rotulo} className="flex items-baseline justify-between gap-3 px-3 py-2">
+        {/* Nenhum dos dois lados é `shrink-0`: em "Produtos contratados" o
+            rótulo é o nome do produto, e um rótulo rígido empurrava o valor
+            para fora do cartão. O valor numérico não quebra, para "120 h" não
+            virar duas linhas quando o rótulo ao lado for comprido. */}
+        <dt className="min-w-0 break-words text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          {campo.rotulo}
+        </dt>
+        <dd
+          className={cn(
+            'min-w-0 break-words text-right text-xs text-foreground',
+            campo.numerica && 'whitespace-nowrap tabular-nums',
+          )}
+        >
+          {campo.valor}
+        </dd>
+      </div>
+    ))}
+  </dl>
+);
+
+/**
+ * Quadro de UM registro: a tabela de uma linha no monitor, os pares no celular.
+ *
+ * `aviso` troca o conteúdo inteiro pela frase que diz onde o dado se resolve —
+ * é o caso da OS sem contribuinte, que existe de verdade e não é erro de tela.
+ */
+const QuadroDeRegistro = ({
+  titulo,
+  campos,
+  aviso,
+}: {
+  titulo: string;
+  campos: Campo[];
+  aviso?: string;
+}) => (
+  <Quadro titulo={titulo}>
+    {aviso ? (
+      <p className="px-3 py-2.5 text-xs text-muted-foreground">{aviso}</p>
+    ) : (
+      <>
+        <ParesEmpilhados campos={campos} className="md:hidden" />
+        <Table className="text-xs" containerClassName="hidden md:block">
+          <TableHeader>
+            <TableRow className="bg-muted hover:bg-muted">
+              {campos.map((campo) => (
+                <Th key={campo.rotulo} className={cn(campo.numerica && NUMERICA)}>
+                  {campo.rotulo}
+                </Th>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="hover:bg-transparent">
+              {campos.map((campo) => (
+                <TableCell key={campo.rotulo} className={cn(campo.numerica && NUMERICA, campo.celula)}>
+                  {campo.valor}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
+      </>
+    )}
+  </Quadro>
+);
+
+/** Aviso do quadro no celular, onde a tabela não tem `colSpan` para carregá-lo. */
+const AvisoEmpilhado = ({ children }: { children: React.ReactNode }) => (
+  <p className="px-3 py-2.5 text-xs text-muted-foreground md:hidden">{children}</p>
+);
+
 export function TabelasDaOs({ linha }: TabelasDaOsProps) {
   const temContribuinte = linha.contribuinte_nome != null;
 
@@ -81,29 +179,20 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
         aberto (ver `docs/planos/faturamento-pedido-do-financeiro.md`); é o que o
         sistema tem, e mostrá-lo já responde metade da pergunta dela.
       */}
-      <Quadro titulo="Serviço e prazos">
-        <Table className="text-xs">
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted">
-              <Th>Serviço</Th>
-              <Th>Emissão</Th>
-              <Th>Início</Th>
-              <Th>Fim</Th>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow className="hover:bg-transparent">
-              <TableCell className="font-medium">{ou(linha.servico_nome)}</TableCell>
-              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_emissao)}</TableCell>
-              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_inicio)}</TableCell>
-              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_fim)}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Quadro>
+      <QuadroDeRegistro
+        titulo="Serviço e prazos"
+        campos={[
+          { rotulo: 'Serviço', valor: ou(linha.servico_nome), celula: 'font-medium' },
+          { rotulo: 'Emissão', valor: data(linha.data_emissao), celula: 'whitespace-nowrap tabular-nums' },
+          { rotulo: 'Início', valor: data(linha.data_inicio), celula: 'whitespace-nowrap tabular-nums' },
+          { rotulo: 'Fim', valor: data(linha.data_fim), celula: 'whitespace-nowrap tabular-nums' },
+        ]}
+      />
 
       {linha.observacoes && (
         <Quadro titulo="Observação da OS">
+          {/* Uma coluna só: não há o que empilhar, e a tabela de célula única
+              serve aos dois tamanhos. */}
           <Table className="text-xs">
             <TableBody>
               <TableRow className="hover:bg-transparent">
@@ -114,69 +203,39 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
         </Quadro>
       )}
 
-      <Quadro titulo="Contribuinte de faturamento da OS">
-        <Table className="text-xs">
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted">
-              <Th>Razão Social / Nome Completo</Th>
-              <Th>CPF/CNPJ</Th>
-              <Th>Inscrição Estadual</Th>
-              <Th>Telefone</Th>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow className="hover:bg-transparent">
-              {temContribuinte ? (
-                <>
-                  <TableCell className="font-medium">{ou(linha.contribuinte_nome)}</TableCell>
-                  <TableCell className="tabular-nums">{ou(linha.cpf_cnpj)}</TableCell>
-                  <TableCell>{ou(linha.inscricao_estadual)}</TableCell>
-                  <TableCell>{ou(linha.telefone)}</TableCell>
-                </>
-              ) : (
-                /* OS sem contribuinte escolhido existe de verdade e não é erro de
-                   tela — em produção são 21 das 155 (15/09/2026). A frase diz
-                   onde se resolve, no lugar de quatro travessões mudos. */
-                <TableCell colSpan={4} className="text-muted-foreground">
-                  Esta OS ainda não tem contribuinte. A escolha é feita na aba de OS do cadastro do
-                  cliente, entre os contribuintes já salvos.
-                </TableCell>
-              )}
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Quadro>
+      <QuadroDeRegistro
+        titulo="Contribuinte de faturamento da OS"
+        // OS sem contribuinte escolhido existe de verdade e não é erro de tela —
+        // em produção são 21 das 155 (15/09/2026). A frase diz onde se resolve,
+        // no lugar de quatro travessões mudos.
+        aviso={
+          temContribuinte
+            ? undefined
+            : 'Esta OS ainda não tem contribuinte. A escolha é feita na aba de OS do cadastro do cliente, entre os contribuintes já salvos.'
+        }
+        campos={[
+          {
+            rotulo: 'Razão Social / Nome Completo',
+            valor: ou(linha.contribuinte_nome),
+            celula: 'font-medium',
+          },
+          { rotulo: 'CPF/CNPJ', valor: ou(linha.cpf_cnpj), celula: 'tabular-nums' },
+          { rotulo: 'Inscrição Estadual', valor: ou(linha.inscricao_estadual) },
+          { rotulo: 'Telefone', valor: ou(linha.telefone) },
+        ]}
+      />
 
-      <Quadro titulo="Endereço de cobrança">
-        <Table className="text-xs">
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted">
-              <Th>CEP</Th>
-              <Th>Endereço</Th>
-              <Th>Número</Th>
-              <Th>Bairro</Th>
-              <Th>Cidade / UF</Th>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow className="hover:bg-transparent">
-              {temContribuinte ? (
-                <>
-                  <TableCell className="tabular-nums">{ou(linha.cep)}</TableCell>
-                  <TableCell>{ou(linha.endereco)}</TableCell>
-                  <TableCell>{ou(linha.numero)}</TableCell>
-                  <TableCell>{ou(linha.bairro)}</TableCell>
-                  <TableCell>{ou(linha.cidade_uf)}</TableCell>
-                </>
-              ) : (
-                <TableCell colSpan={5} className="text-muted-foreground">
-                  Sem contribuinte nesta OS, não há endereço de cobrança.
-                </TableCell>
-              )}
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Quadro>
+      <QuadroDeRegistro
+        titulo="Endereço de cobrança"
+        aviso={temContribuinte ? undefined : 'Sem contribuinte nesta OS, não há endereço de cobrança.'}
+        campos={[
+          { rotulo: 'CEP', valor: ou(linha.cep), celula: 'tabular-nums' },
+          { rotulo: 'Endereço', valor: ou(linha.endereco) },
+          { rotulo: 'Número', valor: ou(linha.numero) },
+          { rotulo: 'Bairro', valor: ou(linha.bairro) },
+          { rotulo: 'Cidade / UF', valor: ou(linha.cidade_uf) },
+        ]}
+      />
 
       {/*
         O CONTATO É DO REPRESENTANTE, e não do contribuinte, porque o contribuinte
@@ -186,7 +245,30 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
         e-mail da nota é a pergunta F do documento.
       */}
       <Quadro titulo="Contato do cliente">
-        <Table className="text-xs">
+        {linha.contatos.length === 0 ? (
+          <AvisoEmpilhado>
+            Nenhum representante com e-mail ou telefone neste cliente. O cadastro é feito na aba
+            Representantes.
+          </AvisoEmpilhado>
+        ) : (
+          // Um representante por bloco: são quatro campos por pessoa, e uma lista
+          // de pares sem divisa entre as pessoas confundiria o e-mail de um com o
+          // telefone do outro.
+          <div className="divide-y md:hidden">
+            {linha.contatos.map((contato, i) => (
+              <ParesEmpilhados
+                key={`${contato.nome}-${i}`}
+                campos={[
+                  { rotulo: 'Nome', valor: contato.nome },
+                  { rotulo: 'Cargo', valor: ou(contato.cargo) },
+                  { rotulo: 'E-mail', valor: ou(contato.email) },
+                  { rotulo: 'Telefone', valor: ou(contato.telefone) },
+                ]}
+              />
+            ))}
+          </div>
+        )}
+        <Table className="text-xs" containerClassName="hidden md:block">
           <TableHeader>
             <TableRow className="bg-muted hover:bg-muted">
               <Th>Nome</Th>
@@ -217,43 +299,45 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
         </Table>
       </Quadro>
 
-      <Quadro titulo="Valores do contrato">
-        <Table className="text-xs">
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted">
-              <Th className={NUMERICA}>Valor do Projeto</Th>
-              <Th className={NUMERICA}>Nº de Parcelas</Th>
-              <Th className={NUMERICA}>Entrada</Th>
-              <Th className={NUMERICA}>Valor da Parcela</Th>
-              <Th className={NUMERICA}>Reembolso por KM</Th>
-              <Th className={NUMERICA}>Reembolso Refeição</Th>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow className="hover:bg-transparent">
-              <TableCell className={cn(NUMERICA, 'font-medium')}>
-                {formatCurrencyDisplay(linha.valor_projeto)}
-              </TableCell>
-              {/* OS anterior aos campos de parcelamento fica em "—": é dado que
-                  ninguém informou, e exibir "1" ali inventaria um pagamento
-                  único que não foi combinado. */}
-              <TableCell className={NUMERICA}>
-                {linha.numero_parcelas != null ? linha.numero_parcelas : '—'}
-              </TableCell>
-              <TableCell className={NUMERICA}>{formatCurrencyDisplay(linha.valor_entrada)}</TableCell>
-              <TableCell className={NUMERICA}>
-                {linha.valor_parcela != null ? formatCurrencyDisplay(linha.valor_parcela) : '—'}
-              </TableCell>
-              <TableCell className={NUMERICA}>
-                {formatCurrencyDisplay(linha.valor_reembolso_km)}
-              </TableCell>
-              <TableCell className={NUMERICA}>
-                {formatCurrencyDisplay(linha.valor_reembolso_refeicao)}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Quadro>
+      <QuadroDeRegistro
+        titulo="Valores do contrato"
+        campos={[
+          {
+            rotulo: 'Valor do Projeto',
+            valor: formatCurrencyDisplay(linha.valor_projeto),
+            numerica: true,
+            celula: 'font-medium',
+          },
+          // OS anterior aos campos de parcelamento fica em "—": é dado que
+          // ninguém informou, e exibir "1" ali inventaria um pagamento único que
+          // não foi combinado.
+          {
+            rotulo: 'Nº de Parcelas',
+            valor: linha.numero_parcelas != null ? String(linha.numero_parcelas) : '—',
+            numerica: true,
+          },
+          {
+            rotulo: 'Entrada',
+            valor: formatCurrencyDisplay(linha.valor_entrada),
+            numerica: true,
+          },
+          {
+            rotulo: 'Valor da Parcela',
+            valor: linha.valor_parcela != null ? formatCurrencyDisplay(linha.valor_parcela) : '—',
+            numerica: true,
+          },
+          {
+            rotulo: 'Reembolso por KM',
+            valor: formatCurrencyDisplay(linha.valor_reembolso_km),
+            numerica: true,
+          },
+          {
+            rotulo: 'Reembolso Refeição',
+            valor: formatCurrencyDisplay(linha.valor_reembolso_refeicao),
+            numerica: true,
+          },
+        ]}
+      />
 
       {/* A empresa que EMITE a nota e as fatias em que a receita dela se divide
           moram no mesmo quadro porque são a mesma pergunta em duas alturas: de
@@ -261,7 +345,24 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
           esticada pelas linhas do rateio (`rowSpan`), para não se repetir a cada
           fatia como se mudasse. */}
       <Quadro titulo="Empresa / Faturamento e Distribuição de Receita">
-        <Table className="text-xs">
+        {/* No celular o `rowSpan` não tem o que esticar: a empresa vira o
+            primeiro par e as fatias vêm abaixo, cada uma na própria linha. */}
+        <div className="md:hidden">
+          <ParesEmpilhados
+            campos={[
+              { rotulo: 'Empresa / Faturamento', valor: ou(linha.empresa_faturamento) },
+              ...linha.rateio.map((fatia) => ({
+                rotulo: fatia.label,
+                valor: `${formatarPercentual(fatia.percentual)}%`,
+                numerica: true,
+              })),
+            ]}
+          />
+          {linha.rateio.length === 0 && (
+            <AvisoEmpilhado>Sem centro de custo definido para esta OS.</AvisoEmpilhado>
+          )}
+        </div>
+        <Table className="text-xs" containerClassName="hidden md:block">
           <TableHeader>
             <TableRow className="bg-muted hover:bg-muted">
               <Th className="w-[40%]">Empresa / Faturamento</Th>
@@ -306,7 +407,15 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
           quadro com uma linha de travessão não informa nada. */}
       {linha.produtos.length > 0 && (
         <Quadro titulo="Produtos contratados">
-          <Table className="text-xs">
+          <ParesEmpilhados
+            className="md:hidden"
+            campos={linha.produtos.map((produto) => ({
+              rotulo: produto.label,
+              valor: produto.horas != null ? `${produto.horas} h` : '—',
+              numerica: true,
+            }))}
+          />
+          <Table className="text-xs" containerClassName="hidden md:block">
             <TableHeader>
               <TableRow className="bg-muted hover:bg-muted">
                 <Th>Produto</Th>

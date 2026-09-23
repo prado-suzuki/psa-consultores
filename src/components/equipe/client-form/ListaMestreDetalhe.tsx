@@ -12,6 +12,9 @@
 // item, e o detalhe ocupa a direita. Escolher na lista troca o detalhe; a edição
 // continua sendo ato deliberado, pelo lápis que vive na faixa de ações.
 //
+// No celular as duas colunas não cabem lado a lado: com `empilharNoCelular` a
+// casca passa a mostrar uma de cada vez, e é o botão "Lista" que volta.
+//
 // Duas áreas de rolagem INDEPENDENTES, e isso não é detalhe: com uma barra só,
 // rolar um formulário comprido empurraria a lista para fora da tela e mataria o
 // motivo de ela ser fixa.
@@ -20,8 +23,11 @@
 // linhas já resumidas e o conteúdo do detalhe, e é por isso que as três abas
 // podem usar a mesma casca sem repetir a lógica de novo — foi a duplicação
 // dessa lógica que fez o mesmo defeito de navegação existir nas três.
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { ChevronLeft } from 'lucide-react';
+import { telaEstreita } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
@@ -118,6 +124,18 @@ export interface ListaMestreDetalheProps<Id extends string | number = number> {
    * rolagem aninhada, que é pior que nenhuma.
    */
   moldura?: 'modal' | 'pagina';
+  /**
+   * No celular, lista e detalhe deixam de dividir a largura e passam a se
+   * revezar: a lista abre primeiro, escolher um item a substitui pelo detalhe, e
+   * o botão "Lista" volta.
+   *
+   * Opcional porque as duas colunas lado a lado só estouram onde a lista tem
+   * largura fixa grande: em 360px de lista num aparelho de 400px sobram 40px
+   * para o detalhe, que foi como o Dashboard da Adm & Fin chegou ao celular.
+   * Dentro do modal do cadastro de cliente a conta é outra, e mudar lá sem
+   * pedido trocaria a navegação de três abas de uma vez.
+   */
+  empilharNoCelular?: boolean;
   /** Texto de lista vazia. */
   vazio: ReactNode;
   /** Título do item aberto, no topo do detalhe. */
@@ -145,14 +163,35 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
   renderLinha,
   cabecalhoLista,
   moldura = 'modal',
+  empilharNoCelular = false,
   vazio,
   cabecalhoDetalhe,
   acoesDetalhe,
   chaveDetalhe,
   children,
 }: ListaMestreDetalheProps<Id>) {
+  // Só vale abaixo de `md`: acima disso as duas colunas continuam na tela ao
+  // mesmo tempo e este estado não muda nada do que se vê.
+  const [detalheNoCelular, setDetalheNoCelular] = useState(false);
+  const barraDetalhe = Boolean(cabecalhoDetalhe || acoesDetalhe);
+  const secao = useRef<HTMLElement>(null);
+
+  /**
+   * Abre o detalhe no lugar da lista e TRAZ O PAINEL PARA A TELA. A segunda
+   * metade não é enfeite: a casca tem altura própria dentro de uma página que
+   * rola, e no celular ela costuma começar abaixo da caixa de filtros — sem
+   * rolar, tocar numa linha troca o que está fora do campo de visão e parece
+   * que nada aconteceu.
+   */
+  const abrirNoCelular = () => {
+    if (!empilharNoCelular || !telaEstreita()) return;
+    setDetalheNoCelular(true);
+    secao.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+
   return (
     <section
+      ref={secao}
       data-tour={dataTour}
       className={cn(
         'bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden',
@@ -187,7 +226,13 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
         )}>
           <nav
             aria-label={titulo}
-            className={cn('min-w-0 shrink-0 border-r overflow-y-auto', larguraLista)}
+            className={cn(
+              'min-w-0 shrink-0 border-r overflow-y-auto',
+              larguraLista,
+              // A largura fixa e a divisa só servem a duas colunas lado a lado.
+              empilharNoCelular && 'max-md:w-full max-md:border-r-0',
+              empilharNoCelular && detalheNoCelular && 'max-md:hidden',
+            )}
           >
             {cabecalhoLista && (
               <div className="sticky top-0 z-10 border-b bg-card px-2.5 py-2">{cabecalhoLista}</div>
@@ -201,7 +246,10 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                       {renderLinha({
                         linha,
                         selecionada,
-                        selecionar: () => onSelecionar(linha.id),
+                        selecionar: () => {
+                          onSelecionar(linha.id);
+                          abrirNoCelular();
+                        },
                       })}
                     </li>
                   );
@@ -211,7 +259,10 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                     <button
                       type="button"
                       aria-current={selecionada ? 'true' : undefined}
-                      onClick={() => onSelecionar(linha.id)}
+                      onClick={() => {
+                        onSelecionar(linha.id);
+                        abrirNoCelular();
+                      }}
                       className={cn(
                         'w-full px-3 py-2.5 text-left transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -250,9 +301,33 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
             </ul>
           </nav>
 
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            {(cabecalhoDetalhe || acoesDetalhe) && (
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 flex-col overflow-hidden',
+              empilharNoCelular && !detalheNoCelular && 'max-md:hidden',
+            )}
+          >
+            {(barraDetalhe || empilharNoCelular) && (
+              <div
+                className={cn(
+                  'flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2',
+                  // Sem cabeçalho próprio a faixa existe só para carregar a
+                  // volta, e a volta só existe no celular.
+                  !barraDetalhe && 'md:hidden',
+                )}
+              >
+                {empilharNoCelular && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-2 h-8 shrink-0 gap-1 px-2 text-xs md:hidden"
+                    onClick={() => setDetalheNoCelular(false)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Lista
+                  </Button>
+                )}
                 <div className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">{cabecalhoDetalhe}</div>
                 <div className="flex shrink-0 items-center gap-1.5">{acoesDetalhe}</div>
               </div>

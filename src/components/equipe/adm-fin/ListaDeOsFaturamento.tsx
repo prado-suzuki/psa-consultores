@@ -192,14 +192,18 @@ export function ListaDeOsFaturamento({ linhas, isLoading, error }: ListaDeOsFatu
           Não foi possível carregar as OS: {error.message}
         </p>
       ) : isLoading ? (
-        <div className="flex gap-4">
-          <Skeleton className="h-[60vh] w-[260px]" />
-          <Skeleton className="h-[60vh] flex-1" />
+        <div className="flex flex-col gap-4 md:flex-row">
+          <Skeleton className="h-40 w-full md:h-[60vh] md:w-[260px]" />
+          <Skeleton className="hidden h-[60vh] flex-1 md:block" />
         </div>
       ) : (
-        <div className="flex h-[70vh] min-h-[480px] flex-col">
+        // No celular o painel é a tela: a caixa de filtros já consumiu a parte
+        // de cima da página, e com 70vh sobrava uma janela de meia dezena de
+        // linhas para a lista e para as tabelas da OS.
+        <div className="flex h-[78dvh] min-h-[480px] flex-col md:h-[70vh]">
           <ListaMestreDetalhe<string>
             moldura="pagina"
+            empilharNoCelular
             // 360px, e não os 228px que a casca usa dentro do modal: a linha
             // tem duas colunas (data e o resto) e o nome do cliente ainda vem
             // com o prefixo `[TESTE] ` no sandbox, então no padrão o nome
