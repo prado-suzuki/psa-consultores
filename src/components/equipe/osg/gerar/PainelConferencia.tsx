@@ -18,6 +18,7 @@ import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadro
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
 import { ElementTooltip } from '@/components/ui/button-tooltip';
+import { ListaAdministradores } from '@/components/equipe/osg/gerar/ListaAdministradores';
 
 const SecaoPainel = ({ icone, titulo, contagem, children }: { icone: ReactNode; titulo: string; contagem?: number; children: ReactNode }) => (
   <div className="space-y-2.5"><div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>{titulo}{contagem != null && <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">{contagem}</span>}</div>{children}</div>
@@ -242,26 +243,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 Nenhum administrador cadastrado para esta empresa.
                               </AvisoPendencia>
                             ) : (
-                              <ul className="space-y-1.5">
-                                {administradores.map((a, i) => (
-                                  <li
-                                    key={a.pessoa.id}
-                                    className="flex items-baseline gap-2 text-sm text-foreground"
-                                  >
-                                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
-                                      {i + 1}.
-                                    </span>
-                                    <ElementTooltip text={a.pessoa.denominacao}>
-                                      <span className="min-w-0 flex-1 truncate">
-                                      {a.pessoa.denominacao}
-                                    </span>
-                                    </ElementTooltip>
-                                    {a.cargo && (
-                                      <span className="shrink-0 text-muted-foreground">{a.cargo}</span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
+                              <ListaAdministradores administradores={administradores} socios={socios} />
                             )}
                           </SecaoPainel>
                         )}
