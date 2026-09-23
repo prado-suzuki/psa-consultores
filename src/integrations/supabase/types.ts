@@ -9020,7 +9020,6 @@ export type Database = {
           created_by: string | null
           excluido: boolean
           id: string
-          preambulo: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -9031,7 +9030,6 @@ export type Database = {
           created_by?: string | null
           excluido?: boolean
           id?: string
-          preambulo?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -9042,7 +9040,6 @@ export type Database = {
           created_by?: string | null
           excluido?: boolean
           id?: string
-          preambulo?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
