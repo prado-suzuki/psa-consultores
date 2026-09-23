@@ -10,7 +10,9 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { ehEstadoCivilComConjuge, type PessoaDraft } from '@/lib/pessoaModalModel';
+import { aplicarCepNoRascunho, ehEstadoCivilComConjuge, enderecoDoRascunho, type PessoaDraft } from '@/lib/pessoaModalModel';
+import { digitosDoCep } from '@/lib/viaCep';
+import { useBuscaCep } from '@/hooks/useBuscaCep';
 import { FiliacaoCombobox } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/FiliacaoCombobox';
 import { ParentescoPanel } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/ParentescoPanel';
 import { NATUREZAS_PARENTESCO, TIPOS_PARENTESCO } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/parentescoOpcoes';
@@ -45,6 +47,19 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
   const { draft, setDraft, pessoaCandidates, parenteCandidates, parentesco, setParentesco, pessoaSalva } = props;
   const isPF = draft.tipo_pessoa === 'PF';
   const setField = <K extends keyof PessoaDraft>(field: K, value: PessoaDraft[K]) => setDraft((old) => ({ ...old, [field]: value }));
+  const { buscar: buscarCep, buscando: buscandoCep } = useBuscaCep();
+  // Só busca quando o CEP acaba de ficar completo: reabrir um cadastro ou editar a
+  // rua depois da busca não dispara outra consulta por cima do que foi digitado.
+  const trocarCep = (valor: string) => {
+    const cep = formatCep(valor);
+    const digitos = digitosDoCep(cep);
+    setField('endereco_cep', cep);
+    if (digitos.length !== 8 || digitos === digitosDoCep(draft.endereco_cep)) return;
+    const antes = enderecoDoRascunho(draft);
+    void buscarCep(cep).then((encontrado) => {
+      if (encontrado) setDraft((old) => aplicarCepNoRascunho(old, cep, antes, encontrado));
+    });
+  };
   let section = 0;
   const next = () => String(++section).padStart(2, '0');
 
@@ -58,7 +73,7 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
       </FieldSection>
       <FieldSection number={next()} title="Endereço">
         <div className={`${formGridCls(3)} gap-3`}>
-          <TextField label="CEP" value={draft.endereco_cep} onChange={(value) => setField('endereco_cep', formatCep(value))} placeholder="00000-000" mono />
+          <TextField label={buscandoCep ? 'CEP (buscando endereço...)' : 'CEP'} value={draft.endereco_cep} onChange={trocarCep} placeholder="00000-000" mono />
           <div className={formSpanCls(2)}><TextField label="Logradouro" value={draft.endereco_logradouro} onChange={(value) => setField('endereco_logradouro', value)} /></div>
           <TextField label="Número" value={draft.endereco_numero} onChange={(value) => setField('endereco_numero', value)} />
           <div className={formSpanCls(2)}><TextField label="Complemento" value={draft.endereco_complemento} onChange={(value) => setField('endereco_complemento', value)} /></div>

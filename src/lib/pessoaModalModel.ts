@@ -1,4 +1,5 @@
 import type { PessoaInsert, PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
+import { digitosDoCep, mesclarEnderecoDoCep, type EnderecoDoCep } from '@/lib/viaCep';
 
 export type PessoaDraft = {
   tipo_pessoa: TipoPessoa;
@@ -58,6 +59,20 @@ export const pessoaToDraft = (p: PessoaRow): PessoaDraft => {
 };
 
 const nullify = (value: string) => (value.trim() ? value : null);
+
+export const enderecoDoRascunho = (draft: PessoaDraft): EnderecoDoCep => ({
+  logradouro: draft.endereco_logradouro,
+  bairro: draft.endereco_bairro,
+  municipio: draft.endereco_municipio,
+  uf: draft.endereco_uf,
+});
+
+/** Descarta a resposta se o CEP do rascunho mudou desde a busca. Número e complemento nunca mudam. */
+export function aplicarCepNoRascunho(draft: PessoaDraft, cepBuscado: string, antes: EnderecoDoCep, encontrado: EnderecoDoCep): PessoaDraft {
+  if (digitosDoCep(draft.endereco_cep) !== digitosDoCep(cepBuscado)) return draft;
+  const e = mesclarEnderecoDoCep(enderecoDoRascunho(draft), antes, encontrado);
+  return { ...draft, endereco_logradouro: e.logradouro, endereco_bairro: e.bairro, endereco_municipio: e.municipio, endereco_uf: e.uf };
+}
 
 /**
  * Estados civis em que existe cônjuge para apontar.

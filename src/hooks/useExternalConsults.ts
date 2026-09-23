@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import type { DraftEntity } from '@/types/clientForm';
+import { consultarViaCep } from '@/lib/viaCep';
 
 type EntitySetter = React.Dispatch<React.SetStateAction<Partial<DraftEntity>>> | React.Dispatch<React.SetStateAction<Partial<DraftEntity> | null>>;
 
@@ -47,16 +48,15 @@ export const useExternalConsults = () => {
     if (digits.length !== 8) return;
     setCepLoading(true);
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error("not found");
+      const data = await consultarViaCep(digits);
+      if (!data) throw new Error("not found");
       (setter as any)((prev: any) =>
         prev
           ? {
               ...prev,
               logradouro: data.logradouro || prev.logradouro || "",
               bairro: data.bairro || prev.bairro || "",
-              municipio: data.localidade || prev.municipio || "",
+              municipio: data.municipio || prev.municipio || "",
               uf: data.uf || prev.uf || "",
             }
           : prev,
