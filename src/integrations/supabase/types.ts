@@ -11869,6 +11869,7 @@ export type Database = {
       feed_org_comments: {
         Args: {
           _author_ids?: string[]
+          _busca?: string
           _client_ids?: string[]
           _cursor_created_at?: string
           _cursor_id?: string
@@ -12140,6 +12141,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      org_comment_casa_busca: {
+        Args: { _body: string; _busca: string }
+        Returns: boolean
+      }
+      org_comment_texto_pesquisavel: {
+        Args: { _body: string }
+        Returns: string
       }
       org_project_cluster_ids: {
         Args: { _project_id: string }
