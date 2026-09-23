@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { gerarComposicao } from './index';
+import { redacaoDoCapital } from './mapeadores';
 import { removerMarcas } from './marcas';
 import type { Bloco, Contexto } from './types';
 
@@ -114,5 +115,67 @@ describe('toda resolução sai numerada na série das resoluções', () => {
     ]);
     expect(textos[6]).toBe('CLÁUSULA SEXTA: As demais cláusulas permanecem.');
     expect(textos.at(-1)).toBe('CLÁUSULA PRIMEIRA: A sociedade gira sob o nome X.');
+  });
+});
+
+describe('a nova redação da cláusula de capital é transcrita uma vez só', () => {
+  const textos = redacoes('20260923155940_capital_transcrito_uma_vez_na_alteracao.sql');
+  const novo = (id: string) => textos.get(id)!.novo;
+  const AUMENTO = 'ac000001-0000-4000-8000-000000000002';
+  const CESSAO = 'ac000001-0000-4000-8000-000000000003';
+  const INTEGRALIZACAO = 'ac000001-0000-4000-8000-000000000004';
+
+  const blocos = (): Bloco[] => [
+    { id: AUMENTO, tipo: 'clausula', conteudo: novo(AUMENTO), flagsRequeridas: ['evento_aumento_capital'] },
+    { id: CESSAO, tipo: 'clausula', conteudo: novo(CESSAO), flagsRequeridas: ['evento_cessao_quotas'] },
+    { id: INTEGRALIZACAO, tipo: 'clausula', conteudo: novo(INTEGRALIZACAO), flagsRequeridas: ['evento_integralizacao'] },
+    // O novo quadro (ac000001-…-006) não muda: quando entra, é sempre ele quem transcreve.
+    {
+      id: 'quadro', tipo: 'clausula', flagsRequeridas: ['evento_mudanca_socios'],
+      conteudo: 'Altera-se a composição do quadro societário. Em consequência, modificam-se as disposições contidas na {{ refs.capital_social }} do contrato social, que passa a vigorar com a seguinte redação: “O capital social é de R$ {{ sociedade.capitalValor }}.”',
+    },
+    { id: 'cabecalho', tipo: 'livre', conteudo: 'Consolidação', obrigatorio: true, reiniciaNumeracao: true },
+    { id: 'capital', tipo: 'clausula', conteudo: 'Capital.', obrigatorio: true, ancora: 'capital_social' },
+  ];
+
+  const socio = { ordemRomana: 'i', nomeMaiusculo: 'LUCAS', inscrito: 'inscrito', cpfCnpj: '1', quotas: '10', quotasExtenso: 'dez', vlrTotal: '10,00', vlrTotalExtenso: 'dez reais' };
+  const ctx = (flags: string[]): Contexto => ({
+    sociedade: {
+      houveAumentoCapital: 'sim', capitalDelta: '10,00', capitalDeltaExtenso: 'dez reais',
+      capitalAnterior: '1,00', capitalAnteriorExtenso: 'um real', capitalValor: '11,00', capitalExtenso: 'onze reais',
+      totalQuotas: '11', totalQuotasExtenso: 'onze', quotaValorNominal: '1,00', quotaValorNominalExtenso: 'um real',
+    },
+    socios: [{ socio }],
+    cessoes: [{ cessao: { ordemRomana: 'i', quotas: '10', quotasExtenso: 'dez', valor: '10,00', valorExtenso: 'dez reais' }, cedente: socio, cessionario: socio }],
+    integralizacoes: [{ socio: { ...socio, peloSocio: 'pelo sócio' }, aportes: [{ aporte: { alinea: 'a', valor: '10,00', valorExtenso: 'dez reais' }, seImovel: false, seMoeda: true, seQuotas: false }] }],
+    redacaoCapital: redacaoDoCapital(flags),
+  });
+  const transcricoes = (flags: string[]) => {
+    const textos = renderizar(blocos(), ctx(flags), flags);
+    return { textos, vezes: textos.join('\n').split('O capital social é de').length - 1 };
+  };
+
+  it('aumento, integralização e novo quadro: só o novo quadro transcreve', () => {
+    const { textos, vezes } = transcricoes(['evento_aumento_capital', 'evento_integralizacao', 'evento_mudanca_socios']);
+    expect(vezes).toBe(1);
+    expect(textos[0]).toBe('CLÁUSULA PRIMEIRA: Aumenta-se o capital social em R$ 10,00 (dez reais), de modo que o capital social anterior de R$ 1,00 (um real) passará a ser de R$ 11,00 (onze reais).');
+    expect(textos[1]).not.toContain('Cláusula');
+    expect(textos[2]).toContain('Altera-se a composição do quadro societário');
+  });
+
+  it('cessão e novo quadro: a cessão narra o ato e o novo quadro transcreve', () => {
+    const { textos, vezes } = transcricoes(['evento_cessao_quotas', 'evento_mudanca_socios']);
+    expect(vezes).toBe(1);
+    expect(textos[0]).toMatch(/cede e transfere 10 \(dez\) quotas.*a LUCAS/);
+    expect(textos[0]).not.toContain('Em razão da cessão');
+  });
+
+  it('um evento só: a transcrição continua na própria resolução', () => {
+    expect(transcricoes(['evento_aumento_capital']).textos[0]).toContain('modificando-se, consequentemente, as disposições contidas na Cláusula Primeira');
+    expect(transcricoes(['evento_cessao_quotas']).textos[0]).toContain('Em razão da cessão, modificam-se');
+    expect(transcricoes(['evento_aumento_capital', 'evento_integralizacao']).textos[1]).toContain('Em consequência, modificam-se');
+    for (const flags of [['evento_aumento_capital'], ['evento_cessao_quotas'], ['evento_aumento_capital', 'evento_integralizacao']]) {
+      expect(transcricoes(flags).vezes).toBe(1);
+    }
   });
 });

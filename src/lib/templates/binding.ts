@@ -891,11 +891,11 @@ export function detectarBindingsDeConteudo(conteudo: string): DeteccaoConteudo {
 
 /**
  * Raízes que a tela Gerar calcula e injeta no contexto depois da detecção
- * (`vocabularioDaRetirada`, `vocabularioDaRequalificacao`). Não são cadastro nem
+ * (`vocabularioDaRetirada`, `vocabularioDaRequalificacao`, `redacaoDoCapital`). Não são cadastro nem
  * texto livre: pedi-las à mão mostraria a chave crua e o valor digitado seria
  * sobrescrito.
  */
-export const VOCABULARIOS_DA_GERACAO = ['retirada', 'requalificacao'] as const;
+export const VOCABULARIOS_DA_GERACAO = ['retirada', 'requalificacao', 'redacaoCapital'] as const;
 
 function ehVocabularioDaGeracao(caminho: string): boolean {
   const raiz = caminho.split('.')[0];

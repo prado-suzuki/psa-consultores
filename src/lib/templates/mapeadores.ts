@@ -1999,6 +1999,30 @@ export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos 
   };
 }
 
+/** Resoluções que reescrevem a cláusula de capital, da última à primeira na ordem do modelo. */
+const QUEM_TRANSCREVE_O_CAPITAL = [
+  'evento_mudanca_socios',
+  'evento_integralizacao',
+  'evento_cessao_quotas',
+  'evento_aumento_capital',
+] as const;
+
+/**
+ * Onde a nova redação da cláusula de capital é transcrita: uma vez só, na última
+ * resolução de capital presente. As anteriores narram o ato sem repeti-la.
+ */
+export function redacaoDoCapital(flagsAtivas: Iterable<string>): Campos {
+  const ativas = new Set(flagsAtivas);
+  const aqui = QUEM_TRANSCREVE_O_CAPITAL.find((flag) => ativas.has(flag));
+  const sim = (flag: (typeof QUEM_TRANSCREVE_O_CAPITAL)[number]) => (aqui === flag ? 'sim' : '');
+  return {
+    naIntegralizacao: sim('evento_integralizacao'),
+    naCessao: sim('evento_cessao_quotas'),
+    noAumento: sim('evento_aumento_capital'),
+    foraDoAumento: aqui === 'evento_aumento_capital' ? '' : 'sim',
+  };
+}
+
 /**
  * Itens da seção {{#requalificados}}: os sócios que esta alteração requalifica.
  *
