@@ -60,3 +60,59 @@ describe('a lista de usufrutos é anunciada, e não colada à frase de abertura'
     }
   });
 });
+
+describe('toda resolução sai numerada na série das resoluções', () => {
+  const sql = readFileSync('supabase/migrations/20260923155611_resolucoes_livres_viram_clausulas.sql', 'utf8');
+  const rubricas = new Map(
+    [...sql.matchAll(/'([0-9a-f-]{36})'::uuid, \$r\$([\s\S]*?)\$r\$/g)].map(([, id, r]) => [id, r]),
+  );
+
+  it('cobre as resoluções que ainda eram livres: qualificação, doação, usufruto e governança', () => {
+    expect([...rubricas.keys()].sort()).toEqual([
+      '01a20156-0ae5-4011-9919-d50b3b9e852b',
+      '10445d6c-973e-47cb-b7fc-9d8d100f4d8a',
+      '17bf4288-6490-40e8-8c68-9cf9be3a7507',
+      '22d227a0-0b64-4932-b2db-0388f893d587',
+      '82259dcd-a840-496a-add7-2e54f0f3f87f',
+      '9009b16c-639f-43b0-96a0-d056c2488f14',
+      'ac000001-0000-4000-8000-000000000007',
+      'bbaeb5b3-810d-49a7-822a-917873a4d671',
+      'c25643d9-f920-4b25-975f-5902a48ddf0e',
+    ]);
+    expect(sql).toContain("set tipo = 'clausula'");
+  });
+
+  it('a doação numera como a cessão, e o consolidado recomeça na Cláusula Primeira', () => {
+    const doacao = [
+      '9009b16c-639f-43b0-96a0-d056c2488f14',
+      '10445d6c-973e-47cb-b7fc-9d8d100f4d8a',
+      '82259dcd-a840-496a-add7-2e54f0f3f87f',
+      '17bf4288-6490-40e8-8c68-9cf9be3a7507',
+      'c25643d9-f920-4b25-975f-5902a48ddf0e',
+    ];
+    // O que a migration grava: o texto vigente sem a rubrica.
+    const resolucoes: Bloco[] = doacao.map((id, i) => {
+      const rubrica = rubricas.get(id)!;
+      const vigente = `${rubrica}Texto da resolução ${i + 1}.`;
+      return { id, tipo: 'clausula', conteudo: vigente.slice(rubrica.length) };
+    });
+    const textos = renderizar([
+      { id: 'secao', tipo: 'livre', conteudo: 'DAS ALTERAÇÕES CONTRATUAIS' },
+      ...resolucoes,
+      { id: 'ratificacao', tipo: 'clausula', conteudo: 'As demais cláusulas permanecem.' },
+      { id: 'consolidacao', tipo: 'clausula', conteudo: 'Os sócios resolvem consolidar.' },
+      { id: 'cabecalho', tipo: 'livre', conteudo: 'Cabeçalho da consolidação', reiniciaNumeracao: true },
+      { id: 'denominacao', tipo: 'clausula', conteudo: 'A sociedade gira sob o nome X.' },
+    ], {});
+
+    expect(textos.slice(1, 6)).toEqual([
+      'CLÁUSULA PRIMEIRA: Texto da resolução 1.',
+      'CLÁUSULA SEGUNDA: Texto da resolução 2.',
+      'CLÁUSULA TERCEIRA: Texto da resolução 3.',
+      'CLÁUSULA QUARTA: Texto da resolução 4.',
+      'CLÁUSULA QUINTA: Texto da resolução 5.',
+    ]);
+    expect(textos[6]).toBe('CLÁUSULA SEXTA: As demais cláusulas permanecem.');
+    expect(textos.at(-1)).toBe('CLÁUSULA PRIMEIRA: A sociedade gira sob o nome X.');
+  });
+});
