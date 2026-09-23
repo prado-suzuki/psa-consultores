@@ -23,7 +23,12 @@
 --
 --   supabase db query --linked -f supabase/fixtures/cenario-apresentacao-familia-prado.sql
 --
--- Idempotente. Reaplicar NÃO zera um cenário já usado: só recria o que faltar.
+-- É também o botão de reset: apaga tudo do cliente (documentos, registros,
+-- movimentos, ônus, flags, histórico de auditoria e o cadastro) e recria o
+-- cadastro do zero. Se o cliente tiver dados numa tabela que o reset não cobre,
+-- aborta sem apagar nada.
+
+begin;
 
 do $fixture$
 declare
@@ -36,6 +41,7 @@ declare
   p_pr        constant uuid := 'a9900000-0000-4000-8000-000000000021';
   p_cn        constant uuid := 'a9900000-0000-4000-8000-000000000022';
   r record;
+  v_tem boolean;
 begin
   if not exists (select 1 from public.representante where email ilike '%@exemplo.dev%') then
     raise exception 'FIXTURE DE SANDBOX rodando no banco errado. Abortado sem escrever nada.';
@@ -43,6 +49,108 @@ begin
   if not exists (select 1 from public.cliente where id = src_cliente) then
     raise exception 'Cenário de origem (Dinossauro Aposentado) ausente. Abortado.';
   end if;
+
+  -- RESET. O cliente volta ao "cadastro pronto, nada registrado". Tabela do cliente
+  -- fora desta lista aborta, para o reset nunca deixar sobra calada.
+  for r in
+    select c.relname
+      from information_schema.columns col
+      join pg_class c on c.relname = col.table_name and c.relkind = 'r'
+      join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+     where col.table_schema = 'public' and col.column_name = 'cliente_id'
+       and col.table_name not in ('pessoa', 'bem', 'matricula', 'movimentacao_quotas', 'ato_societario',
+         'onus_quotas', 'projeto_flag_valor', 'documento_gerado', 'documento_arquivo', 'documento_download',
+         'capital_integralizacao', 'cliente_clusters')
+  loop
+    execute format('select exists (select 1 from public.%I where cliente_id = $1)', r.relname)
+      into v_tem using c_cliente;
+    if v_tem then
+      raise exception 'O cliente tem dados em %, que o reset não cobre. Abortado sem apagar nada.', r.relname;
+    end if;
+  end loop;
+
+end $fixture$;
+
+-- As travas de imutabilidade do registro barram o delete; em réplica elas e as
+-- cascatas não disparam, então os dependentes saem à mão, na ordem.
+set local session_replication_role = replica;
+
+do $fixture$
+declare
+  src_cliente constant uuid := '8f9c2796-b9f3-4349-923b-b04e86bc6012';
+  c_cliente   constant uuid := 'a9900000-0000-4000-8000-000000000001';
+  p_ricardo   constant uuid := 'a9900000-0000-4000-8000-000000000011';
+  p_helena    constant uuid := 'a9900000-0000-4000-8000-000000000012';
+  p_tomas     constant uuid := 'a9900000-0000-4000-8000-000000000013';
+  p_beatriz   constant uuid := 'a9900000-0000-4000-8000-000000000014';
+  p_pr        constant uuid := 'a9900000-0000-4000-8000-000000000021';
+  p_cn        constant uuid := 'a9900000-0000-4000-8000-000000000022';
+  r record;
+  v_tem boolean;
+begin
+
+  create temp table if not exists reset_ids (id uuid primary key) on commit drop;
+  truncate reset_ids;
+  insert into reset_ids
+  select id from public.pessoa where cliente_id = c_cliente
+  union select id from public.bem where cliente_id = c_cliente
+  union select id from public.matricula where cliente_id = c_cliente
+  union select id from public.movimentacao_quotas where cliente_id = c_cliente
+  union select id from public.ato_societario where cliente_id = c_cliente
+  union select id from public.onus_quotas where cliente_id = c_cliente
+  union select id from public.documento_gerado where cliente_id = c_cliente
+  union select t.id from public.titularidade t join public.matricula m on m.id = t.matricula_id where m.cliente_id = c_cliente
+  union select a.id from public.administracao a join public.pessoa p on p.id = a.pj_pessoa_id where p.cliente_id = c_cliente;
+
+  delete from public.audit_logs where entity_id in (select id from reset_ids);
+
+  delete from public.tmpl_documento_bloco where bloco_id in
+    (select id from public.tmpl_bloco where escopo_documento_raiz_id in (select id from public.documento_gerado where cliente_id = c_cliente));
+  delete from public.documento_override where documento_gerado_id in (select id from public.documento_gerado where cliente_id = c_cliente);
+  delete from public.tmpl_bloco_flag where bloco_id in
+    (select id from public.tmpl_bloco where escopo_documento_raiz_id in (select id from public.documento_gerado where cliente_id = c_cliente));
+  delete from public.tmpl_bloco_versao where bloco_id in
+    (select id from public.tmpl_bloco where escopo_documento_raiz_id in (select id from public.documento_gerado where cliente_id = c_cliente));
+  delete from public.tmpl_bloco where escopo_documento_raiz_id in (select id from public.documento_gerado where cliente_id = c_cliente);
+  delete from public.documento_notificacao_visto where documento_gerado_id in (select id from public.documento_gerado where cliente_id = c_cliente);
+  delete from public.documento_download where cliente_id = c_cliente;
+  delete from public.documento_arquivo where cliente_id = c_cliente;
+  delete from public.projeto_flag_valor where cliente_id = c_cliente;
+  delete from public.onus_quotas where cliente_id = c_cliente;
+  delete from public.movimentacao_quotas where cliente_id = c_cliente;
+  delete from public.ato_societario where cliente_id = c_cliente;
+  delete from public.capital_integralizacao where cliente_id = c_cliente;
+  delete from public.documento_gerado where cliente_id = c_cliente;
+
+  delete from public.impedimento where matricula_id in (select id from public.matricula where cliente_id = c_cliente);
+  delete from public.titularidade where matricula_id in (select id from public.matricula where cliente_id = c_cliente);
+  delete from public.matricula where cliente_id = c_cliente;
+  delete from public.bem where cliente_id = c_cliente;
+  delete from public.quadro_societario where empresa_pessoa_id in (select id from public.pessoa where cliente_id = c_cliente)
+     or socio_pessoa_id in (select id from public.pessoa where cliente_id = c_cliente);
+  delete from public.administracao where pj_pessoa_id in (select id from public.pessoa where cliente_id = c_cliente)
+     or administrador_pessoa_id in (select id from public.pessoa where cliente_id = c_cliente);
+  delete from public.parentesco where pessoa_id in (select id from public.pessoa where cliente_id = c_cliente)
+     or parente_pessoa_id in (select id from public.pessoa where cliente_id = c_cliente);
+  delete from public.pessoa where cliente_id = c_cliente;
+
+end $fixture$;
+
+set local session_replication_role = origin;
+
+do $fixture$
+declare
+  src_cliente constant uuid := '8f9c2796-b9f3-4349-923b-b04e86bc6012';
+  c_cliente   constant uuid := 'a9900000-0000-4000-8000-000000000001';
+  p_ricardo   constant uuid := 'a9900000-0000-4000-8000-000000000011';
+  p_helena    constant uuid := 'a9900000-0000-4000-8000-000000000012';
+  p_tomas     constant uuid := 'a9900000-0000-4000-8000-000000000013';
+  p_beatriz   constant uuid := 'a9900000-0000-4000-8000-000000000014';
+  p_pr        constant uuid := 'a9900000-0000-4000-8000-000000000021';
+  p_cn        constant uuid := 'a9900000-0000-4000-8000-000000000022';
+  r record;
+  v_tem boolean;
+begin
 
   update public.cliente set nome = '[APR] ' || nome
    where nome not like '[APR]%'
@@ -208,3 +316,5 @@ begin
    where cliente_id = c_cliente
      and descricao_psa_completa ~ 'Pterodáctilo|Ossada Boa|Cratera';
 end $fixture$;
+
+commit;
