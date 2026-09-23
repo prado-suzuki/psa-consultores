@@ -8826,6 +8826,288 @@ export type Database = {
           },
         ]
       }
+      protocolo_beneficiario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          protocolo_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          protocolo_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          protocolo_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_beneficiario_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_remuneracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_item_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          tema_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          tema_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          tema_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_item_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_item_governanca_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_tema_governanca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_linha: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          ordem: number
+          protocolo_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          ordem?: number
+          protocolo_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          ordem?: number
+          protocolo_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_linha_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_item_governanca"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_linha_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_remuneracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_regra: {
+        Row: {
+          beneficiario_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          linha_id: string
+          texto: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          beneficiario_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha_id: string
+          texto: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          beneficiario_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha_id?: string
+          texto?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_regra_beneficiario_id_fkey"
+            columns: ["beneficiario_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_beneficiario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_regra_linha_id_fkey"
+            columns: ["linha_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_linha"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_remuneracao: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          preambulo: string | null
+          updated_at: string
+          updated_by: string | null
+          versao: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          preambulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          preambulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_remuneracao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_tema_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_tema_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       psa_migrations_aplicadas: {
         Row: {
           aplicada_em: string
@@ -11336,6 +11618,13 @@ export type Database = {
     }
     Functions: {
       acordo_visivel_para: { Args: { _acordo_id: string }; Returns: boolean }
+      alertar_tarefas_inativas: {
+        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
+        Returns: {
+          avisos_criados: number
+          reservas_negadas: number
+        }[]
+      }
       alertar_tarefas_por_prazo: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
@@ -11863,6 +12152,14 @@ export type Database = {
         Args: { _etapa_id: string }
         Returns: boolean
       }
+      protocolo_linha_visivel_para: {
+        Args: { _linha_id: string }
+        Returns: boolean
+      }
+      protocolo_visivel_para: {
+        Args: { _protocolo_id: string }
+        Returns: boolean
+      }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       registrar_download_documento: {
         Args: { _acao?: string; _documento_id: string }
@@ -11987,6 +12284,20 @@ export type Database = {
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }[]
       }
+      tarefas_inativas: {
+        Args: { _ambiente?: string; _hoje?: string; _limiar?: number }
+        Returns: {
+          destinatario_id: string
+          dias_parada: number
+          dono_nome: string
+          papel: string
+          task_id: string
+          task_status: Database["public"]["Enums"]["fiscal_task_status"]
+          task_title: string
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          ultima_alteracao: string
+        }[]
+      }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
@@ -12061,6 +12372,7 @@ export type Database = {
         | "tarefa_prazo_proximo"
         | "tarefa_atrasada"
         | "papel_de_trabalho_importado"
+        | "tarefa_inativa"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -12349,6 +12661,7 @@ export const Constants = {
         "tarefa_prazo_proximo",
         "tarefa_atrasada",
         "papel_de_trabalho_importado",
+        "tarefa_inativa",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
