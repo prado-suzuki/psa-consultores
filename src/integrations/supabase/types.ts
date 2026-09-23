@@ -2287,7 +2287,8 @@ export type Database = {
       }
       deliverable_attachments: {
         Row: {
-          deliverable_id: string
+          backlog_item_id: string | null
+          deliverable_id: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -2297,7 +2298,8 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
-          deliverable_id: string
+          backlog_item_id?: string | null
+          deliverable_id?: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -2307,7 +2309,8 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
-          deliverable_id?: string
+          backlog_item_id?: string | null
+          deliverable_id?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
@@ -2317,6 +2320,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deliverable_attachments_backlog_item_id_fkey"
+            columns: ["backlog_item_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_backlog_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliverable_attachments_deliverable_id_fkey"
             columns: ["deliverable_id"]
@@ -6737,6 +6747,7 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours: number | null
           reviewer_id: string | null
           servico_id: string | null
           start_date: string | null
@@ -6771,6 +6782,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -6805,6 +6817,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -6994,6 +7007,71 @@ export type Database = {
             columns: ["produto_segmento_id"]
             isOneToOne: false
             referencedRelation: "produto_segmento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osg_apresentacao: {
+        Row: {
+          checksum: string | null
+          cliente_id: string
+          created_at: string
+          excluido: boolean
+          gerado_por: string | null
+          id: string
+          nome_arquivo: string
+          problemas: Json
+          snapshot_dados: Json | null
+          storage_path: string
+          tamanho: number | null
+          template_checksum: string | null
+          template_nome: string
+          tipo: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Insert: {
+          checksum?: string | null
+          cliente_id: string
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          nome_arquivo: string
+          problemas?: Json
+          snapshot_dados?: Json | null
+          storage_path: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome: string
+          tipo: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Update: {
+          checksum?: string | null
+          cliente_id?: string
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          nome_arquivo?: string
+          problemas?: Json
+          snapshot_dados?: Json | null
+          storage_path?: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome?: string
+          tipo?: string
+          versao?: number
+          versao_do_gerador?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osg_apresentacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
         ]
