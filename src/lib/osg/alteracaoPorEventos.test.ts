@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { analisarAlteracao, confirmarPropostaAC, propostaPrecisaRevisao, type CandidatoAC, type CausaQualificacao } from '@/lib/osg/alteracaoPorEventos';
+import { avisosParaOConsultor, pessoasDosMovimentosPendentes } from '@/lib/osg/avisosDaAlteracao';
+import type { MovimentoDoLedger } from '@/lib/osg/projecaoQuadro';
 
 // Dados sinteticos para o contrato do dominio, nao fixture juridica homologada.
 function snapshot(): SnapshotDados {
@@ -386,7 +388,7 @@ describe('alteracao por eventos: endereco de socio pessoa fisica', () => {
       ['enderecoSocio', true], ['qualificacao', false],
     ]);
     // O residuo nao repete o endereco: quem o narra e o candidato homologado.
-    expect(candidatos[1].evidencia).toBe('Qualificacao pessoa-1: profissao');
+    expect(candidatos[1].evidencia).toBe('Qualificação de Ana: profissão');
     expect(() => confirmarPropostaAC({
       baseDocumentoId: 'documento-1', base, atual, selecionados: ['qualificacao:pessoa-1'],
       causaSede: 'mudanca_fisica', confirmadoEm: '2026-09-09T15:00:00Z',
@@ -559,5 +561,77 @@ describe('alteracao por eventos: endereco de socio pessoa fisica', () => {
     expect(candidatos.map((c) => c.id)).toEqual(['enderecoSocio:pessoa-2']);
     // O fingerprint e canonico e normalizado (caixa e espacos), nao o texto cru.
     expect(candidatos[0].fingerprint).toContain('rua c, 30');
+  });
+});
+
+describe('alteracao por eventos: o que o consultor le no assistente', () => {
+  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-/;
+
+  it('orgaos da Matriz sem id nao aparecem para o consultor, mas seguem na pendencia tecnica', () => {
+    const base = comSocioPF();
+    base.itensPorLista.matrizOrgaos = [{ orgaoDaGrade: { nome: 'Conselho de Administração' } }];
+    const atual = structuredClone(base);
+    const { pendencias, avisos } = analisarAlteracao(base, atual);
+    expect(pendencias.join(' ')).toContain('"Conselho de Administração" aparece na lista "matrizOrgaos"');
+    expect(avisosParaOConsultor(avisos)).toEqual([]);
+  });
+
+  it('quem entrou no quadro por movimento pendente nao vira aviso; sem movimento, vira aviso com o nome', () => {
+    const base = comSocioPF();
+    const atual = structuredClone(base);
+    const jatoba = '11c1394b-5bc7-4b93-a6f1-98a7fa64088b';
+    atual.itensPorLista.socios.push({
+      pessoa: { id: jatoba, tipoPessoa: 'PJ', cpfCnpj: '07.777.777/0001-00', nome: 'Jatobá Sementes S.A.' },
+      quotas: '100',
+    });
+    const { pendencias, avisos } = analisarAlteracao(base, atual);
+    expect(pendencias).toContain(`Qualificacao ${jatoba} ausente em um dos estados; nao inferir ingresso ou retirada.`);
+    expect(avisosParaOConsultor(avisos, new Set([jatoba]))).toEqual([]);
+
+    const semMovimento = avisosParaOConsultor(avisos);
+    expect(semMovimento).toHaveLength(1);
+    expect(semMovimento[0]).toContain('Jatobá Sementes S.A. consta só no cadastro atual');
+    expect(semMovimento[0]).not.toMatch(UUID);
+  });
+
+  it('divergencia real ganha texto com acento e nome, sem uuid', () => {
+    const base = comSocioPF();
+    const id = '9f1c2d3e-0000-4000-8000-000000000001';
+    for (const lista of ['socios', 'administradores']) socioDe(base, lista).id = id;
+    const atual = structuredClone(base);
+    for (const lista of ['socios', 'administradores']) socioDe(atual, lista).profissao = 'Engenheira';
+    const textos = avisosParaOConsultor(analisarAlteracao(base, atual).avisos);
+    expect(textos).toEqual([
+      'A qualificação de Ana mudou (profissão): ainda não há modelo nem decisão jurídica homologados para levar isso à peça.',
+    ]);
+    expect(textos.join(' ')).not.toMatch(UUID);
+  });
+
+  it('pessoa sem id numa lista de pessoas continua visivel, em texto humano', () => {
+    const base = comSocioPF();
+    const semId = { ...socioDe(base) };
+    delete semId.id;
+    base.itensPorLista.administradores = [{ pessoa: semId }];
+    const textos = avisosParaOConsultor(analisarAlteracao(base, structuredClone(base)).avisos);
+    expect(textos).toHaveLength(2);
+    expect(textos[0]).toContain('"Ana" aparece na lista "Administradores (Administração)" no instrumento registrado sem vínculo');
+    expect(textos[0]).toContain('corrigir um CPF não é troca de sócio');
+  });
+
+  it('pessoas movimentadas saem so dos movimentos pendentes da empresa', () => {
+    const mov = (id: string, origem: string | null, destino: string, doc: string | null, empresa = 'empresa-1') =>
+      ({ id, empresaPessoaId: empresa, origemPessoaId: origem, destinoPessoaId: destino, documentoGeradoId: doc }) as MovimentoDoLedger;
+    const ids = pessoasDosMovimentosPendentes([
+      mov('m1', 'lucas', 'jatoba', null),
+      mov('m2', null, 'marina', 'doc-registrado'),
+      mov('m3', null, 'heitor', null, 'outra-empresa'),
+    ], 'empresa-1');
+    expect([...ids].sort()).toEqual(['jatoba', 'lucas']);
+  });
+
+  it('candidato travado explica o motivo em texto humano', () => {
+    const base = comSocioPF();
+    const candidato = analisarAlteracao(base, mudaEndereco(base, '  ')).candidatos[0];
+    expect(candidato.motivos).toEqual(['Endereço de Ana: vazio no cadastro atual.']);
   });
 });

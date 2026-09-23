@@ -2,6 +2,7 @@ import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { derivarCampos } from '@/lib/templates/vocabulario';
 import { idDoRegistro, origemDe } from '@/lib/templates/origem';
 import { digitosDe } from '@/lib/osg/baselineDaPeca';
+import { ehItemForaDeQualificacao, nomeDaLista, nomeDoCampo, noLado, type AvisoDaAnalise, type Lado } from '@/lib/osg/avisosDaAlteracao';
 
 // A alteração contratual por EVENTOS: o que mudou entre o instrumento registrado
 // (o snapshot que a peça anterior publicou na junta) e o cadastro de hoje, campo
@@ -43,6 +44,8 @@ export interface CandidatoAC {
   /** Pode ser gerado: homologado, com base suficiente e sem ambiguidade. */
   elegivel: boolean;
   pendencias: string[];
+  /** As mesmas pendências em texto para o consultor; ausente em proposta gravada antes dele. */
+  motivos?: string[];
   /** Canônico do antes/depois normalizado: mudou o valor, mudou a assinatura. */
   fingerprint: string;
 }
@@ -132,6 +135,7 @@ function camposDe(obj: Record<string, unknown>, chaves: readonly string[]): Camp
   return Object.fromEntries(chaves.map((k) => [k, typeof obj[k] === 'string' ? obj[k] : null]));
 }
 
+const maiuscula = (t: string) => t.charAt(0).toLocaleUpperCase('pt-BR') + t.slice(1);
 const conhecido = (v: string | null | undefined) => v !== null && v !== undefined;
 const preenchido = (v: string | null | undefined) => conhecido(v) && v!.trim() !== '';
 
@@ -190,11 +194,16 @@ function ocorrencias(snapshot: SnapshotDados): Ocorrencia[] {
   return out;
 }
 
+/** Uma pendência nas duas formas: a técnica, estável para a revisão da proposta, e a do consultor. */
+interface Problema { tecnico: string; texto: string }
+
 function criarCandidato(
   id: string, tipo: CandidatoAC['tipo'], antes: CamposAC, depois: CamposAC,
-  pendencias: string[], evidencia: string,
+  problemas: Problema[], evidencia: string,
 ): CandidatoAC {
+  const pendencias = problemas.map((p) => p.tecnico);
   return {
+    motivos: problemas.map((p) => p.texto),
     id, tipo, antes, depois, evidencia,
     flagNome: tipo === 'sede' ? FLAG_SEDE : FLAG_QUALIFICACAO,
     // `qualificacao` é o resíduo NÃO homologado (CPF, profissão, estado civil…):
@@ -216,26 +225,41 @@ function chavesDaSede(antes: Record<string, unknown>): { comparaveis: string[]; 
   };
 }
 
+/**
+ * `pendencias` é a forma técnica, que a revisão da proposta gravada compara e por
+ * isso não muda de texto; `avisos` é o que o assistente mostra ao consultor.
+ */
 export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
-  candidatos: CandidatoAC[]; pendencias: string[];
+  candidatos: CandidatoAC[]; pendencias: string[]; avisos: AvisoDaAnalise[];
 } {
   const candidatos: CandidatoAC[] = [];
   const pendencias: string[] = [];
+  const avisos: AvisoDaAnalise[] = [];
+  const registrar = (...problemas: Problema[]) => {
+    for (const p of problemas) {
+      pendencias.push(p.tecnico);
+      avisos.push({ tipo: 'divergencia', texto: p.texto });
+    }
+  };
   const anteriores = ocorrencias(base);
   const atuais = ocorrencias(atual);
-  const problemasSede: string[] = [];
+  const problemasSede: Problema[] = [];
+  const naSede = (lado: Lado) => `Sede ${noLado(lado)}`;
   if (!base.empresaId || base.empresaId !== atual.empresaId) {
-    problemasSede.push('Sociedade da base ausente ou diferente da sociedade atual.');
+    problemasSede.push({ tecnico: 'Sociedade da base ausente ou diferente da sociedade atual.',
+      texto: 'A sociedade do instrumento registrado não foi identificada ou não é a mesma do cadastro atual.' });
   }
   for (const [rotulo, snapshot] of [['Base', base], ['Atual', atual]] as const) {
     if (ocorrencias(snapshot).some((o) => o.sociedade && !o.id)) {
-      problemasSede.push(`${rotulo}: ocorrencia de sede sem identidade estavel.`);
+      problemasSede.push({ tecnico: `${rotulo}: ocorrencia de sede sem identidade estavel.`,
+        texto: `${naSede(rotulo)}: há um trecho com a sede sem vínculo com o cadastro da sociedade.` });
     }
     for (const [binding, campos] of Object.entries(snapshot.selecao)) {
       const vinculo = snapshot.registroPorBinding[binding];
       const proprio = idDoRegistro(campos);
       if (proprio && vinculo && proprio !== vinculo) {
-        problemasSede.push(`${rotulo}: identidade do binding ${binding} inconsistente.`);
+        problemasSede.push({ tecnico: `${rotulo}: identidade do binding ${binding} inconsistente.`,
+          texto: `${maiuscula(noLado(rotulo))}, o campo "${binding}" aponta para dois cadastros diferentes.` });
       }
     }
   }
@@ -254,23 +278,29 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
   for (const [rotulo, valor] of [['Base', antes], ['Atual', depois]] as const) {
     for (const k of comparaveis) {
       const ok = k === 'sedeComplemento' ? conhecido(valor[k]) : preenchido(valor[k]);
-      if (!ok) problemasSede.push(`${rotulo}: ${k} desconhecido ou insuficiente.`);
+      if (!ok) {
+        problemasSede.push({ tecnico: `${rotulo}: ${k} desconhecido ou insuficiente.`,
+          texto: `${naSede(rotulo)}: ${nomeDoCampo(k)} ausente ou incompleto.` });
+      }
     }
   }
   // Base legada: o atual precisa trazer as partes atômicas por inteiro, senão a
   // resolução nova nasceria sem o campo que a base também não tem.
   if (legada && SEDE_ATOMICA.some((k) => (k === 'sedeComplemento' ? !conhecido(depois[k]) : !preenchido(depois[k])))) {
-    problemasSede.push('Atual: sede sem logradouro, número e complemento estruturados.');
+    problemasSede.push({ tecnico: 'Atual: sede sem logradouro, número e complemento estruturados.',
+      texto: 'Sede no cadastro atual sem logradouro, número e complemento em campos separados.' });
   }
   const recorte = (c: CamposAC) => camposDe(c as Record<string, unknown>, [...comparaveis, ...derivados]);
   for (const [rotulo, lista, referencia] of [['Base', a, antes], ['Atual', b, depois]] as const) {
     if (lista.some((o) => assinatura(recorte(camposDe(o.campos, todas))) !== assinatura(recorte(referencia)))) {
-      problemasSede.push(`${rotulo}: ocorrencias da sede inconsistentes.`);
+      problemasSede.push({ tecnico: `${rotulo}: ocorrencias da sede inconsistentes.`,
+        texto: `${naSede(rotulo)}: o endereço aparece de formas diferentes ao longo do documento.` });
     }
   }
   for (const k of ['sedeMunicipio', 'sedeUf']) {
     if (normalizar(antes[k], k) !== normalizar(depois[k], k)) {
-      problemasSede.push(`Mudanca de ${k} fora do caso homologado (mesmo municipio e UF).`);
+      problemasSede.push({ tecnico: `Mudanca de ${k} fora do caso homologado (mesmo municipio e UF).`,
+        texto: `A sede mudou de ${nomeDoCampo(k)}: só a mudança dentro do mesmo município e UF está homologada.` });
     }
   }
   const mudou = assinatura(recorte(antes)) !== assinatura(recorte(depois));
@@ -280,7 +310,8 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     const soProsa = SEDE_LEGADA.filter((k) => k !== 'sede')
       .every((k) => normalizar(antes[k], k) === normalizar(depois[k], k));
     if (soProsa) {
-      problemasSede.push('Base registrada sem sede estruturada: a mudanca so aparece na prosa (complemento?) e exige conciliacao.');
+      problemasSede.push({ tecnico: 'Base registrada sem sede estruturada: a mudanca so aparece na prosa (complemento?) e exige conciliacao.',
+        texto: 'O instrumento registrado não tem a sede em campos separados: a mudança só aparece no texto (talvez no complemento) e precisa ser conferida à mão.' });
     }
   }
   if (mudou) {
@@ -292,9 +323,9 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     candidato.fingerprint += JSON.stringify([bindings, b.map((o) => o.caminho).sort()]);
     candidatos.push(candidato);
   }
-  pendencias.push(...problemasSede);
+  registrar(...problemasSede);
 
-  const pessoas = (lista: Ocorrencia[], rotulo: string) => {
+  const pessoas = (lista: Ocorrencia[], rotulo: Lado) => {
     const porId = new Map<string, { campos: CamposAC; socio: boolean }>();
     for (const o of lista) {
       // O FILTRO É A DECISÃO DE PAPEL, e agora ele pode ser exato.
@@ -329,10 +360,16 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
         const quem = typeof o.campos.nome === 'string' && o.campos.nome.trim()
           ? `"${o.campos.nome.trim()}"` : 'uma pessoa';
         const onde = o.lista ? `na lista "${o.lista}"` : 'em um campo do documento';
-        pendencias.push(
-          `${rotulo}: ${quem} aparece ${onde} sem id estavel e fica fora da comparacao. `
-          + 'CPF nao serve de identidade aqui: corrigir um CPF nao e troca de socio.',
-        );
+        const tecnico = `${rotulo}: ${quem} aparece ${onde} sem id estavel e fica fora da comparacao. `
+          + 'CPF nao serve de identidade aqui: corrigir um CPF nao e troca de socio.';
+        if (ehItemForaDeQualificacao(o.lista, o.campos)) {
+          pendencias.push(tecnico);
+          avisos.push({ tipo: 'ruido', tecnico });
+          continue;
+        }
+        const ondeHumano = o.lista ? `na lista "${nomeDaLista(o.lista)}"` : 'em um campo do documento';
+        registrar({ tecnico, texto: `${maiuscula(quem)} aparece ${ondeHumano} ${noLado(rotulo)} sem vínculo com o `
+          + 'cadastro e fica fora da comparação. O CPF não serve de identidade aqui: corrigir um CPF não é troca de sócio.' });
         continue;
       }
       const campos = camposDe(o.campos, CAMPOS_DE_QUALIFICACAO);
@@ -342,7 +379,9 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
       // que autoriza a resolução é o do quadro.
       const socio = (anterior?.socio ?? false) || o.lista === 'socios';
       if (anterior && assinatura(anterior.campos) !== assinatura(campos)) {
-        pendencias.push(`${rotulo}: qualificacao ${o.id} inconsistente entre papeis.`);
+        const quem = (campos.nome ?? anterior.campos.nome ?? '').trim() || 'uma pessoa';
+        registrar({ tecnico: `${rotulo}: qualificacao ${o.id} inconsistente entre papeis.`,
+          texto: `${maiuscula(noLado(rotulo))}, a qualificação de ${quem} não é a mesma em todos os lugares em que ela aparece.` });
         // Escolha deterministica apenas para exibir a evidencia, nunca para autorizar.
         if (assinatura(anterior.campos) < assinatura(campos)) {
           porId.set(o.id, { ...anterior, socio });
@@ -359,7 +398,11 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     const antesP = pa.get(id);
     const depoisP = pb.get(id);
     if (!antesP || !depoisP) {
-      pendencias.push(`Qualificacao ${id} ausente em um dos estados; nao inferir ingresso ou retirada.`);
+      const tecnico = `Qualificacao ${id} ausente em um dos estados; nao inferir ingresso ou retirada.`;
+      const presente = (antesP ?? depoisP)!;
+      pendencias.push(tecnico);
+      avisos.push({ tipo: 'ausente', pessoaId: id, nome: presente.campos.nome?.trim() || 'Uma pessoa',
+        presenteEm: antesP ? 'base' : 'atual', tecnico });
       continue;
     }
     const x = antesP.campos;
@@ -386,34 +429,43 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
       // O endereço tem de ser conhecido nos DOIS estados e preenchido no atual:
       // sem o "antes" não há o que alterar, e com o "depois" vazio a resolução
       // publicaria uma qualificação sem domicílio.
-      const problemas = [
-        ...CAMPOS_DE_ENDERECO_PESSOA.filter((k) => !conhecido(antes[k]))
-          .map((k) => `Endereco de ${nome}: ${k} desconhecido no instrumento registrado.`),
-        ...CAMPOS_DE_ENDERECO_PESSOA.filter((k) => !preenchido(depois[k]))
-          .map((k) => `Endereco de ${nome}: ${k} vazio no cadastro atual.`),
+      const problemas: Problema[] = [
+        ...CAMPOS_DE_ENDERECO_PESSOA.filter((k) => !conhecido(antes[k])).map((k) => ({
+          tecnico: `Endereco de ${nome}: ${k} desconhecido no instrumento registrado.`,
+          texto: `Endereço de ${nome}: não consta no instrumento registrado.` })),
+        ...CAMPOS_DE_ENDERECO_PESSOA.filter((k) => !preenchido(depois[k])).map((k) => ({
+          tecnico: `Endereco de ${nome}: ${k} vazio no cadastro atual.`,
+          texto: `Endereço de ${nome}: vazio no cadastro atual.` })),
       ];
       candidatos.push(criarCandidato(`enderecoSocio:${id}`, 'enderecoSocio', antes, depois, problemas,
         `Endereço de ${nome}: ${antes.endereco ?? '(desconhecido)'} -> ${depois.endereco ?? '(desconhecido)'}`));
-      pendencias.push(...problemas);
+      registrar(...problemas);
     }
 
     // --- Resíduo: tudo o que continua sem modelo nem decisão homologados -----
     const residuais = mudaram.filter((k) => !doEndereco.includes(k));
     if (residuais.length === 0) continue;
     const faltantes = residuais.filter((k) => x[k] === null || y[k] === null);
-    const problemas = ['Qualificacao detectada, sem autorizacao juridica ou modelo homologado.',
-      ...faltantes.map((k) => `Qualificacao ${id}: ${k} desconhecido em um dos estados.`)];
+    const oQueMudou = residuais.map(nomeDoCampo).join(', ');
+    const problemas: Problema[] = [
+      { tecnico: 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.',
+        texto: `A qualificação de ${nome} mudou (${oQueMudou}): ainda não há modelo nem decisão jurídica homologados para levar isso à peça.` },
+      ...faltantes.map((k) => ({ tecnico: `Qualificacao ${id}: ${k} desconhecido em um dos estados.`,
+        texto: `Qualificação de ${nome}: ${nomeDoCampo(k)} não consta em um dos lados.` })),
+    ];
     if (!homologavel && residuais.some((k) => (CAMPOS_DE_ENDERECO_PESSOA as readonly string[]).includes(k))) {
       problemas.push(pf
-        ? `Endereco de ${nome}: a pessoa nao consta no quadro societario dos dois estados; a resolucao homologada e a de socio.`
-        : `Endereco de ${nome}: so o endereco de socio pessoa fisica esta homologado.`);
+        ? { tecnico: `Endereco de ${nome}: a pessoa nao consta no quadro societario dos dois estados; a resolucao homologada e a de socio.`,
+          texto: `Endereço de ${nome}: a pessoa não está no quadro societário nos dois lados, e a resolução homologada é a de sócio.` }
+        : { tecnico: `Endereco de ${nome}: so o endereco de socio pessoa fisica esta homologado.`,
+          texto: `Endereço de ${nome}: só o endereço de sócio pessoa física está homologado.` });
     }
     candidatos.push(criarCandidato(`qualificacao:${id}`, 'qualificacao', x, y, problemas,
-      `Qualificacao ${id}: ${residuais.join(', ')}`));
-    pendencias.push(...problemas);
+      `Qualificação de ${nome}: ${oQueMudou}`));
+    registrar(...problemas);
   }
   return { candidatos: candidatos.sort((x, y) => x.id.localeCompare(y.id)),
-    pendencias: [...new Set(pendencias)].sort() };
+    pendencias: [...new Set(pendencias)].sort(), avisos };
 }
 
 export interface ArgsDaConfirmacao {

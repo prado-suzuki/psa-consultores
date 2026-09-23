@@ -17,6 +17,7 @@ import { useEventosDerivados } from '@/hooks/useEventosDaAlteracao';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import type { SnapshotDaPeca } from '@/lib/osg/baselineDaPeca';
 import { avaliarFluxoDaSociedade, declararPeca } from '@/lib/osg/estadoDaSociedade';
+import { avisosParaOConsultor, type AvisoDaAnalise } from '@/lib/osg/avisosDaAlteracao';
 import { analisarAlteracao, confirmarPropostaAC, propostaPrecisaRevisao, FLAG_QUALIFICACAO, FLAG_SEDE, type CandidatoAC, type CausaQualificacao, type CausaSede, type PropostaAC } from '@/lib/osg/alteracaoPorEventos';
 import { comporEstadoProposto, validarSelecaoDeEventos } from '@/lib/osg/estadoProposto';
 import { toast } from '@/hooks/use-toast';
@@ -936,7 +937,7 @@ export function useGerarDocumentoController() {
       }
       if (eventosSet.has(FLAG_QUALIFICACAO) && enderecosElegiveis.length === 0) {
         throw new Error(candidatosEndereco.length > 0
-          ? `Nenhum endereço de sócio pode ser gerado: ${candidatosEndereco.flatMap((c) => c.pendencias).join(' ')}`
+          ? `Nenhum endereço de sócio pode ser gerado: ${candidatosEndereco.flatMap((c) => c.motivos ?? c.pendencias).join(' ')}`
           : 'Nada no cadastro registra mudança de endereço de sócio: desmarque a qualificação, ou atualize o endereço do sócio antes.');
       }
       proposta = confirmarPropostaAC({
@@ -1385,7 +1386,7 @@ export function useGerarDocumentoController() {
     () => administradores.map((a) => a.pessoa.id).filter((id): id is string => !!id),
     [administradores],
   );
-  const { eventos: eventosDerivados, idsPendentes: movimentosPendentes } = useEventosDerivados({
+  const { eventos: eventosDerivados, idsPendentes: movimentosPendentes, pessoasMovimentadas } = useEventosDerivados({
     empresaPessoaId: empresaId,
     validadoEm: documentoBase?.snapshot_validado_em ?? null,
     administracaoIds: idsAdministracao,
@@ -1964,7 +1965,7 @@ export function useGerarDocumentoController() {
   const analise = useMemo(
     () => (modeloSocietario && baseSnap && (compondoAlteracao || documentoRegistrado != null)
       ? analisarAlteracao(baseSnap, vivoSnap)
-      : { candidatos: [] as CandidatoAC[], pendencias: [] as string[] }),
+      : { candidatos: [] as CandidatoAC[], pendencias: [] as string[], avisos: [] as AvisoDaAnalise[] }),
     [modeloSocietario, compondoAlteracao, documentoRegistrado, baseSnap, vivoSnap],
   );
   const candidatoSede = useMemo(
@@ -2010,7 +2011,7 @@ export function useGerarDocumentoController() {
   // geráveis, base insuficiente, identificação divergente.
   const pendenciasDaAlteracao = useMemo(
     () => [...new Set([
-      ...analise.pendencias,
+      ...avisosParaOConsultor(analise.avisos, pessoasMovimentadas),
       ...(estadoProposto?.pendencias ?? []),
       // As três somas da tabela de nua-propriedade. Ficam aqui, e não no estado
       // proposto, porque só aqui existem os NÚMEROS: o estado proposto já
@@ -2022,7 +2023,7 @@ export function useGerarDocumentoController() {
       // olha a Matriz precisa saber disso antes de levar a peça à junta.
       ...(entradaGov.pendencias ?? []),
     ])],
-    [analise, estadoProposto, estadoDosOnus, entradaGov],
+    [analise, pessoasMovimentadas, estadoProposto, estadoDosOnus, entradaGov],
   );
   const confirmarProposta = useConfirmarPropostaAC();
 

@@ -1468,7 +1468,7 @@ describe('GerarDocumento — alteração por eventos: base registrada + eventos 
     expect(within(modal).getByText(/Sede: Avenida Amazonas.*-> Avenida da Produção/)).toBeInTheDocument();
     // Qualificação detectada (profissão) NÃO é evento: é pendência, sem interruptor.
     expect(within(modal).getByText(/Divergências que não viram evento/)).toBeInTheDocument();
-    expect(within(modal).getByText(/Qualificacao detectada, sem autorizacao juridica/)).toBeInTheDocument();
+    expect(within(modal).getByText(/A qualificação de Ana Souza mudou \(.*profissão.*\): ainda não há modelo/)).toBeInTheDocument();
     // Detalhe recolhido: campo a campo.
     await userEvent.click(within(modal).getByRole('button', { name: /Ver antes e depois/ }));
     expect(within(modal).getByText('Avenida Amazonas')).toBeInTheDocument();

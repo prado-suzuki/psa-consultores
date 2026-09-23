@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useMovimentosDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
 import { baselineDoSnapshot, type SnapshotDaPeca } from '@/lib/osg/baselineDaPeca';
+import { pessoasDosMovimentosPendentes } from '@/lib/osg/avisosDaAlteracao';
 import {
   derivarEventosDaAlteracao,
   type EventoDerivado,
@@ -90,6 +91,8 @@ export function useEventosDerivados(args: ArgsDosEventos): {
    * outra query, porque o livro já está em mão.
    */
   idsPendentes: string[];
+  /** Pessoas dos movimentos pendentes: a entrada ou saída delas já é narrada por evento. */
+  pessoasMovimentadas: ReadonlySet<string>;
   isFetching: boolean;
 } {
   const { data: livro, isFetching: lendoLivro } = useMovimentosDaEmpresa(args.empresaPessoaId);
@@ -118,7 +121,12 @@ export function useEventosDerivados(args: ArgsDosEventos): {
     [livro, args.empresaPessoaId],
   );
 
-  return { eventos, idsPendentes, isFetching: lendoLivro || lendoMudancas };
+  const pessoasMovimentadas = useMemo(
+    () => pessoasDosMovimentosPendentes(livro?.movimentos ?? [], args.empresaPessoaId),
+    [livro, args.empresaPessoaId],
+  );
+
+  return { eventos, idsPendentes, pessoasMovimentadas, isFetching: lendoLivro || lendoMudancas };
 }
 
 /**

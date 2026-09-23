@@ -175,7 +175,7 @@ export const AlteracaoContratualDialog = ({
     ? !candidatoSede
       ? 'Nada no cadastro registra mudança de sede: desmarque a sede, ou atualize o endereço da sociedade antes.'
       : !candidatoSede.elegivel
-        ? `A sede não pode ser gerada: ${candidatoSede.pendencias.join(' ')}`
+        ? `A sede não pode ser gerada: ${(candidatoSede.motivos ?? candidatoSede.pendencias).join(' ')}`
         : causaEscolhida && !causaEscolhida.homologada
           ? `${causaEscolhida.rotulo}: caso não homologado. Só a mudança física está aprovada para geração.`
           : null
@@ -183,7 +183,7 @@ export const AlteracaoContratualDialog = ({
   const bloqueioQualificacao = qualificacaoMarcada
     ? enderecosElegiveis.length === 0
       ? (candidatosEndereco.length > 0
-        ? `Nenhum endereço de sócio pode ser gerado: ${candidatosEndereco.flatMap((c) => c.pendencias).join(' ')}`
+        ? `Nenhum endereço de sócio pode ser gerado: ${candidatosEndereco.flatMap((c) => c.motivos ?? c.pendencias).join(' ')}`
         : 'Nada no cadastro registra mudança de endereço de sócio: desmarque a qualificação, ou atualize o endereço do sócio antes.')
       : causaQualEscolhida && !causaQualEscolhida.homologada
         ? `${causaQualEscolhida.rotulo}: caso não homologado para a qualificação.`
@@ -260,8 +260,8 @@ export const AlteracaoContratualDialog = ({
                   || (ehQualificacao && candidatosEndereco.length > 0
                     && candidatosEndereco.every((c) => !c.elegivel));
                 const motivoTravada = ehSede
-                  ? candidatoSede?.pendencias.join(' ')
-                  : candidatosEndereco.flatMap((c) => c.pendencias).join(' ');
+                  ? (candidatoSede?.motivos ?? candidatoSede?.pendencias)?.join(' ')
+                  : candidatosEndereco.flatMap((c) => c.motivos ?? c.pendencias).join(' ');
                 return (
                   <div
                     key={flag.id}
