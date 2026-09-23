@@ -92,6 +92,13 @@
       "when": 1790167140627,
       "tag": "0012_anexos_do_item_do_backlog",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790167182899,
+      "tag": "0013_revisao_horas_do_revisor",
+      "breakpoints": true
     }
   ]
 }

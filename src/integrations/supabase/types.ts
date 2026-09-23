@@ -6747,6 +6747,7 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours: number | null
           reviewer_id: string | null
           servico_id: string | null
           start_date: string | null
@@ -6781,6 +6782,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -6815,6 +6817,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          review_hours?: number | null
           reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
