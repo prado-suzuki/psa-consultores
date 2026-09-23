@@ -3,9 +3,10 @@ import { PAPEIS_LISTA } from './binding';
 import { comporBlocos } from './composition';
 import { clausulasSemCorpo, motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './descarte';
 import type { RegistroFamilias } from './familia';
-import { prefixosNumeracao, refsNumeracao, unirBlocos } from './numeracao';
+import { intervalosDosCapitulos, prefixosNumeracao, refsNumeracao, SUFIXO_INTERVALO, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
 import { renderBloco, renderConteudo, type OpcoesRender, type RenderDeBloco, type SegmentoRender } from './render';
+import { transcreverCapitulos } from './transcricao';
 import type { Bloco, Contexto, Template, TipoBloco } from './types';
 
 /** Bloco pronto: conteúdo renderizado (string) + os mesmos segmentos com proveniência (prévia interativa). */
@@ -48,7 +49,8 @@ function comTituloRenderizado(blocos: Bloco[], contexto: Contexto, opcoes: Opcoe
  *   muta o item do contexto de propósito: é a identidade do item que liga o
  *   parágrafo expandido às menções a ele, e cada geração recarimba do zero.
  * - bloco com `ancora`: publica em {{ refs.<ancora> }} para referência avulsa
- *   ("observado o disposto na {{ refs.haveres }}").
+ *   ("observado o disposto na {{ refs.haveres }}"). Capítulo ancorado publica
+ *   também o intervalo das suas cláusulas em {{ refs.<ancora>Clausulas }}.
  *
  * Os DESCARTADOS entram por argumento e recebem referência VAZIA, não a da
  * passada anterior (emenda 9.5 do contrato). Sem isso, um item cujo parágrafo
@@ -78,6 +80,11 @@ function renderizarComReferencias(
   for (const bloco of descartados) {
     if (bloco.escopo) bloco.escopo.ref = '';
     else if (bloco.ancora) globais[bloco.ancora] = '';
+  }
+  const intervalos = intervalosDosCapitulos(blocos);
+  for (const bloco of [...blocos, ...descartados]) {
+    if (bloco.tipo !== 'capitulo' || !bloco.ancora || bloco.escopo) continue;
+    globais[bloco.ancora + SUFIXO_INTERVALO] = intervalos[bloco.ancora] ?? '';
   }
   const ctx: Contexto = { ...contexto, refs: globais };
   return blocos.map((bloco) => renderBloco(bloco.conteudo, ctx, bloco.escopo ? [bloco.escopo] : [], opcoes));
@@ -188,7 +195,10 @@ export function gerarComposicao(
     };
   });
 
-  return { blocos: gerados, descartados };
+  const ancorasDescartadas = new Set(
+    blocosDescartados.filter((b) => b.ancora && !b.escopo).map((b) => b.ancora as string),
+  );
+  return { blocos: transcreverCapitulos(gerados, ancorasDescartadas), descartados };
 }
 
 /** Os blocos que entraram no documento. Quem precisa saber o que ficou de fora usa `gerarComposicao`. */

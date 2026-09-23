@@ -154,6 +154,8 @@ export function motivoDeDescarte(
   );
   const trouxeDado =
     valores.some((v) => v.tipo === 'valor' && !v.sintetizado && v.texto.trim() !== '') ||
+    // O capítulo transcrito só é escrito depois do descarte (ver transcricao.ts).
+    segmentos.some((s) => s.tipo === 'texto' && s.transcricao !== undefined) ||
     itensDeRepeticao > 0 ||
     tabelaComCorpo;
   if (trouxeDado) return null;

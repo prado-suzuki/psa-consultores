@@ -2,6 +2,7 @@ import type { Document, ISpacingProperties, Paragraph, Table, TextRun } from 'do
 import type { Bloco, TipoBloco } from './types';
 import { extrairRunsLinha, removerMarcas, type RunMarcado } from './marcas';
 import { segmentar, type Alinhamento, type Segmento } from './tabela';
+import { RECUO_CITACAO, RECUO_CITACAO_CENTRALIZADA } from './transcricao';
 
 // Adapter de saída .docx: converte os blocos gerados pelo engine (numerados e
 // renderizados) num documento Word formatado por tipo estrutural.
@@ -62,6 +63,8 @@ const MARGENS = { top: 1134, bottom: 1418, left: 1701, right: 1418, header: 708,
 const ENTRELINHA = 276;
 /** Alínea: marcador a 0,5 cm da margem, corpo a 1,0 cm (recuo pendente). */
 const RECUO_ALINEA = { left: CM, hanging: Math.round(CM / 2) };
+/** Capítulo transcrito na alteração: 1,5 cm, medido na 4ª AC registrada da Bela Vista. */
+const RECUO_TRANSCRICAO = 851;
 /** Largura útil da linha (página menos margens laterais), para dimensionar tabela. */
 const LARGURA_UTIL = A4.width - MARGENS.left - MARGENS.right;
 
@@ -177,7 +180,7 @@ function comNegritoNoInicio(runs: RunMarcado[], n: number): RunMarcado[] {
   return out;
 }
 
-function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
+function linhaComRotulo(docx: DocxModule, linha: string, recuo = 0): Paragraph {
   const { AlignmentType, Paragraph, TextRun } = docx;
   const limpo = removerMarcas(linha);
   const marcador = limpo.match(ALINEA);
@@ -203,8 +206,23 @@ function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
     spacing: espacamento(docx),
-    indent: marcador ? RECUO_ALINEA : undefined,
+    indent: marcador
+      ? { ...RECUO_ALINEA, left: RECUO_ALINEA.left + recuo }
+      : recuo ? { left: recuo } : undefined,
     children,
+  });
+}
+
+/** Linha de capítulo transcrito: recuada, e centralizada quando é o título do capítulo. */
+function linhaTranscrita(docx: DocxModule, linha: string): Paragraph {
+  if (!linha.startsWith(RECUO_CITACAO_CENTRALIZADA)) {
+    return linhaComRotulo(docx, linha.slice(RECUO_CITACAO.length), RECUO_TRANSCRICAO);
+  }
+  return new docx.Paragraph({
+    alignment: docx.AlignmentType.CENTER,
+    spacing: espacamento(docx),
+    indent: { left: RECUO_TRANSCRICAO },
+    children: runsInline(docx, linha.trim(), { bold: true, underline: true }),
   });
 }
 
@@ -486,6 +504,11 @@ function paragrafosDoBloco(
     if (ALINEA.test(removerMarcas(linha).trim())) listaAberta = true;
 
     if (tipo !== 'livre') estado.abertura = 'corpo';
+
+    if (linha.startsWith(RECUO_CITACAO)) {
+      emitir(linhaTranscrita(docx, linha));
+      continue;
+    }
 
     // capitulo: título e subtítulo centralizados em negrito sublinhado.
     if (tipo === 'capitulo') {

@@ -480,3 +480,35 @@ describe('quebra de página declarada no bloco', () => {
     expect(await parteXml(doc, /word\/document\.xml$/)).not.toContain('w:type="page"');
   });
 });
+
+describe('capítulo transcrito na alteração contratual', () => {
+  // 4ª AC registrada da Bela Vista: corpo a 851 e alínea a 1418 com recuo pendente.
+  it('sai recuado como citação, com o título centralizado e a alínea recuada por cima', async () => {
+    const template: Template = {
+      id: 'ac',
+      nome: 'ac',
+      blocos: [
+        { id: 'res', tipo: 'clausula', obrigatorio: true, conteudo: 'Altera-se o capítulo, que vigorará assim:\n\n{{transcricao capitulo="admin"}}' },
+        { id: 'cab', tipo: 'livre', obrigatorio: true, conteudo: 'CONSOLIDAÇÃO', reiniciaNumeracao: true },
+        { id: 'cap', tipo: 'capitulo', obrigatorio: true, conteudo: 'Da Administração', ancora: 'admin' },
+        { id: 'adm', tipo: 'clausula', obrigatorio: true, conteudo: 'Compete ao Conselho administrar a sociedade:\na) Aprovar contas.' },
+        { id: 'par', tipo: 'paragrafo', obrigatorio: true, conteudo: 'O mandato é de dois anos.' },
+      ],
+    };
+    const xml = await parteXml(await montarDocx(gerarBlocos(template, {})), /word\/document\.xml$/);
+
+    const [transcrito, consolidado] = xml.split('CONSOLIDAÇÃO');
+    expect(paragrafoCom(transcrito, 'CAPÍTULO I')).toContain('<w:jc w:val="center"/>');
+    expect(paragrafoCom(transcrito, 'CAPÍTULO I')).toContain('w:left="851"');
+    expect(paragrafoCom(transcrito, 'Compete ao Conselho')).toContain('w:left="851"');
+    expect(paragrafoCom(transcrito, 'Aprovar contas')).toMatch(/w:left="1418" w:hanging="284"|w:hanging="284" w:left="1418"/);
+    expect(paragrafoCom(transcrito, 'O mandato')).toContain('w:left="851"');
+    expect(transcrito).not.toContain('\t');
+
+    // O consolidado continua rente à margem.
+    expect(paragrafoCom(consolidado, 'Compete ao Conselho')).not.toContain('w:ind');
+    expect(paragrafoCom(consolidado, 'O mandato')).not.toContain('w:ind');
+    // A frase da resolução também.
+    expect(paragrafoCom(transcrito, 'Altera-se o capítulo')).not.toContain('w:ind');
+  });
+});

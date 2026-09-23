@@ -211,6 +211,47 @@ export function refsNumeracao(blocos: Bloco[]): (string | null)[] {
 }
 
 /**
+ * Índice (exclusivo) onde termina o capítulo aberto em `inicio`: o próximo
+ * capítulo, o próximo bloco que reinicia a numeração ou o fim da composição.
+ * O último capítulo do documento leva junto o que vier depois dele (fecho).
+ */
+export function fimDoCapitulo(blocos: Bloco[], inicio: number): number {
+  for (let i = inicio + 1; i < blocos.length; i += 1) {
+    if (blocos[i].tipo === 'capitulo' || blocos[i].reiniciaNumeracao) return i;
+  }
+  return blocos.length;
+}
+
+/** Sufixo da âncora do capítulo que publica o intervalo das cláusulas dele. */
+export const SUFIXO_INTERVALO = 'Clausulas';
+
+/**
+ * O intervalo de cláusulas de cada capítulo com âncora, como a prosa o cita:
+ * "Cláusulas Sexta à Vigésima Primeira" ("Cláusula Sexta" quando é uma só).
+ * Capítulo sem cláusula fica de fora.
+ */
+export function intervalosDosCapitulos(blocos: Bloco[]): Record<string, string> {
+  const estrutura = estruturar(blocos);
+  const out: Record<string, string> = {};
+  blocos.forEach((bloco, i) => {
+    if (bloco.tipo !== 'capitulo' || !bloco.ancora || bloco.escopo) return;
+    const numeros: number[] = [];
+    const fim = fimDoCapitulo(blocos, i);
+    for (let k = i + 1; k < fim; k += 1) {
+      const e = estrutura[k];
+      if (e?.tipo === 'clausula') numeros.push(e.n);
+    }
+    if (numeros.length === 0) return;
+    const nome = (n: number) => capitalizarPalavras(ordinalExtenso(n, 'f'));
+    const [primeira, ultima] = [numeros[0], numeros[numeros.length - 1]];
+    out[bloco.ancora] = primeira === ultima
+      ? `Cláusula ${nome(primeira)}`
+      : `Cláusulas ${nome(primeira)} à ${nome(ultima)}`;
+  });
+  return out;
+}
+
+/**
  * Une os conteúdos em texto final: parágrafo cola na cláusula anterior com
  * quebra simples; os demais blocos separam-se com linha em branco.
  */

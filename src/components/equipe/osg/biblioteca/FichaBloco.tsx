@@ -11,6 +11,7 @@ import {
   Layers,
   Pencil,
   Power,
+  Quote,
   Repeat2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -92,11 +93,20 @@ const ChipFamilia = ({ nome }: { nome: string }) => (
   </span>
 );
 
+/** Transcrição: o texto é o capítulo do consolidado, escrito só na geração. */
+const ChipTranscricao = ({ capitulo }: { capitulo: string }) => (
+  <span className="mx-[1px] inline-flex items-center gap-1 rounded border border-dashed border-osg-moss/50 bg-osg-moss/5 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-moss whitespace-nowrap">
+    <Quote className="h-3 w-3" />
+    transcrição: {capitulo}
+  </span>
+);
+
 const renderNos = (nos: No[]): ReactNode =>
   nos.map((no, i) => {
     if (no.tipo === 'texto') return <TextoComMarcas key={i} texto={no.texto} />;
     if (no.tipo === 'placeholder') return <ChipCampo key={i} caminho={no.caminho} />;
     if (no.tipo === 'inclusao') return <ChipFamilia key={i} nome={no.familia} />;
+    if (no.tipo === 'transcricao') return <ChipTranscricao key={i} capitulo={no.capitulo} />;
     return (
       <Fragment key={i}>
         <ChipSecao nome={no.nome} />

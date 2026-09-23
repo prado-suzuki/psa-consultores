@@ -1,6 +1,7 @@
 import { origemDe, type OrigemValor } from './origem';
 import { ehSintetizado } from './sintetizado';
 import { PALAVRA_INCLUSAO, resolverVariante, type RegistroFamilias } from './familia';
+import { PALAVRA_TRANSCRICAO } from './transcricao';
 import type { Contexto } from './types';
 
 export type { OrigemValor } from './origem';
@@ -45,7 +46,9 @@ export type No =
   | { tipo: 'placeholder'; caminho: string }
   | { tipo: 'secao'; nome: string; atributos: Record<string, string>; filhos: No[] }
   /** Inclusão de família: o texto vem da variante eleita no escopo corrente (ver familia.ts). */
-  | { tipo: 'inclusao'; familia: string };
+  | { tipo: 'inclusao'; familia: string }
+  /** Transcrição de capítulo: resolvida depois da numeração (ver transcricao.ts). */
+  | { tipo: 'transcricao'; capitulo: string };
 
 /**
  * Compila o conteúdo num AST. No modo estrito (render) lança erro em seções
@@ -65,9 +68,9 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
 
     const [, abre, atributos, fecha, caminho, atributosCaminho] = m;
     if (caminho && atributosCaminho) {
-      // Identificador COM atributos: só a inclusão de família tem essa forma.
-      // Fora dela é erro de escrita — no modo tolerante (editor digitando) cai
-      // para placeholder, que é o que o autor tinha antes de abrir o atributo.
+      // Identificador COM atributos: só a inclusão de família e a transcrição de
+      // capítulo têm essa forma. Fora delas é erro de escrita; no modo tolerante
+      // (editor digitando) cai para placeholder, que é o que o autor tinha antes.
       if (caminho === PALAVRA_INCLUSAO) {
         const nome = parseAtributos(atributosCaminho).nome;
         if (nome) {
@@ -75,11 +78,18 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
         } else if (!tolerante) {
           throw new Error(`Inclusão de família sem nome: use {{${PALAVRA_INCLUSAO} nome="…"}}`);
         }
+      } else if (caminho === PALAVRA_TRANSCRICAO) {
+        const capitulo = parseAtributos(atributosCaminho).capitulo;
+        if (capitulo) {
+          filhosAtuais().push({ tipo: 'transcricao', capitulo });
+        } else if (!tolerante) {
+          throw new Error(`Transcrição sem capítulo: use {{${PALAVRA_TRANSCRICAO} capitulo="…"}}`);
+        }
       } else if (tolerante) {
         filhosAtuais().push({ tipo: 'placeholder', caminho });
       } else {
         throw new Error(
-          `Atributos só são válidos em seção ({{#${caminho} …}}) ou inclusão de família ({{${PALAVRA_INCLUSAO} nome="…"}}): {{${caminho} …}}`,
+          `Atributos só são válidos em seção ({{#${caminho} …}}) , inclusão de família ({{${PALAVRA_INCLUSAO} nome="…"}}) ou transcrição ({{${PALAVRA_TRANSCRICAO} capitulo="…"}}): {{${caminho} …}}`,
         );
       }
     } else if (abre) {
@@ -115,7 +125,14 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
  * só isso, mantendo um núcleo único.
  */
 export type SegmentoRender =
-  | { tipo: 'texto'; texto: string; realce?: boolean; blocoId?: string }
+  | {
+      tipo: 'texto';
+      texto: string;
+      realce?: boolean;
+      blocoId?: string;
+      /** Marca da transcrição do capítulo com esta âncora; a composição a substitui. */
+      transcricao?: string;
+    }
   | {
       tipo: 'valor';
       texto: string;
@@ -247,6 +264,8 @@ function renderNos(
       out.push(segmentoDeValor(String(valor), no.caminho, origem, sintetizado, opcoes));
     } else if (no.tipo === 'inclusao') {
       renderInclusao(no.familia, escopos, out, opcoes, contagem, dentroDeFamilia);
+    } else if (no.tipo === 'transcricao') {
+      out.push({ tipo: 'texto', texto: '', transcricao: no.capitulo });
     } else {
       const { valor } = resolver(no.nome, escopos);
       if (valor === undefined || valor === null) {
