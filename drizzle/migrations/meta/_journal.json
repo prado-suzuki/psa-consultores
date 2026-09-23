@@ -71,6 +71,13 @@
       "when": 1790166701654,
       "tag": "0009_feed_org_comments_busca",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790166766013,
+      "tag": "0010_feed_carimbo_de_leitura_por_cliente",
+      "breakpoints": true
     }
   ]
 }

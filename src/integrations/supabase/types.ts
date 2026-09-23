@@ -6476,6 +6476,32 @@ export type Database = {
           },
         ]
       }
+      org_feed_visto: {
+        Row: {
+          client_id: string
+          user_id: string
+          visto_ate: string
+        }
+        Insert: {
+          client_id: string
+          user_id: string
+          visto_ate?: string
+        }
+        Update: {
+          client_id?: string
+          user_id?: string
+          visto_ate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_feed_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_project_members: {
         Row: {
           created_at: string
@@ -11866,6 +11892,19 @@ export type Database = {
         }[]
       }
       fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
+      feed_atividade_por_cliente: {
+        Args: { _janela_dias?: number }
+        Returns: {
+          client_id: string
+          client_nome: string
+          novos: number
+          project_id: string
+          project_name: string
+          total: number
+          ultimo_em: string
+          visto_ate: string
+        }[]
+      }
       feed_org_comments: {
         Args: {
           _author_ids?: string[]
@@ -12100,6 +12139,11 @@ export type Database = {
         }[]
       }
       mapa_uuid: { Args: { slug: string }; Returns: string }
+      marcar_feed_visto: {
+        Args: { _client_id: string; _visto_ate?: string }
+        Returns: string
+      }
+      marcar_feed_visto_tudo: { Args: { _visto_ate?: string }; Returns: number }
       mark_stuck_procedimentos: {
         Args: { timeout_minutes?: number }
         Returns: number
