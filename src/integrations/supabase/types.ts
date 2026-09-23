@@ -10191,6 +10191,7 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
+          quebra_pagina_antes: boolean
           reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
@@ -10215,6 +10216,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
+          quebra_pagina_antes?: boolean
           reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
@@ -10239,6 +10241,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
+          quebra_pagina_antes?: boolean
           reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
