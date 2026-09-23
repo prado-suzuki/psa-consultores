@@ -11,7 +11,7 @@ export interface ProtectedPage {
   page_name: string;
   page_description: string;
   /**
-   * As OITO categorias que existem de verdade. O tipo declarava mais tres —
+   * As DEZ categorias que existem de verdade. O tipo declarava mais tres —
    * `fiscal`, `fixos` e `projetos` — sem nenhuma pagina em nenhuma delas
    * (conferido em 20/08/2026 por `select category, count(*) from
    * page_permissions group by category`). Tipo que declara valor inexistente
@@ -21,7 +21,9 @@ export interface ProtectedPage {
    * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
    * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
    */
-  category: 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa' | 'adm_fin';
+  category:
+    | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa' | 'adm_fin'
+    | 'auditoria' | 'juridico';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -1020,6 +1022,152 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_name: 'Dashboard (Adm & Fin)',
     page_description: 'Ordens de servico na ordem de entrada, com os dados de faturamento',
     category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // === AUDITORIA PAGES ===
+  {
+    page_path: '/equipe/auditoria/inicio',
+    page_name: 'Boas-vindas Auditoria',
+    page_description: 'Tela inicial da area Auditoria',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/dashboard',
+    page_name: 'Auditoria Projects',
+    page_description: 'Painel principal de projetos da area Auditoria',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/clientes',
+    page_name: 'Clientes Auditoria',
+    page_description: 'Cadastros de clientes e contribuintes',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/cadastro',
+    page_name: 'Auditoria Projetos e Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de servico',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/cadastro-lote',
+    page_name: 'Auditoria Criar Projetos em Lote',
+    page_description: 'Criacao de projetos em lote a partir de uma ordem de servico',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/controle',
+    page_name: 'Controle de Projetos Auditoria',
+    page_description: 'Onde cada cliente esta, um produto contratado por linha',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/tarefas',
+    page_name: 'Auditoria Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de servico',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/projetos/feed',
+    page_name: 'Feed Auditoria',
+    page_description: 'Atualizacoes e conversas vinculadas a projetos e tarefas',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/auditoria/work',
+    page_name: 'Auditoria Work',
+    page_description: 'Ferramentas e aplicacoes da area Auditoria',
+    category: 'auditoria',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // === JURIDICO PAGES ===
+  {
+    page_path: '/equipe/juridico/inicio',
+    page_name: 'Boas-vindas Juridico',
+    page_description: 'Tela inicial da area Juridico',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/dashboard',
+    page_name: 'Juridico Projects',
+    page_description: 'Painel principal de projetos da area Juridico',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/clientes',
+    page_name: 'Clientes Juridico',
+    page_description: 'Cadastros de clientes e contribuintes',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/cadastro',
+    page_name: 'Juridico Projetos e Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de servico',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/cadastro-lote',
+    page_name: 'Juridico Criar Projetos em Lote',
+    page_description: 'Criacao de projetos em lote a partir de uma ordem de servico',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/controle',
+    page_name: 'Controle de Projetos Juridico',
+    page_description: 'Onde cada cliente esta, um produto contratado por linha',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/tarefas',
+    page_name: 'Juridico Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de servico',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/projetos/feed',
+    page_name: 'Feed Juridico',
+    page_description: 'Atualizacoes e conversas vinculadas a projetos e tarefas',
+    category: 'juridico',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/juridico/work',
+    page_name: 'Juridico Work',
+    page_description: 'Ferramentas e aplicacoes da area Juridico',
+    category: 'juridico',
     requires_admin: false,
     requires_team_member: true,
   },

@@ -10,7 +10,9 @@
  * (campo `category`) e em page_permissions.category. Categorias "fantasma"
  * (sem páginas associadas) tornam a inferência `every()` sempre false.
  */
-export type AreaKey = 'digital' | 'tax' | 'osg' | 'board' | 'controle_site' | 'adm_fin';
+export type AreaKey =
+  | 'digital' | 'tax' | 'osg' | 'auditoria' | 'juridico'
+  | 'board' | 'controle_site' | 'adm_fin';
 
 export interface AreaDefinition {
   label: string;
@@ -38,6 +40,9 @@ export const AREA_CATEGORIES_MAP: Record<AreaKey, AreaDefinition> = {
   // desenhos. A separacao so mudava o agrupamento da arvore de permissoes.
   tax: { label: 'Tax', categories: ['tax'] },
   osg: { label: 'OSG', categories: ['osg'] },
+  // Uma categoria por area, no desenho da OSG e da Tax.
+  auditoria: { label: 'Auditoria', categories: ['auditoria'] },
+  juridico: { label: 'Jurídico', categories: ['juridico'] },
   board: { label: 'Board', categories: ['board'] },
   controle_site: { label: 'Marketing', categories: ['gestao'] },
 };
@@ -53,6 +58,8 @@ export const AREA_ROUTES: Record<AreaKey, string> = {
   digital: '/equipe/digital',
   tax: '/equipe/tax',
   osg: '/equipe/osg',
+  auditoria: '/equipe/auditoria',
+  juridico: '/equipe/juridico',
   controle_site: '/gestao',
   board: '/equipe/board/dashboard',
 };
@@ -60,8 +67,10 @@ export const AREA_ROUTES: Record<AreaKey, string> = {
 /** Lista ordenada para o select de área no login. */
 export const AREAS_LIST: Array<{ id: AreaKey; label: string }> = [
   { id: 'adm_fin', label: 'Adm & Fin' },
+  { id: 'auditoria', label: 'Auditoria' },
   { id: 'board', label: 'Board' },
   { id: 'digital', label: 'Digital' },
+  { id: 'juridico', label: 'Jurídico' },
   { id: 'controle_site', label: 'Marketing' },
   { id: 'osg', label: 'OSG' },
   { id: 'tax', label: 'Tax' },

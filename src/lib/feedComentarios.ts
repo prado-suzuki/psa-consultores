@@ -17,7 +17,7 @@ import { ehEventoDeSistema, type OrgCommentKind } from '@/lib/orgCommentEventos'
  * O feed só existe nas áreas que têm projetos e tarefas. Estreitar o tipo aqui
  * evita montar um link para `/equipe/digital/projetos/...`, que não existe.
  */
-export type AreaDeProjetos = 'tax' | 'osg';
+export type AreaDeProjetos = 'tax' | 'osg' | 'auditoria' | 'juridico';
 
 /** Cursor de paginação por chave: o par (created_at, id) do último item lido. */
 export interface FeedCursor {

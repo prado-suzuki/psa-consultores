@@ -14,6 +14,8 @@ const HOMES: ReadonlyArray<readonly [prefixo: string, home: string]> = [
   // cai nesta linha e volta para a area Tax, e nao mais para a Digital.
   ['/equipe/tax', '/equipe/tax'],
   ['/equipe/osg', '/equipe/osg'],
+  ['/equipe/auditoria', '/equipe/auditoria'],
+  ['/equipe/juridico', '/equipe/juridico'],
   ['/equipe/board', '/equipe/board/dashboard'],
   ['/gestao', '/gestao'],
   ['/cliente', '/cliente'],

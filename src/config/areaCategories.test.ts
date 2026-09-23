@@ -14,9 +14,11 @@ describe('AREA_CATEGORIES_MAP', () => {
     // escritos à mão, nunca derivados do nome ("Adm & Fin" não sobrevive a URL).
     expect(Object.keys(AREA_CATEGORIES_MAP).sort()).toEqual([
       'adm_fin',
+      'auditoria',
       'board',
       'controle_site',
       'digital',
+      'juridico',
       'osg',
       'tax',
     ]);

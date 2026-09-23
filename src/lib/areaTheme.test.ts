@@ -436,7 +436,7 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
    *
    * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
    */
-  const CONGELADOS = ['tax-theme', 'osg-theme'];
+  const CONGELADOS = ['tax-theme', 'osg-theme', 'auditoria-theme', 'juridico-theme'];
   /*
    * NÃO HÁ DELTA HOJE, e a lista fica vazia em vez de sumir: a categoria segue
    * válida e é o que a próxima área vai usar. Houve dois, e os dois saíram em

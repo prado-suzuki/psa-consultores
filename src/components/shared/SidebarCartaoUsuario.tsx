@@ -164,6 +164,18 @@ const AREAS = {
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
   },
+  // `tokens` como o Tax e a Adm & Fin: a barra das duas e Tailwind sobre os
+  // tokens, e o acento sai do `--primary` que o tema da area ja resolve.
+  auditoria: {
+    rotulo: NOMES_DE_AREA.auditoria.nome,
+    acento: 'bg-primary/10 text-primary',
+    tom: 'tokens',
+  },
+  juridico: {
+    rotulo: NOMES_DE_AREA.juridico.nome,
+    acento: 'bg-primary/10 text-primary',
+    tom: 'tokens',
+  },
   mapa: {
     rotulo: 'Mapeamento',
     // A barra do Mapeamento e CSS legado (`mapa.css`), fora do Tailwind: o

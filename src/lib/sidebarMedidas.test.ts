@@ -36,6 +36,8 @@ const LAYOUTS_DO_PADRAO = {
   // O Acessos nasceu já no padrão, em 10/09/2026, e entra aqui para não sair
   // dele: barra nova é onde a divergência recomeça.
   Acessos: '../components/acessos/AcessosLayout.tsx',
+  Auditoria: '../components/equipe/auditoria/AuditoriaLayout.tsx',
+  'Jurídico': '../components/equipe/juridico/JuridicoLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
@@ -231,6 +233,8 @@ describe('todas as barras laterais viram gaveta no celular', () => {
     'Digital Rotina': '../components/equipe/EquipeLayout.tsx',
     'Digital Dev': '../components/equipe/dev/DevLayout.tsx',
     Acessos: '../components/acessos/AcessosLayout.tsx',
+    Auditoria: '../components/equipe/auditoria/AuditoriaLayout.tsx',
+    'Jurídico': '../components/equipe/juridico/JuridicoLayout.tsx',
   } as const;
 
   for (const [area, caminho] of Object.entries(BARRAS)) {

@@ -35,7 +35,7 @@ import { REGIAO_OPTIONS } from '@/lib/regioes';
  * própria área na tela (`AREAS`, em `lib/nomeDaArea.ts`). Abrir a tela para uma
  * terceira área é acrescentar a chave aqui — as três pontas são as mesmas.
  */
-export type AreaDoControle = 'osg' | 'tax';
+export type AreaDoControle = 'osg' | 'tax' | 'auditoria' | 'juridico';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
 export interface OrdemCrua {

@@ -35,6 +35,8 @@ const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
   ':root': ANCORAS.casa,
   '.tax-theme': ANCORAS.tax,
   '.osg-theme': ANCORAS.osg,
+  '.auditoria-theme': ANCORAS.auditoria,
+  '.juridico-theme': ANCORAS.juridico,
 };
 
 /**
@@ -84,6 +86,8 @@ const BLOCO_DE_SUPERFICIE: Record<(typeof TEMAS)[number], string> = {
   ':root': '.base-theme',
   '.tax-theme': '.tax-theme',
   '.osg-theme': '.osg-theme',
+  '.auditoria-theme': '.auditoria-theme',
+  '.juridico-theme': '.juridico-theme',
 };
 
 /**

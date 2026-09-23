@@ -12,7 +12,7 @@ export const AREA_DASHBOARD_ALL = '__ALL__';
  * duas, que é o que o sócio precisa para ver carga de time e prazos da empresa
  * inteira em um lugar.
  */
-export type AreaDashboardScope = 'tax' | 'osg' | 'todas';
+export type AreaDashboardScope = 'tax' | 'osg' | 'auditoria' | 'juridico' | 'todas';
 
 export type UrgencyFilter = typeof AREA_DASHBOARD_ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
@@ -208,7 +208,12 @@ export function buildBaseDaArea(
 ): Record<string, string> {
   const base: Record<string, string> = {};
   for (const area of areas) {
-    base[area.id] = (area.page_categories ?? []).includes('osg') ? '/equipe/osg' : '/equipe/tax';
+    const cats = area.page_categories ?? [];
+    // Cada area nova precisa da propria linha: o fallback manda tudo para o Tax.
+    base[area.id] = cats.includes('osg') ? '/equipe/osg'
+      : cats.includes('auditoria') ? '/equipe/auditoria'
+      : cats.includes('juridico') ? '/equipe/juridico'
+      : '/equipe/tax';
   }
   return base;
 }
