@@ -8,6 +8,62 @@
       "when": 1790165954610,
       "tag": "0000_anexo_unico_em_pagina_propria",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790166155918,
+      "tag": "0001_govf_catalogo_do_protocolo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790166291092,
+      "tag": "0002_govf_grade_do_protocolo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790166333843,
+      "tag": "0003_govf_as_colunas_padrao_sao_titulos_nao_orgaos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790166356153,
+      "tag": "0004_ges01b_tipo_de_aviso_inatividade",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790166409124,
+      "tag": "0005_ges01b_alerta_inatividade",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790166484747,
+      "tag": "0006_ges01b_movimentacao_relevante",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790166535207,
+      "tag": "0007_ges01b_tipo_de_aviso_projeto_inativo",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790166613011,
+      "tag": "0008_ges01b_escada_do_gestor_e_projeto",
+      "breakpoints": true
     }
   ]
 }
