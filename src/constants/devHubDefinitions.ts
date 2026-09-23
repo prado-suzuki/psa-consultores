@@ -3,18 +3,17 @@ import {
   BookOpen,
   BookText,
   Calculator,
+  ChartColumn,
   Database,
   FileSpreadsheet,
   FileStack,
   FileText,
   GitCompare,
-  LayoutGrid,
+  
   Map,
   Presentation,
   Receipt,
   Sprout,
-  Sparkles,
-  Truck,
   Upload,
   Wrench,
 } from 'lucide-react';
@@ -22,6 +21,13 @@ import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
 import { TELAS_DO_DEV } from '@/config/telasDoDigitalDev';
 import type { DevHubDefinition } from '@/types/devHub';
 
+/*
+  FERRAMENTA DE CÁLCULO USA SEMPRE O MESMO ÍCONE, a calculadora. São quatro:
+  Apuração PIS/COFINS, ICMS das Saídas, DIFAL Inteligente e Calculadora IBS/CBS.
+  Antes cada uma tinha o seu (um caminhão, um brilho), e o que elas fazem some
+  atrás da ilustração do assunto. Ferramenta que NÃO calcula mantém ícone
+  próprio. Decisão da consultoria em 23/09/2026.
+*/
 export const DEV_HUBS: Record<
   | 'consultaSped'
   | 'levantamentoPisCofins'
@@ -40,11 +46,6 @@ export const DEV_HUBS: Record<
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: TELAS_DO_DEV.consultaSped.titulo,
     subtitle: TELAS_DO_DEV.consultaSped.subtitulo,
-    heroEyebrow: '',
-    heroTitle: TELAS_DO_DEV.consultaSped.titulo,
-    heroDescription:
-      'Use esta área para consultar arquivos da Escrituração Fiscal Digital das Contribuições (EFD Contribuições), da Escrituração Fiscal Digital do Imposto sobre Circulação de Mercadorias e Serviços (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituração Contábil Digital (ECD) e da Escrituração Contábil Fiscal (ECF) no Sistema Público de Escrituração Digital (SPED).',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Fiscal',
@@ -114,11 +115,6 @@ export const DEV_HUBS: Record<
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: TELAS_DO_DEV.levantamentoPisCofins.titulo,
     subtitle: TELAS_DO_DEV.levantamentoPisCofins.subtitulo,
-    heroEyebrow: '',
-    heroTitle: TELAS_DO_DEV.levantamentoPisCofins.titulo,
-    heroDescription:
-      'Use esta área para cadastrar regras, revisar apurações, comparar bases e corrigir registros relacionados ao Programa de Integração Social (PIS) e à Contribuição para o Financiamento da Seguridade Social (COFINS).',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Regras',
@@ -186,15 +182,10 @@ export const DEV_HUBS: Record<
     landingPath: '/equipe/tax/work/analise-icms',
     landingDescription:
       'Acesse ferramentas para análise de ICMS das saídas e DIFAL.',
-    landingIcon: Truck,
+    landingIcon: ChartColumn,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: TELAS_DO_DEV.analiseIcms.titulo,
     subtitle: TELAS_DO_DEV.analiseIcms.subtitulo,
-    heroEyebrow: '',
-    heroTitle: TELAS_DO_DEV.analiseIcms.titulo,
-    heroDescription:
-      'Use esta área para analisar as saídas de ICMS e validar classificações tributárias usadas no cálculo do DIFAL.',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Análise',
@@ -205,7 +196,7 @@ export const DEV_HUBS: Record<
           'Leitura de apuração, CFOP e saídas ST',
           'Consulta por contribuinte e período',
         ],
-        icon: Truck,
+        icon: Calculator,
         path: '/equipe/tax/work/apuracao-difal/icms-saidas',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/icms-saidas/',
         title: DEV_NAV_LABELS.icmsSaidas,
@@ -219,7 +210,7 @@ export const DEV_HUBS: Record<
           'Validação por produto, NCM, CFOP e alíquota',
           'Sincronização das decisões e exportação em Excel',
         ],
-        icon: Sparkles,
+        icon: Calculator,
         path: '/equipe/tax/work/processo-difal',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
@@ -236,11 +227,6 @@ export const DEV_HUBS: Record<
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: TELAS_DO_DEV.perdcomp.titulo,
     subtitle: TELAS_DO_DEV.perdcomp.subtitulo,
-    heroEyebrow: '',
-    heroTitle: TELAS_DO_DEV.perdcomp.titulo,
-    heroDescription:
-      'Use esta área para analisar gráficos, indicadores e fazer o controle do Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP).',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Analítico',
@@ -281,12 +267,8 @@ export const DEV_HUBS: Record<
       'Área para importar, limpar e gerenciar dados das tabelas de cliente e contribuinte e para acompanhar dashboards ligados a essas rotinas.',
     landingIcon: Database,
     title: 'Gerenciar dados',
-    subtitle: 'Ferramentas para carga de dados e análise por dashboards.',
-    heroEyebrow: '',
-    heroTitle: 'Gerenciar dados',
-    heroDescription:
+    subtitle:
       'Use esta área para realizar a carga de dados das tabelas operacionais e consultar dashboards com indicadores das rotinas de gestão de dados.',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Operacional',
@@ -323,12 +305,8 @@ export const DEV_HUBS: Record<
       'Área do Planejamento Tributário rural: importar o papel de trabalho preenchido, conferir o que o sistema leu dele, acompanhar as revisões e gerar os slides.',
     landingIcon: Sprout,
     title: 'Planejamento Tributário',
-    subtitle: 'Ferramentas do Planejamento Tributário rural.',
-    heroEyebrow: '',
-    heroTitle: 'Planejamento Tributário',
-    heroDescription:
+    subtitle:
       'Use esta área para trabalhar o planejamento que compara como o produtor rural explora a fazenda: como pessoa física, em parceria com a pessoa jurídica dele, ou tudo dentro da pessoa jurídica. O planejamento nasce numa planilha, o papel de trabalho, e é dela que saem os números da apresentação entregue ao cliente.',
-    heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Fiscal',

@@ -17,11 +17,11 @@ import {
   Plus,
   ArrowLeft,
   ArrowLeftRight,
-  FileText,
   FileCode2,
-  FileSearch,
-  Percent,
-  Truck,
+  FolderSearch,
+  ClipboardList,
+  ChartColumn,
+  FileSpreadsheet,
   Target,
   Database,
   Calculator,
@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { DEV_HUBS } from '@/constants/devHubDefinitions';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
+import { TELAS_DO_DEV } from '@/config/telasDoDigitalDev';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import {
   useFecharGavetaAoNavegar,
@@ -130,7 +131,7 @@ const navItemsAfterGroups: NavItem[] = [
     path: '/equipe/tax/work/calculadora-ibs-cbs',
   },
   {
-    icon: FileText,
+    icon: FileSpreadsheet,
     label: DEV_NAV_LABELS.controleBalancetes,
     path: '/equipe/tax/work/controle-balancetes',
   },
@@ -206,7 +207,9 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
           Rotina. */}
       <div
         className={cn(
-          'sticky top-0 h-screen relative flex-shrink-0 transition-all duration-300 ease-in-out',
+          // `relative` aqui apaga o `sticky` no `tailwind-merge`. Ver a nota
+          // no `FiscalSidebar`.
+          'sticky top-0 h-screen flex-shrink-0 transition-all duration-300 ease-in-out',
           classeLarguraBarra(trilho),
           classesGavetaBarra(collapsed),
         )}
@@ -268,6 +271,13 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
 
             <nav className="space-y-1 p-4">
               {/*
+                O RÓTULO DO GRUPO PREFERE O ENCURTADO. Dois títulos não cabem nos
+                ~210px da barra e saíam com reticências no meio da palavra
+                ("Consulta de arquivos S..."). O nome inteiro continua na página,
+                que é onde ele informa; ver `rotuloNaBarra` em
+                `telasDoDigitalDev`.
+              */}
+              {/*
                 `<button>` NATIVO, e não o `Button` do shadcn. O componente traz
                 `justify-center`, `gap-2` e `px-4` próprios, que brigavam com o
                 `gap-2.5 px-2.5` do `classesItemDaBarra`: os itens simples
@@ -298,8 +308,8 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
               ))}
 
               <GrupoDaBarra
-                icone={FileSearch}
-                rotulo={DEV_HUBS.consultaSped.label}
+                icone={FolderSearch}
+                rotulo={TELAS_DO_DEV.consultaSped.rotuloNaBarra ?? DEV_HUBS.consultaSped.label}
                 ativo={isSpedActive}
                 itens={spedSubItems}
                 trilho={trilho}
@@ -309,8 +319,8 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
               />
 
               <GrupoDaBarra
-                icone={Percent}
-                rotulo={DEV_HUBS.levantamentoPisCofins.label}
+                icone={ClipboardList}
+                rotulo={TELAS_DO_DEV.levantamentoPisCofins.rotuloNaBarra ?? DEV_HUBS.levantamentoPisCofins.label}
                 ativo={isPisCofinsActive}
                 itens={pisCofinsSubItems}
                 trilho={trilho}
@@ -320,7 +330,7 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
               />
 
               <GrupoDaBarra
-                icone={Truck}
+                icone={ChartColumn}
                 rotulo={DEV_HUBS.analiseIcms.label}
                 ativo={isAnaliseIcmsActive}
                 itens={analiseIcmsSubItems}
@@ -511,7 +521,7 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
         <PendingTicketsAlert navigateTo="/equipe/chamados" backTo={location.pathname} />
 
         <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto">
-          <div className="w-full min-w-0 p-4 md:p-6">{children}</div>
+          <div className="w-full min-w-0 p-4 md:p-5">{children}</div>
         </div>
       </main>
     </div>

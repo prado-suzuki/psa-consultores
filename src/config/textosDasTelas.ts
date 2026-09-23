@@ -48,7 +48,7 @@ import { AREAS } from '@/lib/nomeDaArea';
  */
 
 /** As áreas que espelham. Ver no cabeçalho por que o Board não está aqui. */
-export type AreaEspelhada = 'tax' | 'osg';
+export type AreaEspelhada = 'tax' | 'osg' | 'auditoria' | 'juridico';
 
 export interface TextoDeTela {
   /** O nome da tela, no `<h1>` do cabeçalho. */
@@ -150,10 +150,21 @@ export type TextoDoCabecalho =
   | { tela: TelaEspelhada; title?: never; subtitle?: never }
   | { tela?: never; title: string; subtitle?: ReactNode };
 
+/**
+ * Como o nome entra DEPOIS da palavra "área", que é o único lugar onde a marca
+ * aparece. Sigla não flexiona ("área Tax"); nome comum exige a preposição.
+ */
+const NOME_DEPOIS_DE_AREA: Record<AreaEspelhada, string> = {
+  tax: AREAS.tax.nome,
+  osg: AREAS.osg.nome,
+  auditoria: 'de Auditoria',
+  juridico: 'do Jurídico',
+};
+
 /** O texto de uma tela espelhada, com o nome da área já no lugar. */
 export function textosDaTela(tela: TelaEspelhada, area: AreaEspelhada): TextoDeTela {
   const { title, subtitle } = TELAS_ESPELHADAS[tela];
-  const nome = AREAS[area].nome;
+  const nome = NOME_DEPOIS_DE_AREA[area];
   // `split/join` e não `replaceAll`: a marca tem chaves, que são especiais em
   // expressão regular, e isto não depende da lib do TypeScript.
   return {

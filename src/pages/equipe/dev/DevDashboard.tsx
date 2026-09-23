@@ -12,37 +12,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   ArrowRight,
   ExternalLink,
   BookOpen,
   FileCode2,
   FolderTree,
-  Database,
   ShieldAlert,
   Percent,
   Scale,
   X,
-  LayoutGrid,
-  Cpu,
-  Rocket,
   type LucideIcon,
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 import { MANUAIS_AVULSOS } from "@/constants/devManuais";
-import { KpiHero } from "@/components/dashboard/momentum";
-import { useToolsCounts } from "@/hooks/useToolsCounts";
-import { ButtonTooltip } from "@/components/ui/button-tooltip";
-
-/** Id de âncora da seção da categoria no catálogo, para o chip "Categorias" rolar até ela. */
-const toAnchorId = (label: string) =>
-  `categoria-${label
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")}`;
 
 interface ToolEntry {
   name: string;
@@ -150,45 +135,117 @@ const toolGroups: ToolGroup[] = [
       },
     ],
   },
+  /*
+    Procedimentos e Planejamento Tributário estavam na barra lateral e NÃO no
+    catálogo: quem entrasse pelo Início não descobria que existiam. Os dois
+    seguem sem manual publicado, e por isso o cartão mostra "Manual (em breve)"
+    em vez de esconder a linha — o lugar do link já fica reservado, e quem
+    publicar o manual só preenche a URL.
+
+    Gerenciar dados e Solicitar ferramenta continuam de fora de propósito: a
+    primeira é administração da base, a segunda é um formulário de pedido.
+    Nenhuma das duas é ferramenta de trabalho.
+  */
+  {
+    label: DEV_NAV_LABELS.procedimentos,
+    landingPath: "/equipe/tax/work/procedimentos",
+    landingDescription: "Consulte os procedimentos operacionais da área.",
+    landingIcon: BookOpen,
+    tools: [
+      {
+        name: DEV_NAV_LABELS.procedimentos,
+        description: "Consulte os procedimentos operacionais da área.",
+        path: "/equipe/tax/work/procedimentos",
+        icon: BookOpen,
+      },
+    ],
+  },
+  {
+    label: DEV_HUBS.planejamentoTributario.label,
+    landingPath: DEV_HUBS.planejamentoTributario.landingPath,
+    landingDescription: DEV_HUBS.planejamentoTributario.landingDescription,
+    landingIcon: DEV_HUBS.planejamentoTributario.landingIcon,
+    landingSopUrl: DEV_HUBS.planejamentoTributario.landingSopUrl,
+    tools: buildHubTools(DEV_HUBS.planejamentoTributario),
+  },
 ];
+
+/** O que vira um bloco no catálogo: um grupo inteiro, ou uma ferramenta só. */
+interface EntradaDoCatalogo {
+  chave: string;
+  nome: string;
+  descricao: string;
+  path: string;
+  icon: LucideIcon;
+  sopUrl?: string;
+  ferramentas: number;
+}
 
 const DevDashboard = () => {
   const navigate = useNavigate();
   const [selectedToolPath, setSelectedToolPath] = useState<string>("");
-  const { data: toolsCounts, isLoading: isLoadingTools } = useToolsCounts();
 
-  const filteredGroups = useMemo(() => {
-    if (!selectedToolPath) return toolGroups;
+  /*
+    Um bloco por GRUPO, e ele abre a central. O filtro é a exceção: escolher uma
+    ferramenta mostra o bloco dela sozinho, que abre a ferramenta direto.
+  */
+  const entradas = useMemo<EntradaDoCatalogo[]>(() => {
+    if (selectedToolPath) {
+      const escolhida = toolGroups
+        .flatMap((group) => group.tools)
+        .find((tool) => tool.path === selectedToolPath);
+      if (!escolhida) return [];
 
-    return toolGroups
-      .map((group) => ({
-        ...group,
-        tools: group.tools.filter((tool) => tool.path === selectedToolPath),
-      }))
-      .filter((group) => group.tools.length > 0);
+      return [
+        {
+          chave: escolhida.path,
+          nome: escolhida.name,
+          descricao: escolhida.description,
+          path: escolhida.path,
+          icon: escolhida.icon,
+          sopUrl: escolhida.sopUrl,
+          ferramentas: 1,
+        },
+      ];
+    }
+
+    return toolGroups.map((group) => {
+      // Grupo de uma ferramenta só não tem central de verdade: o bloco é a
+      // própria ferramenta, e o manual dela é o manual do bloco.
+      const unica = group.tools.length === 1 ? group.tools[0] : undefined;
+
+      return {
+        chave: group.label,
+        nome: group.label,
+        descricao: group.landingDescription ?? unica?.description ?? "",
+        path: group.landingPath ?? group.tools[0].path,
+        icon: group.landingIcon ?? group.tools[0].icon,
+        sopUrl: group.landingSopUrl ?? unica?.sopUrl,
+        ferramentas: group.tools.length,
+      };
+    });
   }, [selectedToolPath]);
 
-  const totalTools = useMemo(() => toolGroups.reduce((sum, group) => sum + group.tools.length, 0), []);
-  const totalCategories = toolGroups.length;
-  const totalWithSop = useMemo(
-    () => toolGroups.reduce((sum, group) => sum + group.tools.filter((tool) => tool.sopUrl).length, 0),
-    [],
-  );
-  const totalFiltered = filteredGroups.reduce((sum, group) => sum + group.tools.length, 0);
+  /* O contador segue contando FERRAMENTA, e não bloco: é o número que a pessoa
+     procura, e o filtro ao lado lista uma a uma. */
+  const totalFiltered = selectedToolPath
+    ? entradas.length
+    : toolGroups.reduce((soma, group) => soma + group.tools.length, 0);
 
-  const sopCoverage = totalTools > 0 ? Math.round((totalWithSop / totalTools) * 100) : 0;
-
-  const scrollToCategory = (label: string) => {
-    document.getElementById(toAnchorId(label))?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <DevLayout tela="inicio"    >
-      <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          Use o filtro para localizar uma ferramenta ou navegue pelas categorias abaixo.
-        </p>
-
+      {/*
+        A frase "Use o filtro para localizar uma ferramenta ou navegue pelas
+        categorias abaixo" saiu em 23/09/2026. Ela explicava dois controles que
+        estão visíveis e se explicam sozinhos, e o princípio de
+        `docs/geral/texto-explicativo-na-tela.md` é direto: explicação custa
+        espaço, envelhece sozinha e compete com o rótulo que a pessoa está lendo.
+        O subtítulo da página, logo acima, já diz o que a tela é.
+      */}
+      {/* O teto só segura monitor ultralargo; abaixo dele a página ocupa a
+          largura inteira, que é como o conteúdo se distribui. */}
+      <div className="mx-auto w-full max-w-[1800px] space-y-4">
         <a
           href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/estrutura-pastas-drive/"
           target="_blank"
@@ -199,18 +256,18 @@ const DevDashboard = () => {
           // está sempre aqui, e cor é sinal de ESTADO. Alerta permanente esvazia
           // o alerta. A sombra tingida virou a da escala: era o emerald-600
           // escrito em `rgba(5,150,105,…)`, que nenhuma regra de hex enxergava.
-          className="group relative block overflow-hidden rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-6 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="group relative block overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-primary/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
 
-          <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
-                <FolderTree className="h-7 w-7" />
+          <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <FolderTree className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
+                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                   {/* A letra é `accent-d`, e não `primary`: o contrato do
                       `.base-theme` diz que o acento cheio serve para marca —
                       anel, barra, ponto — e que letra pequena é do degrau
@@ -230,12 +287,12 @@ const DevDashboard = () => {
                     SOP oficial
                   </span>
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                <h2 className="text-base font-bold tracking-tight text-foreground">
                   Estrutura de Pastas do Google Drive
                 </h2>
-                <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                   A estrutura de pastas no Google Drive é a fonte de dados das{" "}
-                  <span className="font-semibold text-foreground">aplicações Digital Dev</span>. Salve
+                  <span className="font-semibold text-foreground">ferramentas do Tax Work</span>. Salve
                   os documentos dos clientes na estrutura padrão para garantir a coleta correta e o
                   funcionamento das ferramentas. Clique em{" "}
                   <span className="font-semibold text-foreground">Abrir manual</span> para consultar a
@@ -245,16 +302,16 @@ const DevDashboard = () => {
             </div>
 
             <div className="flex shrink-0 items-center md:flex-col md:items-end">
-              <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-md transition-transform group-hover:translate-x-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-sm transition-transform group-hover:translate-x-0.5">
                 Abrir manual
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3.5 w-3.5" />
               </span>
             </div>
           </div>
         </a>
 
-        <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-4 shadow-sm">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground">Catálogo de Ferramentas</h2>
               <Badge variant="secondary" className="text-[11px]">
@@ -297,202 +354,77 @@ const DevDashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {filteredGroups.map((group) => {
-              const LandingIcon = group.landingIcon ?? LayoutGrid;
+          {/* Um bloco por grupo, e ele abre a central. O contador diz quantas
+              ferramentas esperam lá dentro; o filtro acima lista uma a uma. */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {entradas.map((entrada) => {
+              const Icon = entrada.icon;
 
               return (
-                <section key={group.label} id={toAnchorId(group.label)} className="flex flex-col scroll-mt-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{group.label}</h3>
-                    <span className="h-px flex-1 bg-muted" />
-                    <Badge variant="outline" className="text-[10px]">
-                      {group.tools.length}
-                    </Badge>
+                <Card
+                  key={entrada.chave}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(entrada.path)}
+                  onKeyDown={(evento) => {
+                    if (evento.key === "Enter" || evento.key === " ") {
+                      evento.preventDefault();
+                      navigate(entrada.path);
+                    }
+                  }}
+                  className="group flex cursor-pointer items-start gap-3 border-l-2 border-l-transparent p-4 transition-all duration-200 hover:border-l-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="h-5 w-5" />
                   </div>
 
-                  {group.landingPath && !selectedToolPath ? (
-                    (() => {
-                      const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-1">
+                      <h3 className="min-w-0 text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
+                        {entrada.nome}
+                      </h3>
+                      <ArrowRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
 
-                      return (
-                    // Não é um <button>: os chips de sub-ferramenta logo abaixo já
-                    // são <button>, e <button> dentro de <button> é HTML inválido
-                    // (o React acusa no console). role="button" + teclado mantém a
-                    // mesma acessibilidade sem aninhar elementos interativos.
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => navigate(group.landingPath!)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          navigate(group.landingPath!);
-                        }
-                      }}
-                      className="group flex h-full w-full cursor-pointer flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-primary-foreground shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/10 text-primary-foreground/80">
-                        <LandingIcon className="h-5 w-5" />
-                      </div>
-                      <h4 className="text-lg font-semibold tracking-tight">{group.label}</h4>
-                      <p className="mt-1.5 text-xs leading-relaxed text-primary-foreground/75">{group.landingDescription}</p>
-                      {!isSingleton && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {group.tools.map((tool) => (
-                            <ButtonTooltip key={tool.path} text={`Abrir ${tool.name}`}>
-                              <button aria-label={`Abrir ${tool.name}`}
-                             
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                navigate(tool.path);
-                              }}
-                              className="rounded-full border border-primary-foreground/15 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:border-primary-foreground/40 hover:bg-primary-foreground/15 hover:text-primary-foreground"
-                            >
-                              {tool.name}
-                            </button>
-                            </ButtonTooltip>
-                          ))}
-                        </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">
+                      {entrada.descricao}
+                    </p>
+
+                    {/* O manual é o único ponto do cartão que não abre a
+                        central, por isso ele barra a propagação. */}
+                    <div className="mt-2 flex items-center gap-2">
+                      {entrada.sopUrl ? (
+                        <a
+                          href={entrada.sopUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(evento) => evento.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary"
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          Manual
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/70">
+                          <BookOpen className="h-3 w-3" />
+                          Manual (em breve)
+                        </span>
                       )}
 
-                      <div className="mt-auto flex items-center justify-end pt-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-transform group-hover:translate-x-1">
-                          {isSingleton ? "Abrir" : "Abrir central"}
-                          <ArrowRight className="h-3.5 w-3.5" />
+                      {entrada.ferramentas > 1 && (
+                        <span className="ml-auto flex-shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {entrada.ferramentas} ferramentas
                         </span>
-                      </div>
+                      )}
                     </div>
-                      );
-                    })()
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3">
-                      {group.tools.map((tool) => {
-                        const Icon = tool.icon;
-
-                        return (
-                          <article
-                            key={tool.path}
-                            className="group relative flex flex-col rounded-xl border border-border/70 bg-muted/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:shadow-md"
-                          >
-                            <button
-                              onClick={() => navigate(tool.path)}
-                              className="mb-4 flex items-start gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            >
-                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
-                                  {tool.name}
-                                </h4>
-                                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                                  {tool.description}
-                                </p>
-                              </div>
-                            </button>
-
-                            <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/70 pt-3">
-                              {tool.sopUrl ? (
-                                <a
-                                  href={tool.sopUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(event) => event.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary"
-                                >
-                                  <BookOpen className="h-3 w-3" />
-                                  Manual
-                                  <ExternalLink className="h-2.5 w-2.5" />
-                                </a>
-                              ) : (
-                                <span className="text-[11px] italic text-muted-foreground">Sem manual</span>
-                              )}
-
-                              <button
-                                onClick={() => navigate(tool.path)}
-                                className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-                              >
-                                Abrir
-                                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                              </button>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
+                  </div>
+                </Card>
               );
             })}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <KpiHero
-            label="Ferramentas no Catálogo"
-            value={totalTools}
-            icon={<Cpu className="h-3.5 w-3.5" />}
-            variation={{ label: "disponíveis para a equipe" }}
-          />
-          <KpiHero
-            label="Áreas Funcionais"
-            value={totalCategories}
-            icon={<LayoutGrid className="h-3.5 w-3.5" />}
-            variation={{ label: "frentes de atuação" }}
-          />
-          <KpiHero
-            label="Cobertura de Manuais"
-            value={`${sopCoverage}%`}
-            icon={<BookOpen className="h-3.5 w-3.5" />}
-            variation={{ label: `${totalWithSop} de ${totalTools} com manual SOP` }}
-          />
-          <KpiHero
-            label="Em Desenvolvimento"
-            value={toolsCounts?.inDevelopment ?? 0}
-            icon={<Rocket className="h-3.5 w-3.5" />}
-            variant="solid"
-            variation={{ label: "novas ferramentas em construção" }}
-            loading={isLoadingTools}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Não achou a ferramenta que precisa?</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Solicite uma nova ferramenta para a equipe Digital Dev avaliar.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => navigate("/equipe/tax/work/nova-ferramenta")}
-              className="shrink-0 gap-1.5"
-            >
-              Solicitar nova ferramenta
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-
-          <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Categorias</h3>
-            <div className="flex flex-wrap gap-2">
-              {toolGroups.map((group) => (
-                <button
-                  key={group.label}
-                  type="button"
-                  onClick={() => scrollToCategory(group.label)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-                >
-                  {group.label}
-                  <span className="text-muted-foreground">{group.tools.length}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </DevLayout>
   );

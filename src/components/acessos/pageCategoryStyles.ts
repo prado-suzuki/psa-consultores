@@ -11,6 +11,8 @@ export const PAGE_CATEGORY_LABELS: Record<string, string> = {
   projetos: 'Projetos',
   fiscal: 'Fiscal',
   osg: 'OSG',
+  auditoria: 'Auditoria',
+  juridico: 'Jurídico',
   board: 'Board',
   fixos: 'Fixos',
 };
@@ -23,6 +25,8 @@ export const PAGE_CATEGORY_COLORS: Record<string, string> = {
   projetos: 'bg-blue-100 text-blue-700 border-blue-200',
   fiscal: 'bg-amber-100 text-amber-700 border-amber-200',
   osg: 'bg-purple-100 text-purple-700 border-purple-200',
+  auditoria: 'bg-area-4/15 text-area-4 border-area-4/25',
+  juridico: 'bg-area-8/15 text-area-8 border-area-8/25',
   board: 'bg-rose-100 text-rose-700 border-rose-200',
   fixos: 'bg-indigo-100 text-indigo-700 border-indigo-200',
 };

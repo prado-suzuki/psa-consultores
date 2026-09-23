@@ -19,17 +19,36 @@ import type { ReactNode } from 'react';
  */
 
 export interface TextoDeTelaDev {
-  /** O nome da tela. Vale para o menu, para o card do catálogo e para o H1. */
+  /** O nome da tela. Vale para o card do catálogo e para o H1. */
   titulo: string;
   /** A linha de apoio da PÁGINA. O card do catálogo pode ter a sua, mais curta. */
   subtitulo?: string;
+  /**
+   * O nome ENCURTADO para a barra lateral, quando o título não cabe nela.
+   *
+   * A regra deste arquivo é que o nome seja UM só, e ela continua valendo: o
+   * card, o H1 e o menu mostram o mesmo `titulo`. A exceção é de LARGURA, não
+   * de vocabulário. A barra tem ~210px úteis, e dois títulos estouravam e saíam
+   * com reticências ("Consulta de arquivos S...", "Levantamento PIS/CO..."), o
+   * que é pior que abreviar: o corte cai no meio da palavra e muda a cada
+   * recolhimento.
+   *
+   * O encurtamento é sempre um PREFIXO ou um NÚCLEO do título, nunca outro
+   * nome. Quem clica em "Consulta SPED" chega em "Consulta de arquivos SPED" e
+   * reconhece na hora.
+   */
+  rotuloNaBarra?: string;
 }
 
 export const TELAS_DO_DEV = {
   // ── Entrada da área ────────────────────────────────────────
   inicio: {
-    titulo: 'Ferramentas Tax Work',
-    subtitulo: 'Acesse as ferramentas da área e seus respectivos manuais de operação.',
+    // "Bem-vindo à área X" é a forma das outras três entradas: a Tax Projects, a
+    // OSG Projects e a OSG Work. Com hífen, porque "bem-vindo" é palavra
+    // composta, e com crase, porque quem é bem-vindo é bem-vindo A alguma coisa
+    // e "área" é feminina: a preposição encontra o artigo.
+    titulo: 'Bem-vindo à área Tax Work',
+    subtitulo: 'Escolha uma ferramenta para começar.',
   },
   novaFerramenta: { titulo: 'Solicitar ferramenta' },
   consultaXmls: {
@@ -39,8 +58,10 @@ export const TELAS_DO_DEV = {
 
   // ── Central: Consulta SPED ─────────────────────────────────
   consultaSped: {
+    rotuloNaBarra: 'Consulta SPED',
     titulo: 'Consulta de arquivos SPED',
-    subtitulo: 'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
+    subtitulo:
+      'Use esta área para consultar arquivos da Escrituração Fiscal Digital das Contribuições (EFD Contribuições), da Escrituração Fiscal Digital do Imposto sobre Circulação de Mercadorias e Serviços (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituração Contábil Digital (ECD) e da Escrituração Contábil Fiscal (ECF) no Sistema Público de Escrituração Digital (SPED).',
   },
   efdContribuicoes: {
     titulo: 'EFD Contribuições',
@@ -65,9 +86,10 @@ export const TELAS_DO_DEV = {
   // A sigla expandida saiu do título — ela ocupava três linhas no cabeçalho sem
   // ganho de clareza para um público fiscal. A explicação mora no subtítulo.
   levantamentoPisCofins: {
+    rotuloNaBarra: 'PIS/COFINS',
     titulo: 'Levantamento PIS/COFINS',
     subtitulo:
-      'Acesse ferramentas para parametrização de regras, apuração, análise cruzada e correções da EFD Contribuições.',
+      'Use esta área para cadastrar regras, revisar apurações, comparar bases e corrigir registros relacionados ao Programa de Integração Social (PIS) e à Contribuição para o Financiamento da Seguridade Social (COFINS).',
   },
   mapaNCMs: {
     titulo: 'Mapa NCM',
@@ -93,7 +115,8 @@ export const TELAS_DO_DEV = {
   // ── Central: Análise de ICMS ───────────────────────────────
   analiseIcms: {
     titulo: 'Análise de ICMS',
-    subtitulo: 'Acesse as análises de ICMS das saídas e DIFAL.',
+    subtitulo:
+      'Use esta área para analisar as saídas de ICMS e validar classificações tributárias usadas no cálculo do DIFAL.',
   },
   icmsSaidas: {
     titulo: 'ICMS das Saídas',
@@ -107,7 +130,8 @@ export const TELAS_DO_DEV = {
   // ── Central: PERDCOMP ──────────────────────────────────────
   perdcomp: {
     titulo: 'PERDCOMP',
-    subtitulo: 'Acesse o acompanhamento analítico e o controle operacional de PERDCOMP.',
+    subtitulo:
+      'Use esta área para analisar gráficos, indicadores e fazer o controle do Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP).',
   },
   dashboardPerdcomp: {
     titulo: 'Dashboard PERDCOMP',

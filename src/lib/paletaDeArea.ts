@@ -70,7 +70,7 @@ export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
  * fica fora: a faixa deste arquivo é calibrada para superfície clara, e a escala
  * escura tem contrato próprio.
  */
-export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
+export const TEMAS = [':root', '.tax-theme', '.osg-theme', '.auditoria-theme', '.juridico-theme'] as const;
 
 /**
  * Papéis semânticos do sistema: o vermelho de excluir, o verde de deu certo, o
@@ -666,19 +666,16 @@ export const SIGNIFICADO: Record<PapelDeStatus, Hsl> = {
  *   delas.
  * - `tax` — a cor do porquinho do `TaxLoader.tsx`, que já era a imagem que a
  *   área tinha de si mesma antes de existir tema.
- * - `auditoria` — medida no documento de identidade da área. Há uma segunda cor
- *   lá, mais clara, para preenchimento e gráfico; ela não entra aqui porque não
- *   é a que puxa a saturação, e ainda não tem consumidor.
+ * - `auditoria` — o verde-mar de `--area-4`, a esmeralda da área.
  * - `osg` — o verde musgo que já mora no `index.css` como primitiva.
- * - `juridico` — o marinho do branding book do Prado Advogados. É a única acima
- *   do teto de `PUXADA.tetoDoAlvo`, e a razão de o teto existir.
+ * - `juridico` — o vinho de `--area-8`.
  */
 export const ANCORAS = {
   casa: { h: 175, s: 82, l: 29 },
   tax: { h: 192, s: 73, l: 20 },
-  auditoria: { h: 191, s: 30, l: 36 },
+  auditoria: { h: 160, s: 44, l: 32 },
   osg: { h: 149, s: 66, l: 22 },
-  juridico: { h: 218, s: 100, l: 15 },
+  juridico: { h: 330, s: 46, l: 40 },
 } as const satisfies Record<string, Hsl>;
 
 export type NomeDeArea = keyof typeof ANCORAS;

@@ -20,13 +20,17 @@ import {
  * Estes testes leem os INVÓLUCROS de verdade, e não uma cópia da lista.
  */
 
-const PASTAS: Record<AreaEspelhada, string> = {
+/** As areas que espelham o catalogo INTEIRO, que e o que esta auditoria cobra.
+    Auditoria e Juridico usam o catalogo sem montar as telas da Gerencial. */
+type AreaAuditada = Extract<AreaEspelhada, 'tax' | 'osg'>;
+
+const PASTAS: Record<AreaAuditada, string> = {
   tax: 'src/pages/equipe/fiscal',
   osg: 'src/pages/equipe/osg',
 };
 
 /** As telas que cada área declara, lendo os arquivos. */
-function telasDeclaradas(area: AreaEspelhada): Set<string> {
+function telasDeclaradas(area: AreaAuditada): Set<string> {
   const dir = PASTAS[area];
   const telas = new Set<string>();
   for (const arquivo of readdirSync(dir)) {
@@ -38,7 +42,7 @@ function telasDeclaradas(area: AreaEspelhada): Set<string> {
 }
 
 /** Os títulos escritos à mão numa área, e em que arquivo cada um mora. */
-function titulosEscritosAMao(area: AreaEspelhada): Map<string, string> {
+function titulosEscritosAMao(area: AreaAuditada): Map<string, string> {
   const dir = PASTAS[area];
   const porTitulo = new Map<string, string>();
   for (const arquivo of readdirSync(dir)) {

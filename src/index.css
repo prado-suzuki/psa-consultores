@@ -955,9 +955,11 @@ All colors MUST be HSL.
     --tool-icon: var(--primary);
     --tool-icon-bg: 192 60% 95%;
     --destructive: var(--status-ajuste);
-    --foreground: 20 81% 10%;
-    --card-foreground: 20 81% 10%;
-    --popover-foreground: 20 81% 10%;
+    /* O mesmo quase-preto com cast de teal do piso. Aqui ficou o marrom cru do
+       `:root` (`20 81% 10%`), que a `.base-theme` já tinha trocado. */
+    --foreground: 178 30% 9%;
+    --card-foreground: 178 30% 9%;
+    --popover-foreground: 178 30% 9%;
     /* A Tax não tem superfície escura hoje. Declara o par do piso para o
        contrato ficar honesto e para ter o fundo certo se um dia tiver. */
     --surface-escura: 229 84% 5%;
@@ -1098,6 +1100,112 @@ All colors MUST be HSL.
        tiver uma, é nestas duas linhas. */
     --surface-escura: 229 84% 5%;
     --surface-escura-2: 222 47% 11%;
+  }
+
+  .auditoria-theme {
+    --background: 160 18% 99.6%;
+    --foreground: 178 30% 9%;
+    --card: 160 18% 99.6%;
+    --card-foreground: 178 30% 9%;
+    --popover: 160 18% 99.6%;
+    --popover-foreground: 178 30% 9%;
+    --primary: 160 44% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 44% 32%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 160 44% 32%;
+    --accent-foreground: 0 0% 100%;
+    --accent-d: var(--status-andamento);
+    --accent-soft: var(--status-andamento-soft);
+    --muted: 160 14% 89%;
+    --muted-foreground: 153 8% 38.5%;
+    --border: 160 14% 86%;
+    --input: 160 14% 52%;
+    --ring: 160 44% 32%;
+    --canvas: 160 10% 93%;
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 160 60% 95%;
+    --status-neutro: 32 18% 12%;
+    --status-neutro-soft: 32 18% 86%;
+    --status-fila: 212 48% 36%;
+    --status-fila-soft: 212 48% 86%;
+    --status-andamento: 186 56% 26%;
+    --status-andamento-soft: 186 56% 86%;
+    --status-revisao: 160 50% 22%;
+    --status-revisao-soft: 160 50% 86%;
+    --status-espera: 44 57% 27%;
+    --status-espera-soft: 44 57% 86%;
+    --status-ajuste: 356 57% 35%;
+    --status-ajuste-soft: 356 57% 86%;
+    --status-feito: 128 53% 21%;
+    --status-feito-soft: 128 53% 86%;
+    --status-alerta: 20 61% 32%;
+    --status-alerta-soft: 20 61% 86%;
+    --destructive: var(--status-ajuste);
+    --destructive-foreground: 0 0% 98%;
+    --success: var(--status-feito);
+    --success-foreground: 0 0% 100%;
+    --warning: var(--status-alerta);
+    --warning-foreground: 0 0% 98%;
+    --tag-a: 160 64% 26%;
+    --tag-b: 218 74% 37%;
+    --tag-c: 298 70% 31%;
+    --tag-d: 7 72% 39%;
+  }
+
+  .juridico-theme {
+    --background: 330 18% 99.6%;
+    --foreground: 178 30% 9%;
+    --card: 330 18% 99.6%;
+    --card-foreground: 178 30% 9%;
+    --popover: 330 18% 99.6%;
+    --popover-foreground: 178 30% 9%;
+    --primary: 330 46% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 46% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 330 46% 40%;
+    --accent-foreground: 0 0% 100%;
+    --accent-d: var(--status-andamento);
+    --accent-soft: var(--status-andamento-soft);
+    --muted: 330 14% 89%;
+    --muted-foreground: 323 8% 38.5%;
+    --border: 330 14% 86%;
+    --input: 330 14% 52%;
+    --ring: 330 46% 40%;
+    --canvas: 330 10% 93%;
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 330 60% 95%;
+    --status-neutro: 32 18% 12%;
+    --status-neutro-soft: 32 18% 86%;
+    --status-fila: 212 49% 36%;
+    --status-fila-soft: 212 49% 86%;
+    --status-andamento: 186 56% 26%;
+    --status-andamento-soft: 186 56% 86%;
+    --status-revisao: 160 50% 22%;
+    --status-revisao-soft: 160 50% 86%;
+    --status-espera: 44 58% 27%;
+    --status-espera-soft: 44 58% 86%;
+    --status-ajuste: 356 58% 35%;
+    --status-ajuste-soft: 356 58% 86%;
+    --status-feito: 128 53% 21%;
+    --status-feito-soft: 128 53% 86%;
+    --status-alerta: 20 62% 32%;
+    --status-alerta-soft: 20 62% 86%;
+    --destructive: var(--status-ajuste);
+    --destructive-foreground: 0 0% 98%;
+    --success: var(--status-feito);
+    --success-foreground: 0 0% 100%;
+    --warning: var(--status-alerta);
+    --warning-foreground: 0 0% 98%;
+    --tag-a: 330 64% 26%;
+    --tag-b: 218 74% 37%;
+    --tag-c: 298 70% 31%;
+    --tag-d: 7 72% 39%;
   }
 
 

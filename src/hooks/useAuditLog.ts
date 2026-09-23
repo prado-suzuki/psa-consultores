@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-type AuditArea = 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
+type AuditArea = 'tax' | 'osg' | 'auditoria' | 'juridico' | 'estrutura' | 'cadastros' | 'dev';
 
 type AuditEntityType =
   | 'project'

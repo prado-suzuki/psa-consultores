@@ -13,10 +13,6 @@ export interface DevHubOption {
 export interface DevHubDefinition {
   backLabel?: string;
   backPath?: string;
-  heroDescription: string;
-  heroEyebrow: string;
-  heroIcon: LucideIcon;
-  heroTitle: string;
   label: string;
   landingDescription: string;
   landingIcon: LucideIcon;

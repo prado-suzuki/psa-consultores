@@ -175,6 +175,26 @@ const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'
 const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
 const ProtocoloDeRemuneracao = lazy(() => import('./pages/equipe/osg/ProtocoloDeRemuneracao'));
 const AcordoDeQuotistas = lazy(() => import('./pages/equipe/osg/AcordoDeQuotistas'));
+const AuditoriaAreaSelector = lazy(() => import("./pages/equipe/auditoria/AuditoriaAreaSelector"));
+const AuditoriaBoasVindas = lazy(() => import("./pages/equipe/auditoria/AuditoriaBoasVindas"));
+const AuditoriaDashboard = lazy(() => import("./pages/equipe/auditoria/AuditoriaDashboard"));
+const AuditoriaClientes = lazy(() => import("./pages/equipe/auditoria/AuditoriaClientes"));
+const AuditoriaProjetos = lazy(() => import("./pages/equipe/auditoria/AuditoriaProjetos"));
+const AuditoriaProjetosLote = lazy(() => import("./pages/equipe/auditoria/AuditoriaProjetosLote"));
+const AuditoriaControleProjetos = lazy(() => import("./pages/equipe/auditoria/AuditoriaControleProjetos"));
+const AuditoriaTarefas = lazy(() => import("./pages/equipe/auditoria/AuditoriaTarefas"));
+const AuditoriaFeed = lazy(() => import("./pages/equipe/auditoria/AuditoriaFeed"));
+const AuditoriaWork = lazy(() => import("./pages/equipe/auditoria/AuditoriaWork"));
+const JuridicoAreaSelector = lazy(() => import("./pages/equipe/juridico/JuridicoAreaSelector"));
+const JuridicoBoasVindas = lazy(() => import("./pages/equipe/juridico/JuridicoBoasVindas"));
+const JuridicoDashboard = lazy(() => import("./pages/equipe/juridico/JuridicoDashboard"));
+const JuridicoClientes = lazy(() => import("./pages/equipe/juridico/JuridicoClientes"));
+const JuridicoProjetos = lazy(() => import("./pages/equipe/juridico/JuridicoProjetos"));
+const JuridicoProjetosLote = lazy(() => import("./pages/equipe/juridico/JuridicoProjetosLote"));
+const JuridicoControleProjetos = lazy(() => import("./pages/equipe/juridico/JuridicoControleProjetos"));
+const JuridicoTarefas = lazy(() => import("./pages/equipe/juridico/JuridicoTarefas"));
+const JuridicoFeed = lazy(() => import("./pages/equipe/juridico/JuridicoFeed"));
+const JuridicoWork = lazy(() => import("./pages/equipe/juridico/JuridicoWork"));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
 const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
@@ -437,6 +457,31 @@ const App = () => (
                   papel (LiderRoute) e permissão nominal. A RLS das tabelas abriu em
                   líder+ na migration 20260914212709, que vale para as três telas. */}
               <Route path="/equipe/osg/gerencial/produtos-servicos" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/produtos-servicos"><OsgProdutosServicos /></PageAccessGate></LiderRoute>} />
+
+
+              {/* Auditoria: as duas portas, no desenho da OSG. */}
+              <Route path="/equipe/auditoria" element={<ProtectedRoute><AuditoriaAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/auditoria/inicio" element={<ProtectedRoute><AuditoriaBoasVindas /></ProtectedRoute>} />
+              <Route path="/equipe/auditoria/dashboard" element={<PageAccessGate pagePath="/equipe/auditoria/dashboard"><AuditoriaDashboard /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/clientes" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/clientes"><AuditoriaClientes /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/cadastro"><AuditoriaProjetos /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/cadastro-lote"><AuditoriaProjetosLote /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/controle" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/controle"><AuditoriaControleProjetos /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/tarefas"><AuditoriaTarefas /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/projetos/feed" element={<PageAccessGate pagePath="/equipe/auditoria/projetos/feed"><AuditoriaFeed /></PageAccessGate>} />
+              <Route path="/equipe/auditoria/work" element={<PageAccessGate pagePath="/equipe/auditoria/work"><AuditoriaWork /></PageAccessGate>} />
+
+              {/* Juridico: as duas portas, no desenho da OSG. */}
+              <Route path="/equipe/juridico" element={<ProtectedRoute><JuridicoAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/juridico/inicio" element={<ProtectedRoute><JuridicoBoasVindas /></ProtectedRoute>} />
+              <Route path="/equipe/juridico/dashboard" element={<PageAccessGate pagePath="/equipe/juridico/dashboard"><JuridicoDashboard /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/clientes" element={<PageAccessGate pagePath="/equipe/juridico/projetos/clientes"><JuridicoClientes /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/juridico/projetos/cadastro"><JuridicoProjetos /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/juridico/projetos/cadastro-lote"><JuridicoProjetosLote /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/controle" element={<PageAccessGate pagePath="/equipe/juridico/projetos/controle"><JuridicoControleProjetos /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/juridico/projetos/tarefas"><JuridicoTarefas /></PageAccessGate>} />
+              <Route path="/equipe/juridico/projetos/feed" element={<PageAccessGate pagePath="/equipe/juridico/projetos/feed"><JuridicoFeed /></PageAccessGate>} />
+              <Route path="/equipe/juridico/work" element={<PageAccessGate pagePath="/equipe/juridico/work"><JuridicoWork /></PageAccessGate>} />
 
               {/* ── Adm & Fin ────────────────────────────────────────────
                   O caminho é `/equipe/adm-fin` e NÃO deriva do nome da área:

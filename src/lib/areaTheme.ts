@@ -34,7 +34,9 @@
 export const CLASSE_BASE = 'base-theme';
 
 /** Áreas do ponto de vista do TEMA (ver nota acima sobre `AreaKey`). */
-export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'sistema' | 'admFin' | 'base';
+export type AreaDeTema =
+  | 'tax' | 'osg' | 'auditoria' | 'juridico'
+  | 'board' | 'rotina' | 'digital' | 'sistema' | 'admFin' | 'base';
 
 /**
  * Classe de tema de cada área, ou `null` para "só o piso".
@@ -112,6 +114,8 @@ export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'siste
 export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
   osg: 'osg-theme',
+  auditoria: 'auditoria-theme',
+  juridico: 'juridico-theme',
   board: null,
   // A Adm & Fin nasce sem delta, pela mesma regra da Rotina e do Board: a
   // ancora dela e a da CASA, e a casa e o que o piso ja pinta. A linha existe
@@ -153,6 +157,8 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // ── Áreas com paleta própria ────────────────────────────────────────
   { prefixo: '/equipe/tax', area: 'tax' },
   { prefixo: '/equipe/osg', area: 'osg' },
+  { prefixo: '/equipe/auditoria', area: 'auditoria' },
+  { prefixo: '/equipe/juridico', area: 'juridico' },
 
   // ── Adm & Fin: área da PSA Prado Suzuki, na cor da casa ─────────────
   // O caminho NÃO vem do nome: "Adm & Fin" tem espaço e `&`, e o `&` é
@@ -340,6 +346,8 @@ export const PARAM_DE_ESPELHO = 'area';
 export const ESPELHO = {
   tax: 'tax',
   osg: 'osg',
+  auditoria: 'auditoria',
+  juridico: 'juridico',
 } as const satisfies Record<string, AreaDeTema>;
 
 /**
@@ -356,6 +364,8 @@ export const ESPELHO = {
 export const VOLTA_DO_ESPELHO = {
   tax: { rota: '/equipe/tax', rotulo: 'Tax' },
   osg: { rota: '/equipe/osg', rotulo: 'OSG' },
+  auditoria: { rota: '/equipe/auditoria', rotulo: 'Auditoria' },
+  juridico: { rota: '/equipe/juridico', rotulo: 'Jurídico' },
 } as const;
 
 /**

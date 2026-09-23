@@ -56,6 +56,12 @@ export const AREAS = {
   osg: { nome: 'OSG', subtitulo: 'Área OSG' },
   osgWork: { nome: 'OSG Work', subtitulo: 'Ferramentas OSG' },
   osgProjects: { nome: 'OSG Projects', subtitulo: 'Projetos OSG' },
+  auditoria: { nome: 'Auditoria', subtitulo: 'Área de Auditoria' },
+  auditoriaWork: { nome: 'Auditoria Work', subtitulo: 'Ferramentas de Auditoria' },
+  auditoriaProjects: { nome: 'Auditoria Projects', subtitulo: 'Projetos de Auditoria' },
+  juridico: { nome: 'Jurídico', subtitulo: 'Área Jurídica' },
+  juridicoWork: { nome: 'Jurídico Work', subtitulo: 'Ferramentas do Jurídico' },
+  juridicoProjects: { nome: 'Jurídico Projects', subtitulo: 'Projetos do Jurídico' },
 } as const satisfies Record<string, NomeDeArea>;
 
 /** As chaves como tipo: nome de área errado vira erro de compilação. */

@@ -50,6 +50,8 @@ import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 export interface ItemDoGrupo {
   path: string;
   label: string;
+  /** Opcional: o Tax Work lista ferramentas so com rotulo. */
+  icon?: LucideIcon;
 }
 
 export interface GrupoDaBarraProps {
@@ -138,7 +140,7 @@ export function GrupoDaBarra({
               trilho ? '' : cn('ml-2 pl-2 border-l', classeDaBorda),
             )}
           >
-            {itens.map(({ path, label }) => (
+            {itens.map(({ path, label, icon: IconeDoItem }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
@@ -146,6 +148,7 @@ export function GrupoDaBarra({
                   classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                 )}
               >
+                {IconeDoItem && <IconeDoItem className="h-4 w-4 flex-shrink-0" />}
                 <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
               </button>
             ))}

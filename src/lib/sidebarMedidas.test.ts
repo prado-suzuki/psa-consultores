@@ -36,6 +36,8 @@ const LAYOUTS_DO_PADRAO = {
   // O Acessos nasceu já no padrão, em 10/09/2026, e entra aqui para não sair
   // dele: barra nova é onde a divergência recomeça.
   Acessos: '../components/acessos/AcessosLayout.tsx',
+  Auditoria: '../components/equipe/auditoria/AuditoriaLayout.tsx',
+  'Jurídico': '../components/equipe/juridico/JuridicoLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
@@ -72,6 +74,38 @@ describe('medidas do trilho recolhido', () => {
     expect(classeRecuoCabecalho(true)).toBe('p-4');
     expect(classeRecuoCabecalho(false)).toBe('p-6');
   });
+});
+
+/**
+ * As barras que ainda perdem o `sticky` para o `tailwind-merge`.
+ *
+ * `cn('sticky ... relative')` entrega só `relative`: as duas são a mesma
+ * propriedade e vence a última. A barra passa a rolar junto com a página, sem
+ * erro nenhum no console. Esta lista só pode ENCOLHER.
+ */
+const BARRA_QUE_PERDE_O_STICKY = new Set(['OSG', 'Rotina']);
+
+describe('a barra fica parada quando a página rola', () => {
+  for (const [area, caminho] of Object.entries(LAYOUTS_DO_PADRAO)) {
+    const esperado = BARRA_QUE_PERDE_O_STICKY.has(area);
+
+    it(`${area}: ${esperado ? 'ainda perde' : 'mantém'} o sticky depois do merge`, () => {
+      const linha = ler(caminho)
+        .split('\n')
+        .find(l => l.includes('sticky top-0 h-screen'));
+
+      // Barra sem essa linha não é caso desta catraca.
+      if (!linha) return;
+
+      const perde = /\brelative\b/.test(linha);
+      expect(
+        perde,
+        perde
+          ? `${area}: o "relative" na mesma classe que o "sticky" apaga o sticky no tailwind-merge. Tire o "relative": o "sticky" já posiciona os filhos absolutos.`
+          : `${area}: consertado. Tire a área de BARRA_QUE_PERDE_O_STICKY.`,
+      ).toBe(esperado);
+    });
+  }
 });
 
 // O bug sobreviveu num layout porque o cartão do usuário estava copiado em cinco
@@ -199,6 +233,8 @@ describe('todas as barras laterais viram gaveta no celular', () => {
     'Digital Rotina': '../components/equipe/EquipeLayout.tsx',
     'Digital Dev': '../components/equipe/dev/DevLayout.tsx',
     Acessos: '../components/acessos/AcessosLayout.tsx',
+    Auditoria: '../components/equipe/auditoria/AuditoriaLayout.tsx',
+    'Jurídico': '../components/equipe/juridico/JuridicoLayout.tsx',
   } as const;
 
   for (const [area, caminho] of Object.entries(BARRAS)) {
