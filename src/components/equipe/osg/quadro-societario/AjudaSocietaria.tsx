@@ -65,6 +65,11 @@ export function AjudaSocietaria({ chave, rotulo, className }: AjudaSocietariaPro
           // marcar a opção de rádio ou alternar o interruptor ao lado: pedir
           // ajuda não é escolher.
           onPointerDown={(e) => e.stopPropagation()}
+          // O modal foca o primeiro botão ao abrir, e este costuma ser o primeiro:
+          // só foco de teclado abre a dica, senão ela nasce aberta sobre o campo.
+          onFocus={(e) => {
+            if (!ultimaInteracaoPorTeclado) e.preventDefault();
+          }}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -84,10 +89,11 @@ export function AjudaSocietaria({ chave, rotulo, className }: AjudaSocietariaPro
         side="top"
         align="start"
         collisionPadding={12}
-        // O wrapper global limita em 280px, largura que corta estes dois
-        // parágrafos. Aqui a dica vai a 360px, sempre presa ao viewport, sem
-        // alterar o wrapper para as outras telas.
-        className="max-w-[min(360px,calc(100vw-2rem))] space-y-1.5 py-2 text-left text-xs font-normal leading-relaxed"
+        onPointerDownOutside={fechar}
+        // Sem alvo de clique, nem no invólucro de posicionamento do Radix: quando não
+        // cabe acima e desce, cobre o campo seguinte, e o clique precisa chegar a ele.
+        ref={soltarCliqueDoInvolucro}
+        className="pointer-events-none max-w-[min(360px,calc(100vw-2rem))] space-y-1.5 py-2 text-left text-xs font-normal leading-relaxed"
       >
         <p>
           <span className="font-semibold">No quadro:</span> {ajuda.quadro}
@@ -98,4 +104,15 @@ export function AjudaSocietaria({ chave, rotulo, className }: AjudaSocietariaPro
       </TooltipContent>
     </Tooltip>
   );
+}
+
+function soltarCliqueDoInvolucro(el: HTMLDivElement | null) {
+  if (el?.parentElement) el.parentElement.style.pointerEvents = 'none';
+}
+
+// Modalidade da última interação, para distinguir o Tab do foco programático.
+let ultimaInteracaoPorTeclado = false;
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', () => { ultimaInteracaoPorTeclado = true; }, true);
+  document.addEventListener('pointerdown', () => { ultimaInteracaoPorTeclado = false; }, true);
 }
