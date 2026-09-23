@@ -134,8 +134,8 @@ export function useDeletePessoa() {
     onSuccess: async (pessoa) => {
       queryClient.invalidateQueries({ queryKey: ['pessoas-by-cliente', pessoa.cliente_id] });
       queryClient.invalidateQueries({ queryKey: ['parentescos-by-cliente', pessoa.cliente_id] });
-      // O CASCADE do banco apaga as linhas do quadro societário da pessoa
-      // (como empresa ou como sócia); invalida todas as empresas em cache.
+      // Não há cascata para o quadro: movimentacao_quotas → pessoa é NO ACTION, e é por
+      // isso que excluir quem tem movimento de quota falha no banco em vez de apagá-lo.
       queryClient.invalidateQueries({ queryKey: ['quadro-societario-by-empresa'] });
 
       await logAction({
