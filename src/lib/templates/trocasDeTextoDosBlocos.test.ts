@@ -10,6 +10,7 @@ import { camposDaEntidade } from './vocabulario';
 
 const MIGRATIONS = [
   'supabase/migrations/20260923155027_integralizacao_concorda_com_a_socia.sql',
+  'supabase/migrations/20260923155204_doacao_e_usufruto_sem_nome_repetido.sql',
 ];
 
 const TROCA = /pg_temp\.trocar_no_bloco\(\s*'[^']+'::uuid,\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',/g;
@@ -54,5 +55,12 @@ describe.each(MIGRATIONS)('%s', (arquivo) => {
       }
     }
     expect(desconhecidos).toEqual([]);
+  });
+
+  // `qualificacao` já abre com o nome: citá-lo antes sai "FULANO, FULANO, brasileiro".
+  it('não emenda o nome da pessoa à qualificação dela', () => {
+    for (const { para } of lidas) {
+      expect(para).not.toMatch(/\{\{\s*(\w+)\.nome\w*\s*\}\}\*?,\s*\{\{\s*\1\.qualificacao\s*\}\}/);
+    }
   });
 });
