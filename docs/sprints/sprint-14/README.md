@@ -146,6 +146,16 @@ ordenadas por prioridade e que há três linhas novas em `audit_logs`.
 **Se a T3 (auditoria) for cortada por tempo, corte a tarefa inteira junto.** Porta de
 escrita sem trilha é pior que não ter porta.
 
+## A IA no sandbox
+
+Nasce de 23/09/2026: o botão **Ditar tarefas** do backlog foi publicado no sandbox e
+respondeu 503, porque lá não há chave de IA. Ela preferiu que o Bernardo avaliasse as
+opções antes de alguém colar uma chave.
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [9 A IA não responde no sandbox](TAREFA_chave-de-ia-no-sandbox.md) | A `LOVABLE_API_KEY` não pode ser obtida fora de um projeto do Lovable (`planos/agente-psa-assistente.md` §6.0), e **sete das nove** funções de IA leem só ela. Uma chave Anthropic própria destrava as outras duas, entre elas `gerar-demandas-sprint`. Quatro opções (chave própria, helper com fallback, resposta simulada, testar só em produção) e três decisões: qual opção, de quem é a chave e se o mesmo provedor serve à transcrição de áudio. A **T0** confere se `gerar-demandas-sprint` está publicada em produção com o modo `ditado` | **Não.** Configuração de ambiente e, na opção B, um helper nas edge functions | 🔵 ABERTO, **com o Bernardo** |
+
 ## Como usar esta pasta
 
 Uma tarefa = um arquivo, com subtarefas numeradas (`T1`, `T2`, …), bugs achados (`B1`, …) e
