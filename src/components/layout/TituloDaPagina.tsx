@@ -83,7 +83,10 @@ export function TituloDaPagina({
       )}
       <h1 className="break-words text-3xl font-bold tracking-tight text-foreground">{titulo}</h1>
       {subtitulo && (
-        <p className="flex flex-wrap items-center gap-0 text-sm text-muted-foreground">
+        // TETO DE MEDIDA: sem ele, subtítulo longo ocupa a largura da página
+        // inteira e vira parágrafo de ~190 caracteres por linha embaixo do
+        // título. Subtítulo curto, que é a maioria, não sente.
+        <p className="mt-1 flex max-w-5xl flex-wrap items-center gap-0 text-sm leading-relaxed text-muted-foreground">
           {subtitulo}
           {apendiceDoSubtitulo}
         </p>
