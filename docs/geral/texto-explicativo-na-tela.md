@@ -292,6 +292,6 @@ Antes de fechar a ficha, ou antes de abrir PR de tela nova:
 
 ---
 
-**Relacionado:** [tarefa 14 da sprint 13](../sprints/sprint-13/TAREFA_padrao-de-texto-explicativo.md)
+**Relacionado:** [tarefa 14 da sprint 13](../tarefas-executadas/2026_09_17_padrao-de-texto-explicativo.md)
 (as medições que originaram o padrão e a dívida técnica, que é backlog paralelo) ·
-[catálogo de mensagens de recusa](../sprints/sprint-12/TAREFA_mensagens-de-recusa.md).
+[catálogo de mensagens de recusa](../tarefas-executadas/2026_09_02_mensagens-de-recusa-do-cadastro.md).

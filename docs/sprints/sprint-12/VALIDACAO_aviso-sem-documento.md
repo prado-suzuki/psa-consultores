@@ -296,7 +296,7 @@ do cliente.`), e isso não tem mais correção.
 ### Fiação
 
 O `event_type` da borda e o valor de enum são os da GES-04
-([`TAREFA_cobrar-solicitacao-sem-documento.md`](TAREFA_cobrar-solicitacao-sem-documento.md)):
+([`../../tarefas-executadas/2026_08_25_cobrar-solicitacao-sem-documento.md`](../../tarefas-executadas/2026_08_25_cobrar-solicitacao-sem-documento.md)):
 `notificacao_tipo` = `solicitacao_vencida`, migração `20260824143238` aplicada no sandbox
 em 24/08/2026 e **não** em produção.
 

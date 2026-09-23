@@ -53,7 +53,7 @@ modelo está no ar para qual aviso é aquele mapa, no nó `Montar Template OSG`.
 
 ⚠️ **O aviso 4 está concluído mas não está em produção.** Faltam as quatro migrações da
 GES-04 e a borda `notificar` — ver
-[`../sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md`](../sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md).
+[`../tarefas-executadas/2026_08_25_cobrar-solicitacao-sem-documento.md`](../tarefas-executadas/2026_08_25_cobrar-solicitacao-sem-documento.md).
 Os avisos 1 a 3 estão no ar nos dois canais.
 
 | # | Modelo na Meta | `event_type` | `notificacao_tipo` no banco | Marc. | Botão | Dispara |

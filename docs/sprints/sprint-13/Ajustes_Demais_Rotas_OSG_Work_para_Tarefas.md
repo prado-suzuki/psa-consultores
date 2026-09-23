@@ -41,7 +41,7 @@ endereço. **Origem:** decisão da coordenação, 09/09.
 **FEITO em 18/09/2026, por outra lista.** O subtítulo de Relatórios prometia "diagnóstico
 patrimonial e quadro societário" — as duas peças da outra tela. A revisão de textos da coordenação
 achou o mesmo erro no mesmo dia, com outra redação, e as duas foram conciliadas em
-[`TAREFA_relatorios-e-apresentacoes.md`](TAREFA_relatorios-e-apresentacoes.md)
+[`../../tarefas-executadas/2026_09_18_relatorios-e-apresentacoes.md`](../../tarefas-executadas/2026_09_18_relatorios-e-apresentacoes.md)
 §2: ficou **"Consulte e imprima os imóveis explorados, os produtores responsáveis e a origem da
 posse."**, que guarda o verbo desta lista ("imprima", a única ação da tela) e o conteúdo da
 revisão, e não nomeia os relatórios — que foram renomeados na mesma passada.
