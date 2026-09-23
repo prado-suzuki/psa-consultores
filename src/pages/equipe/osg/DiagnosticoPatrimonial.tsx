@@ -146,7 +146,7 @@ const DiagnosticoPatrimonial = () => {
                     </Select>
                   </div>
                   <div className="w-full md:w-56 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Estruturação</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground">Participa da estruturação</Label>
                     <Select
                       value={filtroEstruturacao}
                       onValueChange={(v) => setFiltroEstruturacao(v as typeof filtroEstruturacao)}
@@ -154,8 +154,8 @@ const DiagnosticoPatrimonial = () => {
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__todos__">Todos</SelectItem>
-                        <SelectItem value="dentro">Integralizados</SelectItem>
-                        <SelectItem value="fora">Não integralizados</SelectItem>
+                        <SelectItem value="dentro">Participa</SelectItem>
+                        <SelectItem value="fora">Não participa</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -208,7 +208,7 @@ const DiagnosticoPatrimonial = () => {
                               <TableCell className="font-medium">
                                 <div className="flex flex-col">
                                   <span>{b.denominacao}</span>
-                                  {!b.participa_estruturacao && (
+                                  {b.participa_estruturacao === false && (
                                     <span className="text-[10px] text-muted-foreground">
                                       Não participa da estruturação
                                     </span>
