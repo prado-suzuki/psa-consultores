@@ -12,6 +12,7 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BemRow, CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
 import { GRAVAMES, type Gravame } from '@/lib/osg/doacaoDeQuotas';
 import { conferirSomasDoUsufruto, montarUsufruto } from '@/lib/osg/usufrutoDoAto';
+import { generoDoOrgao } from '@/lib/orgaosGovernancaPadrao';
 
 // Mapeadores puros (sem React): convertem uma linha do cadastro nos campos do
 // vocabulário da entidade correspondente, já com os derivados (extensos via
@@ -747,7 +748,9 @@ export interface OrgaoParaMapear {
 export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
   const { out, set } = coletor();
   set('nome', row.nome);
-  set('genero', row.genero);
+  // Órgão cadastrado antes da coluna chega sem gênero; sem o palpite pelo nome,
+  // a Diretoria sairia "pelo Diretoria", porque o vazio concorda no masculino.
+  set('genero', row.genero ?? generoDoOrgao(row.nome));
   set('membrosMinimo', row.membros_minimo);
   set('membrosMaximo', row.membros_maximo);
   set('mandatoAnos', row.mandato_anos);

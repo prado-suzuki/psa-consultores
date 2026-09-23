@@ -198,6 +198,15 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
     expect(diretoria.composto).toBe('composta');
   });
 
+  it('órgão sem gênero gravado concorda pelo nome, e não no masculino', () => {
+    const diretoria = mapearOrgaoGovernanca({ id: 'f', nome: 'Diretoria Executiva', genero: null });
+    expect(diretoria.pelo).toBe('pela');
+    expect(diretoria.do).toBe('da');
+
+    const conselho = mapearOrgaoGovernanca({ id: 'm', nome: 'Conselho de Administração' });
+    expect(conselho.pelo).toBe('pelo');
+  });
+
   it('mínimo igual ao máximo acende a frase curta do Horita', () => {
     const campos = mapearOrgaoGovernanca({
       id: 'og2', nome: 'Conselho de Administração',

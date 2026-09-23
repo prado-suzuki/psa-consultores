@@ -617,6 +617,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       concordanciaCampo('residente', 'Residente e domiciliado(a)', PARES.residente),
       concordanciaCampo('inscrito', 'Inscrito(a)', PARES.inscrito),
       concordanciaCampo('peloSocio', 'Pelo sócio / Pela sócia', PARES.peloSocio),
+      concordanciaCampo('oSocio', 'O sócio / A sócia (começo de frase)', PARES.oSocio),
       // Rótulos da linha de assinatura (fecho do contrato).
       concordanciaCampo('socioTitulo', 'Sócio / Sócia', PARES.socioTitulo),
       concordanciaCampo('socioAdministrador', 'Sócio administrador / Sócia administradora', PARES.socioAdministrador),

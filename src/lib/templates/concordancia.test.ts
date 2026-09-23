@@ -39,6 +39,12 @@ describe('gênero da concordância', () => {
     expect(pfSemGenero.socioTitulo).toBe('Sócio');
     expect(pfSemGenero.artigo).toBe('o');
   });
+
+  it('o sujeito do parágrafo de integralização concorda com a sócia', () => {
+    expect(derivarCampos('pessoa', { tipoPessoa: 'PF', genero: 'F' }).oSocio).toBe('A sócia');
+    expect(derivarCampos('pessoa', { tipoPessoa: 'PF', genero: 'M' }).oSocio).toBe('O sócio');
+    expect(derivarCampos('pessoa', { tipoPessoa: 'PJ', genero: '' }).oSocio).toBe('A sócia');
+  });
 });
 
 // A regência do nome do estado. Os blocos escreviam "Estado de " + nome, e isso
