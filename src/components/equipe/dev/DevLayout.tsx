@@ -206,7 +206,9 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
           Rotina. */}
       <div
         className={cn(
-          'sticky top-0 h-screen relative flex-shrink-0 transition-all duration-300 ease-in-out',
+          // `relative` aqui apaga o `sticky` no `tailwind-merge`. Ver a nota
+          // no `FiscalSidebar`.
+          'sticky top-0 h-screen flex-shrink-0 transition-all duration-300 ease-in-out',
           classeLarguraBarra(trilho),
           classesGavetaBarra(collapsed),
         )}

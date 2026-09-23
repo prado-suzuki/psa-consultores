@@ -314,7 +314,11 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
     // recortado pelo overflow do scroll interno.
     <div
       className={cn(
-        'transition-all duration-300 flex-shrink-0 sticky top-0 h-screen relative',
+        // SEM `relative` JUNTO DE `sticky`. O `cn` passa por `tailwind-merge`,
+        // que trata as duas como a mesma propriedade e fica com a última: a
+        // `sticky` sumia da classe e a barra rolava com a página. O botão de
+        // colapso continua ancorado, porque `sticky` também posiciona.
+        'transition-all duration-300 flex-shrink-0 sticky top-0 h-screen',
         // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
         classeLarguraBarra(trilho),
         // Abaixo de `md` a barra sai do fluxo e vira gaveta: sem isto ela come

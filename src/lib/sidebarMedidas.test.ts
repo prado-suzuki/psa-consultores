@@ -74,6 +74,38 @@ describe('medidas do trilho recolhido', () => {
   });
 });
 
+/**
+ * As barras que ainda perdem o `sticky` para o `tailwind-merge`.
+ *
+ * `cn('sticky ... relative')` entrega só `relative`: as duas são a mesma
+ * propriedade e vence a última. A barra passa a rolar junto com a página, sem
+ * erro nenhum no console. Esta lista só pode ENCOLHER.
+ */
+const BARRA_QUE_PERDE_O_STICKY = new Set(['OSG', 'Rotina']);
+
+describe('a barra fica parada quando a página rola', () => {
+  for (const [area, caminho] of Object.entries(LAYOUTS_DO_PADRAO)) {
+    const esperado = BARRA_QUE_PERDE_O_STICKY.has(area);
+
+    it(`${area}: ${esperado ? 'ainda perde' : 'mantém'} o sticky depois do merge`, () => {
+      const linha = ler(caminho)
+        .split('\n')
+        .find(l => l.includes('sticky top-0 h-screen'));
+
+      // Barra sem essa linha não é caso desta catraca.
+      if (!linha) return;
+
+      const perde = /\brelative\b/.test(linha);
+      expect(
+        perde,
+        perde
+          ? `${area}: o "relative" na mesma classe que o "sticky" apaga o sticky no tailwind-merge. Tire o "relative": o "sticky" já posiciona os filhos absolutos.`
+          : `${area}: consertado. Tire a área de BARRA_QUE_PERDE_O_STICKY.`,
+      ).toBe(esperado);
+    });
+  }
+});
+
 // O bug sobreviveu num layout porque o cartão do usuário estava copiado em cinco
 // arquivos. Estes testes leem o fonte: é a única forma de travar "não volte por
 // cópia" sem montar as cinco telas inteiras (cada uma com contexto, rotas e
