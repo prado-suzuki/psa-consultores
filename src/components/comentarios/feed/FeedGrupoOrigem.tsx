@@ -86,7 +86,7 @@ export function FeedGrupoOrigem({
               <span
                 className={cn(
                   'shrink-0 border-b text-[13px] font-semibold',
-                  ehProjeto ? 'border-status-feito/50 text-status-feito' : 'border-tag-c/50 text-tag-c',
+                  ehProjeto ? 'border-status-espera/50 text-status-espera' : 'border-tag-c/50 text-tag-c',
                 )}
               >
                 {ehProjeto ? 'Projeto' : 'Tarefa'}
