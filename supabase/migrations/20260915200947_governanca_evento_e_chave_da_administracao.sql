@@ -64,14 +64,9 @@ on conflict (nome) do nothing;
 -- ---------------------------------------------------------------------------
 -- 2. As quatro declarativas, sobre a fonte `governanca`
 -- ---------------------------------------------------------------------------
--- A fonte NÃO é o cadastro: é a decisão que `fonteDaGovernanca`
--- (src/lib/osg/estadoProposto.ts) toma, a mesma que o estado proposto usa para
--- decidir se a lista de órgãos entra viva ou vazia. Ler o cadastro cru foi o
--- desenho anterior, e ele quebrava a AC de sede de quem tinha a matriz
--- preenchida sem ter deliberado governança nenhuma: a flag acendia, a
--- administração simples saía do documento, o capítulo de governança entrava com
--- a lista vazia e era descartado por falta de dado, e o contrato ia à junta SEM
--- ADMINISTRAÇÃO NENHUMA.
+-- A fonte NÃO é o cadastro: é a decisão de `fonteDeGovernanca`
+-- (src/lib/osg/governancaNoContrato.ts), que explica por que ler o cadastro cru
+-- deixa o contrato sem administração nenhuma.
 --
 -- `administracao_simples` guarda `valor = ''` DE PROPÓSITO: ela é o lado vazio
 -- do par, e é assim que o motor escreve uma negação que ele não tem.
