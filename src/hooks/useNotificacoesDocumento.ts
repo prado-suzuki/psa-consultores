@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { semCarimbosDeSistema } from '@/lib/osg/notificacoesDoDocumento';
 
 // Notificações de mudança de variável na tela Gerar Documento. Não há tabela
 // materializada: as notificações são DERIVADAS de audit_logs por uma janela
@@ -121,7 +122,7 @@ export function useNotificacoesDocumento({
         .order('performed_at', { ascending: false });
       if (error) throw error;
       // changed_fields chega como Json no tipo gerado; o shape real é o do diff.
-      return (data ?? []) as unknown as NotificacaoLog[];
+      return semCarimbosDeSistema((data ?? []) as unknown as NotificacaoLog[]);
     },
   });
 }
