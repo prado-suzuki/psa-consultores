@@ -110,6 +110,12 @@ const PECA_REGISTRADA = travar(
     'Para mudar a sociedade, gere uma alteração contratual a partir dela.',
 );
 
+const ALTERACAO_REGISTRADA = travar(
+  'A alteração já foi registrada',
+  'Esta alteração contratual está registrada na junta: ela já produziu efeito e não se reescreve. ' +
+    'Para mudar a sociedade de novo, gere uma alteração a partir dela.',
+);
+
 const SEM_PECA_REGISTRADA = travar(
   'Ainda não há peça registrada',
   'A alteração contratual nasce de uma peça registrada na junta, e substitui aquela. ' +
@@ -184,6 +190,8 @@ export function avaliarFluxoDaSociedade(fatos: FatosDaPeca): FluxoDaSociedade {
     // Validar sobre peça registrada não atualiza nada: sem head em rascunho, a
     // validação cria a RAIZ de uma linhagem nova, que nasce constitutivo.
     if (estado === 'registrada' || estado === 'sucedida') {
+      // A frase da constituição só cabe ao contrato social; a alteração fala de si.
+      if (fatos.papelDaPeca === 'alterador') return estado === 'sucedida' ? jaSucedida : ALTERACAO_REGISTRADA;
       return doConstitutivo.liberado ? PECA_REGISTRADA : jaConstituida;
     }
     if (estado === 'alteracao-em-composicao') {

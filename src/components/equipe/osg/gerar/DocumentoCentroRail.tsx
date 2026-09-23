@@ -47,10 +47,8 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   // do documento novo compondo ao vivo.
   const travado = !!documentoRegistrado && !alteracaoEmCurso;
   const somenteLeitura = modoVisualizacao || travado;
-  // Por que os gestos de edição estão fechados sobre a peça registrada, na frase
-  // da própria trava: ela nomeia a sociedade quando sabe quem é ("Jatobá
-  // Sementes S.A. já foi constituída…") e cai na explicação da peça travada
-  // quando não sabe (registro antigo, sem papel carimbado).
+  // A frase da própria trava, que muda com o papel da peça: contrato social
+  // registrado, alteração registrada ou registro antigo sem papel carimbado.
   const motivoDaOrdem = travas.validar.motivo ?? '';
   // O assistente segue alcançável depois de validar: a folha passa a renderizar do
   // snapshot, então mudar uma resposta aqui só reescreve o texto depois de

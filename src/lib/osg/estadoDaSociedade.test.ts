@@ -76,6 +76,28 @@ describe('avaliarFluxoDaSociedade: validar', () => {
     expect(trava.motivo).toContain('Jatobá Sementes S.A. já foi constituída');
   });
 
+  it('alteração registrada fala da alteração, e não da constituição da sociedade', () => {
+    const trava = fluxo({
+      statusDaPeca: 'registrado',
+      papelDaPeca: 'alterador',
+      constitutivosRegistrados: new Set(['empresa-cn']),
+    }).travas.validar;
+    expect(trava.liberado).toBe(false);
+    expect(trava.motivo).toContain('Esta alteração contratual está registrada na junta');
+    expect(trava.motivo).toContain('gere uma alteração a partir dela');
+    expect(trava.motivo).not.toContain('já foi constituída');
+  });
+
+  it('alteração registrada já substituída aponta para a sucessora', () => {
+    const trava = fluxo({
+      statusDaPeca: 'registrado',
+      papelDaPeca: 'alterador',
+      constitutivosRegistrados: new Set(['empresa-cn']),
+      sucessorDaBase: { status: 'registrado' },
+    }).travas.validar;
+    expect(trava.motivo).toContain('já foi substituída');
+  });
+
   it('trava sobre peça registrada: ali validar criaria uma linhagem nova', () => {
     expect(fluxo({ statusDaPeca: 'registrado' }).travas.validar.liberado).toBe(false);
   });
