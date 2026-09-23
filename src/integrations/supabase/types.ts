@@ -11913,6 +11913,7 @@ export type Database = {
           _cursor_created_at?: string
           _cursor_id?: string
           _limit?: number
+          _only_attachments?: boolean
           _only_mentions?: boolean
           _project_ids?: string[]
           _since?: string
