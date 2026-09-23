@@ -3887,7 +3887,6 @@ export type Database = {
           data_assinatura: string | null
           exploracao_rural_id: string
           id: string
-          outorgante_capital_social_na_assinatura: number | null
           outorgante_pessoa_id: string | null
           outorgante_representante: string | null
           titulo_instrumento: string | null
@@ -3900,7 +3899,6 @@ export type Database = {
           data_assinatura?: string | null
           exploracao_rural_id: string
           id?: string
-          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
           outorgante_representante?: string | null
           titulo_instrumento?: string | null
@@ -3913,7 +3911,6 @@ export type Database = {
           data_assinatura?: string | null
           exploracao_rural_id?: string
           id?: string
-          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
           outorgante_representante?: string | null
           titulo_instrumento?: string | null
