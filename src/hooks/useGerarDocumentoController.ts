@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
-import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada, semVocabularioDaGeracao } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
@@ -1272,7 +1272,9 @@ export function useGerarDocumentoController() {
   // inclusão de família entra como a união das variantes (os campos que só a
   // redação urbana usa também precisam ser pedidos).
   const { bindings, listas, desconhecidos, secoesDesconhecidas, campos: placeholders } = useMemo(
-    () => detectarBindingsDeConteudo(blocosCompostos.map((b) => conteudoParaDeteccao(b, familias)).join(' ')),
+    () => semVocabularioDaGeracao(
+      detectarBindingsDeConteudo(blocosCompostos.map((b) => conteudoParaDeteccao(b, familias)).join(' ')),
+    ),
     [blocosCompostos, familias],
   );
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gerarDocumento, type Template } from './index';
-import { conteudoParaDeteccao, detectarBindingsDeConteudo, listarPlaceholders, normalizarReferenciasLegadas, normalizarSelecaoLegada } from './binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, listarPlaceholders, normalizarReferenciasLegadas, normalizarSelecaoLegada, semVocabularioDaGeracao } from './binding';
 
 describe('normalizarReferenciasLegadas — contratos societários', () => {
   it('liga campos planos à sociedade selecionada', () => {
@@ -271,6 +271,31 @@ describe('B12/B13 · fecho reconhece signatários como lista própria', () => {
     ]);
     expect(deteccao.bindings).toEqual([]);
     expect(deteccao.desconhecidos).toEqual([]);
+    expect(deteccao.secoesDesconhecidas).toEqual([]);
+  });
+});
+
+describe('"Preencher à mão" não pede o que a geração calcula', () => {
+  // As resoluções de retirada e de qualificação, como estão no banco.
+  const retirada =
+    'Em virtude das cessões e transferências descritas nas cláusulas anteriores, {{ retirada.porTerCedido }} '
+    + 'a totalidade de suas quotas, {{ retirada.titulo }} {{#retirantes sep=", " fim=" e "}}*{{ retirante.nomeMaiusculo }}*'
+    + '{{/retirantes}} {{ retirada.verbo }} da sociedade.';
+  const qualificacao =
+    '{{ requalificacao.causa }}{{ requalificacao.verbo }} {{ requalificacao.aQualificacao }} {{ requalificacao.titulo }} '
+    + '{{#requalificados sep=", " fim=" e "}}*{{ requalificado.nomeMaiusculo }}*{{/requalificados}}, para fazer constar '
+    + '{{ requalificacao.objeto }}.';
+
+  it('a detecção crua trata as palavras concordadas como campo sem dono', () => {
+    const { desconhecidos } = detectarBindingsDeConteudo(retirada);
+    expect(desconhecidos).toEqual(['retirada.porTerCedido', 'retirada.titulo', 'retirada.verbo']);
+  });
+
+  it('sem o vocabulário da geração, sobra só o que é mesmo manual', () => {
+    const deteccao = semVocabularioDaGeracao(detectarBindingsDeConteudo(
+      `${retirada} ${qualificacao} {{#retirada.haRetirantes}}x{{/retirada.haRetirantes}} {{ dataAssinatura }}`,
+    ));
+    expect(deteccao.desconhecidos).toEqual(['dataAssinatura']);
     expect(deteccao.secoesDesconhecidas).toEqual([]);
   });
 });
