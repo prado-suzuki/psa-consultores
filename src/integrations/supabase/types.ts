@@ -7011,6 +7011,71 @@ export type Database = {
           },
         ]
       }
+      osg_apresentacao: {
+        Row: {
+          checksum: string | null
+          cliente_id: string
+          created_at: string
+          excluido: boolean
+          gerado_por: string | null
+          id: string
+          nome_arquivo: string
+          problemas: Json
+          snapshot_dados: Json | null
+          storage_path: string
+          tamanho: number | null
+          template_checksum: string | null
+          template_nome: string
+          tipo: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Insert: {
+          checksum?: string | null
+          cliente_id: string
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          nome_arquivo: string
+          problemas?: Json
+          snapshot_dados?: Json | null
+          storage_path: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome: string
+          tipo: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Update: {
+          checksum?: string | null
+          cliente_id?: string
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          nome_arquivo?: string
+          problemas?: Json
+          snapshot_dados?: Json | null
+          storage_path?: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome?: string
+          tipo?: string
+          versao?: number
+          versao_do_gerador?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osg_apresentacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_permissions: {
         Row: {
           category: string
