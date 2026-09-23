@@ -89,7 +89,7 @@ planilha diz Área Líder = PSA Norte; Família Lunardi tem OSG na OS e PSA Sino
 o `cluster_id` diz qual área da PSA vendeu a OS, e a coluna H diz qual unidade toca o trabalho.
 
 Duas ressalvas antes de mexer aqui, e são sérias. `cliente_clusters` é a tabela que a RLS usa para recortar quem vê
-quem, e o `docs/rls/Divida_Tecnica_RLS_Eduardo.md` registra três policies `ALL` convivendo com o CRUD separado nela. E
+quem, e o `docs/tarefas-a-executar/2026_07_10_divida-tecnica-de-rls.md` registra três policies `ALL` convivendo com o CRUD separado nela. E
 PSA Sinop virar cluster tem a condição de a Equipe Sinop não perder TAX. O raio dessa coluna é maior que o das outras.
 
 ### 3.3. O bloco de governança, em tabela nova

@@ -11,7 +11,7 @@ Fontes consideradas:
 - `docs/sprints/sprint-12/planejamento_sprint_12.xlsx`;
 - `docs/sprints/sprint-12/CONTEXTO_TEMP_PLANEJAMENTO_SPRINT_12.md`;
 - `docs/sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md`;
-- `docs/sprints/sprint-11/TAREFA_notificacoes-coleta-documentos.md`;
+- `docs/tarefas-a-executar/2026_08_06_notificacoes-da-coleta-de-documentos.md`;
 - `docs/planos/notificacoes-osg-coleta-documentos.md`;
 - documentação de arquitetura do motor de documentos em `docs/osg/`;
 - estado atual da infraestrutura de notificações e geração documental no repositório.

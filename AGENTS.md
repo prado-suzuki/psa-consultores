@@ -137,11 +137,18 @@ Fonte: os ledgers em `docs/geral/refatoracao-*`. Siga estes padrões ao criar te
 - **Não deixe detritos:** remova hooks/funções que ficaram sem consumidor após a divisão; não deixe dead code "por garantia".
 
 ## 📂 ORGANIZAÇÃO DE DOCUMENTAÇÃO (.md que não é código)
-- **NUNCA** crie arquivos `.md` de plano/análise soltos na raiz do repositório. Toda documentação (planos, análises, roadmaps, design) vive em `docs/`, organizada por módulo:
-  - `docs/planos/` — planos de implementação (handoff)
-  - `docs/mapa/`, `docs/osg/`, `docs/rls/` — docs por módulo
-  - `docs/geral/` — transversais · `docs/sprints/` — sprints · `docs/AI_CONTEXT.md` — contexto-mestre
-- **Tarefa delegável para uma sprint:** salve em `docs/sprints/sprint-<N>/TAREFA_<slug>.md` e registre a linha no `README.md` da pasta da sprint (índice). Uma tarefa = um arquivo, com subtarefas numeradas (`T1`, `T2`, …), bugs achados (`B1`, …) e marcação explícita de **⚠️ MIGRAÇÃO** / **⚠️ MUDANÇA DE RPC** quando depender do Lovable. O plano de design/arquitetura longo continua em `docs/planos/` — a tarefa **linka**, não duplica.
+**O manual completo é [`docs/README.md`](docs/README.md).** Leia-o antes de criar `.md` ali; o resumo está abaixo.
+
+- **NUNCA** crie arquivos `.md` soltos na raiz do repositório **nem na raiz de `docs/`**. Lá vivem exatamente quatro arquivos — `README.md` (o manual), `INDICE-PLANOS.md`, `AI_CONTEXT.md` e `ambiente-de-desenvolvimento.md`. Qualquer outro `.md` solto ali está no lugar errado.
+- A pergunta que decide: **isto é trabalho que alguém vai pegar e fazer?**
+  - `docs/tarefas-a-executar/` — sim, e está pendente. **Só há trabalho pendente ali**
+  - `docs/tarefas-executadas/` — sim, mas já foi feito ou cancelado (histórico)
+  - `docs/sprints/` — **não guarda tarefa**: índice da sprint, planilhas de planejamento, relatórios de teste, documentos de contexto e a triagem
+  - `docs/planos/` — não: é desenho de como algo vai funcionar
+  - `docs/mapa/`, `docs/osg/`, `docs/rls/`, `docs/geral/` — não: decisão, medição, especificação ou texto em vigor, por módulo
+- **Plano não é tarefa.** Tarefa tem subtarefas numeradas (`T1`, `T2`, …) e critério de aceite. Documento que se declara "inventário" ou "análise" é **fonte** de tarefa: fica na pasta do módulo, e as tarefas que saem dele nascem em `docs/tarefas-a-executar/`.
+- **Tarefa nova nasce em `docs/tarefas-a-executar/<yyyy_mm_dd>_<slug>.md`**, com a data de **criação** no nome. Uma tarefa = um arquivo, com subtarefas numeradas (`T1`, `T2`, …), bugs achados (`B1`, …) e marcação explícita de **⚠️ MIGRAÇÃO** / **⚠️ MUDANÇA DE RPC** quando depender do Lovable. Registre a linha na tabela de `docs/tarefas-a-executar/README.md`. O plano de design/arquitetura longo continua em `docs/planos/` — a tarefa **linka**, não duplica.
+- **Ao entregar, mova o arquivo para `docs/tarefas-executadas/`** e atualize a linha nos dois índices, **no mesmo commit do código**. O nome não muda: a data é a de criação. Cancelada faz o mesmo caminho e ganha `_CANCELADA` no fim. `docs/tarefas-a-executar/` só contém trabalho que ainda falta fazer — é isso que permite abrir a pasta e confiar no que se vê.
 - Ao criar um novo plano/análise, salve direto na subpasta do módulo correspondente (crie `docs/<modulo>/` se ainda não existir). Não deixe soltos na raiz.
 
 ## 📂 REVELAÇÃO PROGRESSIVA (Leia estes arquivos se precisar de contexto específico)

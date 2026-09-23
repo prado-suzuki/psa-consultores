@@ -28,7 +28,7 @@ O feed não deve parecer uma coleção de cartões de dashboard nem uma tabela d
 
 ## 3. O que já existe e não pode regredir
 
-Estas decisões estão registradas em [`docs/checklist_melhorias_feed.md`](../checklist_melhorias_feed.md) e prevalecem sobre sugestões genéricas de UI:
+Estas decisões estão registradas em [`docs/tarefas-a-executar/2026_09_21_melhorias-do-feed.md`](../tarefas-a-executar/2026_09_21_melhorias-do-feed.md) e prevalecem sobre sugestões genéricas de UI:
 
 - O stream é único e cronológico, agrupado primeiro por dia e depois por origem.
 - A mesma origem pode reaparecer em blocos diferentes do mesmo dia.
@@ -425,7 +425,7 @@ Verificação manual no navegador:
 
 ## 15. Nota para a próxima sessão
 
-Começar lendo este arquivo e [`docs/checklist_melhorias_feed.md`](../checklist_melhorias_feed.md). Abrir a tela rodando antes de editar. A especificação pede uma mudança visual grande com mudança funcional mínima.
+Começar lendo este arquivo e [`docs/tarefas-a-executar/2026_09_21_melhorias-do-feed.md`](../tarefas-a-executar/2026_09_21_melhorias-do-feed.md). Abrir a tela rodando antes de editar. A especificação pede uma mudança visual grande com mudança funcional mínima.
 
 Se uma escolha de UI exigir alterar query key, filtro, paginação, mutation, marca de leitura, destino da fala ou estrutura persistida, ela saiu do escopo. Pare e trate como tarefa separada.
 

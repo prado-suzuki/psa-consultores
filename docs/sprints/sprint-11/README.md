@@ -2,11 +2,18 @@
 
 Índice das tarefas delegáveis desta sprint. Uma linha por tarefa; o detalhe (contexto, subtarefas Tn, aceite, referências de código) vive no arquivo `TAREFA_*.md` correspondente.
 
+> **Os arquivos de tarefa desta sprint não estão mais nesta pasta.** Desde a triagem de
+> 23/09/2026 eles moram em [`docs/tarefas-a-executar/`](../../tarefas-a-executar/README.md)
+> se ainda são trabalho, e em [`docs/tarefas-executadas/`](../../tarefas-executadas/README.md)
+> se já foram entregues ou cancelados. Os links desta tabela já apontam para lá. Esta pasta
+> guarda o **registro da sprint**: este índice, as planilhas de planejamento e os documentos
+> de contexto. A regra está no [manual do `docs/`](../../README.md).
+
 | Tarefa | Escopo | Banco? | Status |
 |---|---|---|---|
-| [Notificações da coleta de documentos (OSG · P1)](TAREFA_notificacoes-coleta-documentos.md) | 15 avisos (cliente, time e gestor), em 4 entregas: sino, botão de solicitar, aprovar/recusar, varredura. O "como" é do tech lead. | Sim — 5 dos 15 avisos dependem de campo novo (marcados na tarefa) | A fazer |
-| [Correções do fluxo de geração de contrato (OSG)](TAREFA_correcoes-e2e-geracao-contrato.md) | 21 bugs achados no teste e2e do caso MMS: 7 vermelhos e 14 amarelos. B7 continua bloqueada por decisão de produto; as demais raias foram integradas com testes generalizados. | Sim — migrations de identidade da matrícula, conteúdo dos blocos, vínculos de pessoa e preservação de nomes aguardam aplicação pelo Lovable | Em validação — falta aplicar migrations e reexecutar o e2e |
-| [Parcelamento da OS: nº de parcelas, entrada e valor da parcela](TAREFA_os-parcelamento-valor-projeto.md) | Valor do Projeto passa a ser o total do contrato; entram nº de parcelas e entrada, com o valor da parcela calculado na tela. Vem da conferência da planilha de contas a receber. | Sim — duas colunas novas em `ordem_servico` (migração `20260814170000`, escrita) | Tela e migração prontas — aguardando aplicação pelo Lovable |
+| [Notificações da coleta de documentos (OSG · P1)](../../tarefas-a-executar/2026_08_06_notificacoes-da-coleta-de-documentos.md) | 15 avisos (cliente, time e gestor), em 4 entregas: sino, botão de solicitar, aprovar/recusar, varredura. O "como" é do tech lead. | Sim — 5 dos 15 avisos dependem de campo novo (marcados na tarefa) | A fazer |
+| [Correções do fluxo de geração de contrato (OSG)](../../tarefas-executadas/2026_08_11_correcoes-e2e-de-geracao-de-contrato.md) | 21 bugs achados no teste e2e do caso MMS: 7 vermelhos e 14 amarelos. B7 continua bloqueada por decisão de produto; as demais raias foram integradas com testes generalizados. | Sim — migrations de identidade da matrícula, conteúdo dos blocos, vínculos de pessoa e preservação de nomes aguardam aplicação pelo Lovable | Em validação — falta aplicar migrations e reexecutar o e2e |
+| [Parcelamento da OS: nº de parcelas, entrada e valor da parcela](../../tarefas-executadas/2026_08_13_parcelamento-da-os-e-valor-do-projeto.md) | Valor do Projeto passa a ser o total do contrato; entram nº de parcelas e entrada, com o valor da parcela calculado na tela. Vem da conferência da planilha de contas a receber. | Sim — duas colunas novas em `ordem_servico` (migração `20260814170000`, escrita) | Tela e migração prontas — aguardando aplicação pelo Lovable |
 
 ## Como usar esta pasta
 

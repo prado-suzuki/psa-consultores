@@ -42,6 +42,25 @@ executado, ou reexecutar algo que foi revertido de propósito, é o desperdício
 
 Ao fechar uma frente, mude a linha dela no índice **no mesmo commit** do código.
 
+## Onde cada arquivo de `docs/` mora
+
+O manual é `docs/README.md`, e ele responde num quadro só. A regra mais fácil de conferir:
+**a raiz de `docs/` tem exatamente quatro arquivos** — `README.md`, `INDICE-PLANOS.md`,
+`AI_CONTEXT.md` e `ambiente-de-desenvolvimento.md`. Qualquer outro `.md` solto ali está errado.
+
+## Onde nasce e onde morre uma tarefa
+
+Tarefa nova vai em `docs/tarefas-a-executar/<yyyy_mm_dd>_<slug>.md` — data de **criação** no nome — e ganha
+linha em `docs/tarefas-a-executar/README.md`. Essa pasta contém **só trabalho que falta fazer**: ao
+entregar, mova o arquivo para `docs/tarefas-executadas/` e atualize os dois índices no mesmo
+commit do código. `docs/sprints/` não guarda tarefa nenhuma. Quem abre `docs/tarefas-a-executar/` está procurando o que fazer, e precisa poder confiar em tudo
+que vê lá. O detalhe está no `AGENTS.md`, §"ORGANIZAÇÃO DE DOCUMENTAÇÃO".
+
+Antes de dar uma tarefa por pendente em produção, **confira no banco** (MCP do Lovable, só
+SELECT). Na triagem de 23/09/2026 seis linhas de índice estavam erradas nesse ponto: cinco
+tarefas de banco já tinham sido aplicadas em produção pelo chat do Lovable, que não deixa rastro
+no repositório.
+
 ## Qual banco esta na sua frente
 
 Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na secao

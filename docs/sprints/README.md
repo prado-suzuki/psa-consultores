@@ -1,15 +1,37 @@
-# Relatórios de teste por tarefa de sprint
+# Registro das sprints
 
-Um arquivo por tarefa. Passos numerados `T1`, `T2`, … e bugs numerados `B1`, `B2`, … no próprio
-arquivo, para poderem ser citados na tarefa e nas correções.
+O que cada sprint planejou, testou e decidiu. **Arquivo de tarefa não mora aqui** — ver a seção
+abaixo. Cada `sprint-<N>/` tem o índice da sprint, as planilhas de planejamento e os documentos
+de contexto que nasceram nela.
+
+## Relatórios de teste
+
+Um arquivo por frente testada, com passos numerados `T1`, `T2`, … e bugs numerados `B1`, `B2`, …,
+para poderem ser citados na tarefa e nas correções.
 
 - [`ale-31-teste-integracao-fluxo-solicitacao.md`](./ale-31-teste-integracao-fluxo-solicitacao.md) —
   **Sprint 10.** Fluxo de solicitação de documentos ponta a ponta, do consultor ao cliente e de volta,
   sobre OS real em dev. 8 passos e 4 bordas. 3 bugs: portal do cliente ignora o status da solicitação
   (funcional), `documento_arquivo.solicitacao_id` nunca preenchido, lista vazia não convida a gerar da OS.
 
+## Esta pasta não guarda tarefa
+
+Desde 23/09/2026, arquivo de tarefa mora em duas pastas e só nelas:
+
+- [`docs/tarefas-a-executar/`](../tarefas-a-executar/README.md) — o que falta fazer.
+- [`docs/tarefas-executadas/`](../tarefas-executadas/README.md) — o que foi entregue ou cancelado.
+
+`sprints/` guarda o **registro da sprint**, que não é tarefa: o índice de cada uma, as planilhas
+de planejamento, os relatórios de teste, os documentos de contexto (análises, notas de decisão,
+validações de redação) e a triagem. As regras completas estão no [manual do `docs/`](../README.md).
+
+A apuração que separou uma coisa da outra está em
+[`TRIAGEM-DE-TAREFAS-2026-09-23.md`](./TRIAGEM-DE-TAREFAS-2026-09-23.md): 42 documentos de tarefa
+varridos, 28 pendentes, 16 encerrados, e os 6 status que o banco de produção desmentiu.
+
 ## Importar tarefas no backlog
 
+O arquivo já curado para importar é [`docs/tarefas-a-executar/PARA-O-BACKLOG.md`](../tarefas-a-executar/PARA-O-BACKLOG.md).
 O botão **Importar tarefas** em `/equipe/backlog` lê arquivos `.md` (vários de uma vez) e mostra
 cada tarefa numa tela de revisão antes de gravar. Nada entra no backlog sem confirmação.
 

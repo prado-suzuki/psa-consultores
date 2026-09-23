@@ -1,6 +1,6 @@
 # Ledger — Refatoração camada de dados (T4 → T5 → T6)
 
-**Fonte:** `docs/geral/reducao-custo-ia-tarefas.md` (T4/T5/T6)
+**Fonte:** `docs/tarefas-a-executar/2026_07_13_reducao-de-custo-de-ia-no-repositorio.md` (T4/T5/T6)
 **Regra base:** `AGENTS.md` §"REGRAS INEGOCIÁVEIS" nº1 — nenhuma chamada `supabase.from/rpc` em `src/pages`/`src/components`.
 **Gerado (Fase 0):** inventário inicial de linha única, complementado na Onda 4 por busca multiline.
 **Aceite T4:** busca multiline por `supabase\s*\.\s*(from|rpc)\s*\(` em `src/pages`/`src/components` = 0 fora dos testes e da Fase 2.
