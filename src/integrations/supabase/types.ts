@@ -47,47 +47,6 @@ export type Database = {
         }
         Relationships: []
       }
-      acordo_ordem_preferencia: {
-        Row: {
-          acordo_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          ordem: number
-          quem: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          acordo_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          ordem?: number
-          quem: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          acordo_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          ordem?: number
-          quem?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "acordo_ordem_preferencia_acordo_id_fkey"
-            columns: ["acordo_id"]
-            isOneToOne: false
-            referencedRelation: "acordo_quotistas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       acordo_quorum: {
         Row: {
           acordo_id: string
