@@ -408,7 +408,7 @@ const BotaoDeOrdem = ({
   const Seta = !ativo ? ArrowUpDown : ascendente ? ArrowUp : ArrowDown;
   return (
     <ButtonTooltip text={titulo}>
-      <button aria-label={titulo}
+      <button
       type="button"
       onClick={onClick}
       className={cn(

@@ -84,7 +84,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
 
   // A barra de clientes e a marca de não lido saem do mesmo controlador: a
   // barra diz quais clientes têm fala nova, o stream marca quais falas são.
-  const atividade = useAtividadeDoFeedController(filtros);
+  const atividade = useAtividadeDoFeedController();
 
   /**
    * Dois agrupamentos encadeados: o dia por fora, a conversa por dentro. O de
@@ -149,7 +149,6 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   area={area}
                   vistoAte={atividade.carimbos.get(conversa.itens[0].project_id)?.vistoAte ?? null}
                   meuId={atividade.meuId}
-                  registrarLeitura={atividade.registrarBloco}
                   respondendoA={respondendoA}
                   idEmRealce={idEmRealce}
                   onResponder={setRespondendoA}

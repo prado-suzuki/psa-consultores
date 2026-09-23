@@ -3,6 +3,7 @@ import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
 import TaxWorkIcon from '@/components/equipe/fiscal/TaxWorkIcon';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
@@ -212,15 +213,17 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
       >
         {/* `max-md:hidden`: na gaveta quem abre é o hambúrguer do cabeçalho e
             quem fecha é o fundo escuro — aqui o botão pousaria fora da tela. */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
-          onClick={() => setCollapsed(!collapsed)}
-          title={trilho ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </Button>
+        <ButtonTooltip text={trilho ? 'Expandir menu' : 'Recolher menu'} side="right">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={trilho ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          </Button>
+        </ButtonTooltip>
 
         <aside className="h-full w-full border-r border-border/60 bg-card flex flex-col overflow-x-hidden overflow-y-auto scrollbar-hide">
             {/* Cabeçalho. No trilho sobra um SELO, que esta barra não tinha: o
@@ -279,19 +282,19 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                 tira o ícone do centro.
               */}
               {navItems.map((item) => (
-                <button
-                  key={item.path}
-                  type="button"
-                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
-                  onClick={() => navigate(item.path)}
-                  title={trilho ? item.label : undefined}
-                  aria-label={trilho ? item.label : undefined}
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
-                    {item.label}
-                  </span>
-                </button>
+                <ButtonTooltip key={item.path} text={trilho ? item.label : undefined} side="right">
+                  <button
+                    type="button"
+                    className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
+                    onClick={() => navigate(item.path)}
+                    aria-label={trilho ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
+                      {item.label}
+                    </span>
+                  </button>
+                </ButtonTooltip>
               ))}
 
               <GrupoDaBarra
@@ -339,19 +342,19 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
               />
 
               {navItemsAfterGroups.map((item) => (
-                <button
-                  key={item.path}
-                  type="button"
-                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
-                  onClick={() => navigate(item.path)}
-                  title={trilho ? item.label : undefined}
-                  aria-label={trilho ? item.label : undefined}
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
-                    {item.label}
-                  </span>
-                </button>
+                <ButtonTooltip key={item.path} text={trilho ? item.label : undefined} side="right">
+                  <button
+                    type="button"
+                    className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
+                    onClick={() => navigate(item.path)}
+                    aria-label={trilho ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
+                      {item.label}
+                    </span>
+                  </button>
+                </ButtonTooltip>
               ))}
 
               <GrupoDaBarra
@@ -383,18 +386,20 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                   nome. O componente compartilhado traz os dois de graca. */}
               <SidebarCartaoUsuario area="dev" collapsed={trilho} />
 
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
-                  trilho ? 'justify-center px-2' : 'justify-start px-3',
-                )}
-                onClick={() => navigate('/equipe/tax')}
-                title={trilho ? 'Voltar para Tax' : undefined}
-              >
-                <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
-                {!trilho && 'Voltar para Tax'}
-              </Button>
+              <ButtonTooltip text={trilho ? 'Voltar para Tax' : undefined} side="right">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
+                    trilho ? 'justify-center px-2' : 'justify-start px-3',
+                  )}
+                  onClick={() => navigate('/equipe/tax')}
+                  aria-label={trilho ? 'Voltar para Tax' : undefined}
+                >
+                  <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                  {!trilho && 'Voltar para Tax'}
+                </Button>
+              </ButtonTooltip>
 
             </div>
         </aside>
@@ -478,22 +483,22 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                 pelo mesmo registro que o catálogo usa, então o botão nasce no
                 mesmo lugar em toda ferramenta que tenha manual. */}
             {manualDestaTela && (
-              <Button variant="outline" size="sm" asChild className="gap-1.5">
-                <a
-                  href={manualDestaTela}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Acessar manual"
-                  title="Acessar manual"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  {/* O rótulo some no estreito e o botão vira só ícone. O nome
-                      continua chegando por `aria-label` e por `title`, então nem
-                      o leitor de tela nem o mouse perdem a informação. */}
-                  <span className="hidden sm:inline">Acessar manual</span>
-                  <ExternalLink className="hidden h-3.5 w-3.5 sm:inline" />
-                </a>
-              </Button>
+              <ButtonTooltip text="Acessar manual">
+                <Button variant="outline" size="sm" asChild className="gap-1.5">
+                  <a
+                    href={manualDestaTela}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Acessar manual"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {/* O rótulo some no estreito e o botão vira só ícone; o nome
+                        segue no `aria-label` e no tooltip. */}
+                    <span className="hidden sm:inline">Acessar manual</span>
+                    <ExternalLink className="hidden h-3.5 w-3.5 sm:inline" />
+                  </a>
+                </Button>
+              </ButtonTooltip>
             )}
             {/* SEM espelho: "chamados dos clientes desta área" não se aplica ao
                 Digital, que não tem clientes. Ver o bloco `ESPELHO` em

@@ -54,7 +54,7 @@ class EnvioDesfeito extends Error {}
  * do rodapé o tempo todo por uma escolha que só importa no instante de gravar.
  * Agora a ordem é a da conversa: escreve, Enter, cliente, projeto, publicado,
  * tudo no teclado (ver `EscolherDestinoDaFala`). Se o "@" já perguntou o destino
- * desta fala, o Enter publica sem perguntar de novo.
+ * desta fala, ou o feed está filtrado num projeto, o Enter publica sem perguntar.
  *
  * A gravação não é reimplementada: é a mesma mutation da thread
  * (`useDomainOrgComments.createComment`), que já cuida de upload de anexo, RPC
@@ -208,8 +208,13 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
         mentionCandidates={mentionCandidates}
         aoMencionarSemGente={destinoParaMencionar}
         onSubmit={async (body, files, mencoes) => {
+          // Projeto no filtro já é o destino: perguntar de novo seria repetir o recorte.
           const escolhido =
-            destinoEscolhidoNaMencao.current && alvo ? destino : await pedirDestino('publicar');
+            destinoEscolhidoNaMencao.current && alvo
+              ? destino
+              : filtros.projetoId
+                ? destinoDosFiltros(filtros, projetos)
+                : await pedirDestino('publicar');
           // Desistiu no modal: o `CommentComposer` guarda o rascunho porque o
           // `onSubmit` não chegou ao fim.
           if (!escolhido) throw new EnvioDesfeito();
@@ -281,6 +286,7 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
         aberto={escolhendoDestino}
         motivo={motivoDoModal}
         inicial={destino}
+        clienteDoRecorte={filtros.clienteId}
         clientes={clientes}
         projetos={projetos}
         onEscolher={responderModal}

@@ -99,7 +99,7 @@ const FILA_DO_BRANCO = {
    */
   veuSobreEscuro: {
     'src/components/dashboard/momentum/HeroBanner.tsx': 1,
-    'src/components/equipe/sprint-detalhes/DeliverableDialogs.tsx': 1,
+    'src/components/equipe/sprint-detalhes/tarefaModalVisual.tsx': 1,
   },
 
   /**

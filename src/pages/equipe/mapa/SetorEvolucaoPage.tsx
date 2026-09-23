@@ -247,7 +247,7 @@ export default function SetorEvolucaoPage() {
         </div>
         <button className="dashv2-filter-clear" onClick={limparFiltros}>Limpar</button>
         <ButtonTooltip text="Exportar relatório (usa Imprimir do navegador)">
-          <button aria-label="Exportar relatório (usa Imprimir do navegador)"
+          <button
           className="dashv2-filter-clear"
           onClick={handleExportarPdf}
           style={{ background: 'hsl(var(--primary))', color: 'white' }}

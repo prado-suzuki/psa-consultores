@@ -241,7 +241,7 @@ export default function ProcessosPage() {
       style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
     >
       <ButtonTooltip text={aberto ? 'Recolher processos' : 'Expandir processos'}>
-        <button aria-label={aberto ? 'Recolher processos' : 'Expandir processos'}
+        <button
         type="button"
         onClick={() => toggleGrupo(pid)}
         aria-expanded={aberto}
@@ -377,7 +377,7 @@ export default function ProcessosPage() {
           </div>
           <div className="cadastro-tags" data-tour="processos-tags">
             <ButtonTooltip text="Mostrar todos os processos">
-              <button aria-label="Mostrar todos os processos"
+              <button
               type="button"
               className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'todos'}
@@ -387,7 +387,7 @@ export default function ProcessosPage() {
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Filtrar só os processos mapeados">
-              <button aria-label="Filtrar só os processos mapeados"
+              <button
               type="button"
               className={`cadastro-tag cadastro-tag-ok${fMapeado === 'mapeados' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'mapeados'}
@@ -397,7 +397,7 @@ export default function ProcessosPage() {
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Filtrar só os que faltam mapear">
-              <button aria-label="Filtrar só os que faltam mapear"
+              <button
               type="button"
               className={`cadastro-tag cadastro-tag-warn${fMapeado === 'faltam' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'faltam'}

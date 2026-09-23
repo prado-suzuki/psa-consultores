@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
+import { dicaDe } from '@/test/dica';
 
 // Radix (Progress/DropdownMenu) usa APIs de pointer ausentes no jsdom.
 Object.defineProperties(Element.prototype, {
@@ -448,14 +449,15 @@ describe('ProjetosTarefasList — o texto inteiro da coluna Nome', () => {
     renderComTarefaLonga();
 
     // A OS aparece fechada; as outras duas linhas pedem a árvore aberta.
-    expect(screen.getByTitle('035/2026 - CC — Consultoria contábil, CHA — Canal de chamados')).toBeInTheDocument();
+    const os = '035/2026 - CC — Consultoria contábil, CHA — Canal de chamados';
+    expect(dicaDe(screen.getByText(os))).toBe(os);
     fireEvent.click(screen.getByLabelText('Expandir OS'));
-    // O tooltip do projeto já existia, e é o único que mostra coisa diferente
-    // do texto da linha: ali se lê o nome inteiro, não o encurtado.
-    expect(screen.getByTitle('Projeto Alfa')).toBeInTheDocument();
+    // O do projeto é o único que mostra coisa diferente do texto da linha: ali se
+    // lê o nome inteiro, não o encurtado.
+    expect(dicaDe(screen.getByRole('button', { name: 'Projeto Alfa' }))).toBe('Projeto Alfa');
     fireEvent.click(screen.getByLabelText('Expandir projeto'));
-    expect(screen.getByTitle(tituloLongo)).toBeInTheDocument();
-    expect(screen.getByTitle('Monica Matunaga')).toBeInTheDocument();
+    expect(dicaDe(screen.getByRole('button', { name: tituloLongo }))).toBe(tituloLongo);
+    expect(dicaDe(screen.getByText('Monica Matunaga'))).toBe('Monica Matunaga');
   });
 });
 
@@ -672,7 +674,7 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
 
     const titulo = screen.getByRole('button', { name: 'Tarefa da lista' });
     expect(titulo.className).toContain('line-clamp-2');
-    expect(titulo).toHaveAttribute('title', 'Tarefa da lista');
+    expect(dicaDe(titulo)).toBe('Tarefa da lista');
   });
 });
 

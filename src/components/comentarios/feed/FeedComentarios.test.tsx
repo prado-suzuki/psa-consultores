@@ -28,7 +28,8 @@ vi.mock('@/hooks/useAtividadeDoFeedController', () => ({
   useAtividadeDoFeedController: () => ({
     carimbos: new Map(),
     meuId: 'EU',
-    registrarBloco: vi.fn(),
+    lerCliente: vi.fn(),
+    lerProjeto: vi.fn(),
   }),
 }));
 vi.mock('@/hooks/useDomainOrgComments', () => ({

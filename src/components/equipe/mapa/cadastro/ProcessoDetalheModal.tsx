@@ -113,17 +113,17 @@ export default function ProcessoDetalheModal({
           <div className="processo-det-export" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
             <span style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))', marginRight: 2 }}>Exportar</span>
             <ButtonTooltip text="SOP em PDF (cenário atual)">
-              <button aria-label="SOP em PDF (cenário atual)" type="button" className="btn-cancel" onClick={() => exports.exportSopPdf(pid, 'era')}>
+              <button type="button" className="btn-cancel" onClick={() => exports.exportSopPdf(pid, 'era')}>
               <FileText size={14} /> SOP (PDF)
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="SOP em Markdown — mesmo conteúdo do PDF (ideal para refinar o mapeamento)">
-              <button aria-label="SOP em Markdown — mesmo conteúdo do PDF (ideal para refinar o mapeamento)" type="button" className="btn-cancel" onClick={() => exports.exportSopMd(pid, 'era')}>
+              <button type="button" className="btn-cancel" onClick={() => exports.exportSopMd(pid, 'era')}>
               <FileCode2 size={14} /> SOP (MD)
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Diagrama do processo (.mmd)">
-              <button aria-label="Diagrama do processo (.mmd)" type="button" className="btn-cancel" onClick={() => exports.exportDiagramaMmd(pid)}>
+              <button type="button" className="btn-cancel" onClick={() => exports.exportDiagramaMmd(pid)}>
               <Network size={14} /> Diagrama (.mmd)
             </button>
             </ButtonTooltip>

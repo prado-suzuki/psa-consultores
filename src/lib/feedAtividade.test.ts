@@ -10,12 +10,10 @@ import {
   ehNaoLida,
   NOME_SEM_CLIENTE,
   partirPorNovidade,
-  podeCarimbar,
   rotuloDeAtualizacoes,
   rotuloDeNovas,
   type LinhaDeAtividade,
 } from '@/lib/feedAtividade';
-import { FILTROS_VAZIOS } from '@/lib/feedFiltros';
 
 const linha = (parcial: Partial<LinhaDeAtividade>): LinhaDeAtividade => ({
   client_id: 'cli-1',
@@ -161,24 +159,6 @@ describe('ehNaoLida', () => {
     expect(
       ehNaoLida({ created_at: '2026-09-20T00:00:00.000Z', author_id: 'outra' }, undefined, 'eu'),
     ).toBe(false);
-  });
-});
-
-describe('podeCarimbar', () => {
-  it('carimba o feed do dia, com ou sem filtro de cliente', () => {
-    expect(podeCarimbar(FILTROS_VAZIOS)).toBe(true);
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, clienteId: 'cli-1' })).toBe(true);
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, projetoId: 'p1', apenasMencoes: true })).toBe(true);
-  });
-
-  it('não carimba quem está procurando coisa velha', () => {
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, busca: 'balancete' })).toBe(false);
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, periodo: '30d' })).toBe(false);
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, apenasAnexos: true })).toBe(false);
-  });
-
-  it('espaço solto no campo de busca não desliga o carimbo', () => {
-    expect(podeCarimbar({ ...FILTROS_VAZIOS, busca: '   ' })).toBe(true);
   });
 });
 

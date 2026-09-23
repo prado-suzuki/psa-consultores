@@ -1,5 +1,3 @@
-import type { FeedFiltros } from '@/lib/feedFiltros';
-
 /**
  * Regras puras da barra de atividade do feed.
  *
@@ -179,15 +177,6 @@ export function ehNaoLida(
   if (!vistoAte) return false;
   if (meuId && comentario.author_id === meuId) return false;
   return comentario.created_at > vistoAte;
-}
-
-/**
- * Com busca, período ou "só anexos" ligados a pessoa procura coisa velha, não
- * lê o dia: carimbar apagaria novidade que ela nem viu, e o carimbo não volta
- * atrás. Cliente e projeto não desligam, porque filtrar e ler é exatamente ler.
- */
-export function podeCarimbar(filtros: FeedFiltros): boolean {
-  return filtros.periodo === 'sempre' && filtros.busca.trim() === '' && !filtros.apenasAnexos;
 }
 
 /** "1 atualização" / "12 atualizações", para a linha do cliente sem novidade. */

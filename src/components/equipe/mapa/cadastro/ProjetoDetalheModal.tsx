@@ -120,7 +120,7 @@ export default function ProjetoDetalheModal({
           </div>
           <div className="processo-det-acoes">
             <ButtonTooltip text="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)">
-              <button aria-label="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)" className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)}>
+              <button className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)}>
               <FileArchive size={15} strokeWidth={2.2} />
               <span>Exportar projeto (.zip)</span>
             </button>

@@ -110,7 +110,7 @@ export const PromptInputBox = React.forwardRef<HTMLTextAreaElement, PromptInputB
               const Icone = m.icon;
               return (
                 <ButtonTooltip key={m.value} text={m.descricao ?? m.label}>
-                  <button aria-label={m.descricao ?? m.label}
+                  <button
                  
                   type="button"
                   aria-pressed={ativo}

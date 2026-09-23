@@ -162,7 +162,7 @@ export default function ProjetosPage() {
           </label>
           <div className="cadastro-tags" data-tour="projetos-tags">
             <ButtonTooltip text="Mostrar todos os projetos">
-              <button aria-label="Mostrar todos os projetos"
+              <button
               type="button"
               className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'todos'}
@@ -172,7 +172,7 @@ export default function ProjetosPage() {
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Filtrar só os projetos com processos mapeados">
-              <button aria-label="Filtrar só os projetos com processos mapeados"
+              <button
               type="button"
               className={`cadastro-tag cadastro-tag-ok${fMapeado === 'mapeados' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'mapeados'}
@@ -182,7 +182,7 @@ export default function ProjetosPage() {
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Filtrar só os projetos que faltam mapear">
-              <button aria-label="Filtrar só os projetos que faltam mapear"
+              <button
               type="button"
               className={`cadastro-tag cadastro-tag-warn${fMapeado === 'faltam' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'faltam'}

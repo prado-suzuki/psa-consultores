@@ -107,15 +107,6 @@ describe('FeedGrupoOrigem: cabeçalho', () => {
     renderizar([resposta, raiz]);
     expect(screen.queryByText(/novas?$/)).not.toBeInTheDocument();
   });
-
-  it('carimba a leitura até a fala mais nova do bloco', () => {
-    const registrarLeitura = vi.fn();
-    renderizar([resposta, raiz], { registrarLeitura });
-
-    const bloco = screen.getByRole('article');
-    expect(bloco).toHaveAttribute('data-leitura', 'P1|2026-09-22T13:00:00.000Z');
-    expect(registrarLeitura).toHaveBeenCalledWith(bloco);
-  });
 });
 
 describe('FeedGrupoOrigem: threads', () => {

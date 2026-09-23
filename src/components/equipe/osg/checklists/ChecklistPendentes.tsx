@@ -266,7 +266,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             const total = value === 'todos' ? gruposFiltrados.length : contagemPorCategoria.get(value) ?? 0;
             return (
               <ButtonTooltip key={value} text={`${total} ${substantivo} com documentos nesta solicitação.`}>
-                <button aria-label={`${total} ${substantivo} com documentos nesta solicitação.`}
+                <button
                
                 type="button"
                 onClick={() => {
@@ -295,7 +295,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               const ativo = filtroStatus === value;
               return (
                 <ButtonTooltip key={value} text={dica}>
-                  <button aria-label={dica}
+                  <button
                  
                   type="button"
                   onClick={() => setFiltroStatus(value)}
@@ -574,7 +574,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
     <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
       {visiveis.map((estado) => (
         <ButtonTooltip key={estado} text={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}>
-          <button aria-label={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
+          <button
          
           type="button"
           onClick={() => onEscolher(estado)}

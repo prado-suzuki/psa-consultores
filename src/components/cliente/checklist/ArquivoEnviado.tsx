@@ -51,7 +51,7 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         </span>
         {!aprovado && !somenteLeitura && (
           <ButtonTooltip text="Remove este arquivo do envio. Você pode mandar outro no lugar.">
-            <button aria-label="Remove este arquivo do envio. Você pode mandar outro no lugar."
+            <button
             type="button"
             onClick={() => onRemover(arquivo)}
             className={cn(

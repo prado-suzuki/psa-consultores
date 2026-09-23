@@ -221,7 +221,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                       onCheckedChange={() => props.onSubtaskStatusChange(subtask)}
                     />
                     <ButtonTooltip text="Abrir subtarefa (para lançar horas realizadas)">
-                      <button aria-label="Abrir subtarefa (para lançar horas realizadas)"
+                      <button
                       type="button"
                       onClick={() => props.onOpenSubtask(subtask)}
                       className="flex-1 text-left cursor-pointer hover:underline"

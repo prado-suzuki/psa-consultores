@@ -272,7 +272,7 @@ export default function DocumentosPage() {
       style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
     >
       <ButtonTooltip text={aberto ? 'Recolher documentos' : 'Expandir documentos'}>
-        <button aria-label={aberto ? 'Recolher documentos' : 'Expandir documentos'}
+        <button
         type="button"
         onClick={() => toggleGrupo(projId)}
         aria-expanded={aberto}

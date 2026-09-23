@@ -54,7 +54,7 @@ function TabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtitulo: s
     <div className="mapear-tab-head">
       <div className="mapear-tab-head-txt"><h3 className="mapear-tab-titulo">{titulo}</h3><p className="mapear-tab-sub">{subtitulo}</p></div>
       <ButtonTooltip text="Abrir o editor de etapas">
-        <button aria-label="Abrir o editor de etapas" className="cadastro-cta" onClick={onEditar}><Pencil size={15} strokeWidth={2.2} /><span>Editar etapas</span></button>
+        <button className="cadastro-cta" onClick={onEditar}><Pencil size={15} strokeWidth={2.2} /><span>Editar etapas</span></button>
       </ButtonTooltip>
     </div>
   );

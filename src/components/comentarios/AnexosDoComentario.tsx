@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUrlDaImagemDoAnexo, type OrgCommentAttachment } from '@/hooks/useDomainOrgComments';
@@ -85,26 +86,27 @@ function Miniatura({
   }, [isError, onFalhou]);
 
   return (
-    <button
-      type="button"
-      onClick={onAbrir}
-      title={anexo.file_name}
-      aria-label={`Ver a imagem ${anexo.file_name}`}
-      className="relative block max-w-full overflow-hidden rounded-md border bg-muted/40 transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      style={{ width: largura, aspectRatio: `${largura} / ${altura}` }}
-    >
-      {!carregou && <Skeleton className="absolute inset-0 rounded-none" />}
-      {url && (
-        <img
-          src={url}
-          alt={anexo.file_name}
-          loading="lazy"
-          onLoad={() => setCarregou(true)}
-          onError={onFalhou}
-          className="h-full w-full object-cover"
-        />
-      )}
-    </button>
+    <ButtonTooltip text={anexo.file_name}>
+      <button
+        type="button"
+        onClick={onAbrir}
+        aria-label={`Ver a imagem ${anexo.file_name}`}
+        className="relative block max-w-full overflow-hidden rounded-md border bg-muted/40 transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        style={{ width: largura, aspectRatio: `${largura} / ${altura}` }}
+      >
+        {!carregou && <Skeleton className="absolute inset-0 rounded-none" />}
+        {url && (
+          <img
+            src={url}
+            alt={anexo.file_name}
+            loading="lazy"
+            onLoad={() => setCarregou(true)}
+            onError={onFalhou}
+            className="h-full w-full object-cover"
+          />
+        )}
+      </button>
+    </ButtonTooltip>
   );
 }
 
