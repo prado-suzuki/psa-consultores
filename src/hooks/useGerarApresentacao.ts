@@ -3,9 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 
-// Decks da apresentação PSA (segue a separação do pptx original).
+/** Os decks que a `gerar-apresentacao` monta. */
 export type DeckDaApresentacao = 'patrimonial' | 'societaria';
-export type DeckTipo = 'ambas' | DeckDaApresentacao;
 
 /**
  * Um deck que o servidor gerou, gravou e devolveu por URL assinada.
@@ -25,9 +24,7 @@ export interface ArquivoGerado {
   versao: number;
 }
 
-// Contrato com a Edge Function `gerar-apresentacao` (Deno):
-//   body → { clienteId: string; tipo: DeckTipo }
-//   resp → { arquivos: ArquivoGerado[], erros?, problemas? }
+// Contrato com a `gerar-apresentacao`: body { clienteId, tipos } → { arquivos, erros?, problemas? }.
 const EDGE_FN = 'gerar-apresentacao';
 
 /**
@@ -106,13 +103,14 @@ export function useGerarApresentacao(clienteId: string | null) {
   const { logAction } = useAuditLog();
 
   const mutation = useMutation({
-    mutationFn: async (tipo: DeckTipo): Promise<ResultadoDosDecks> => {
+    /* A lista do que foi marcado: com três decks, um `tipo` só mandaria um. */
+    mutationFn: async (tipos: readonly DeckDaApresentacao[]): Promise<ResultadoDosDecks> => {
       if (!clienteId) return { arquivos: [], erro: 'nenhum cliente selecionado' };
       const { data, error } = await supabase.functions.invoke<{
         arquivos: ArquivoGerado[];
         erros?: ErroDeDeck[];
         problemas?: ProblemaDoDeck[];
-      }>(EDGE_FN, { body: { clienteId, tipo } });
+      }>(EDGE_FN, { body: { clienteId, tipos } });
       if (error) {
         return {
           arquivos: [],

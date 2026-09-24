@@ -139,8 +139,5 @@ export const viraSlide = (p: PecaDaBiblioteca): boolean => p.deck !== null || p.
 /** Tudo que vira slide — pelo botão de cima ou pelos controles da própria tela. */
 export const PECAS_DE_SLIDE = PECAS_DA_BIBLIOTECA.filter(viraSlide);
 
-/** As que o botão único de cima alcança: os decks da apresentação da OSG. */
-export const PECAS_COM_DECK = PECAS_DA_BIBLIOTECA.filter((p) => p.deck !== null);
-
 /** As que ficam na tela e não viram slide nenhum. */
 export const PECAS_SO_DE_TELA = PECAS_DA_BIBLIOTECA.filter((p) => !viraSlide(p));

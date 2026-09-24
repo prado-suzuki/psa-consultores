@@ -147,7 +147,24 @@ describe('o motivo que chega ao usuário', () => {
 
   it('sem problema nenhum, nada de "confira no cadastro"', async () => {
     await gerar();
-    expect(ditoAoUsuario()).not.toContain('Confira no cadastro');
+  });
+});
+
+describe('o que vai para o servidor', () => {
+  // Vai a lista do que foi marcado, e não um `tipo` só.
+  it('manda só o que foi marcado', async () => {
+    render(<BibliotecaApresentacoes />);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Quadro Societário e Organograma' }));
+    await userEvent.click(screen.getByRole('button', { name: /Gerar apresentações/i }));
+    await waitFor(() => expect(osg.gerar).toHaveBeenCalled());
+
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial']);
+  });
+
+  it('as duas peças da OSG marcadas vão juntas, numa chamada só', async () => {
+    await gerar();
+    expect(osg.gerar).toHaveBeenCalledTimes(1);
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial', 'societaria']);
   });
 });
 

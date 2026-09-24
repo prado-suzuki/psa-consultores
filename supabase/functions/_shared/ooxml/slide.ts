@@ -119,3 +119,11 @@ export function removeSlide(parts: PptxParts, path: string): void {
     writeText(parts, presPath, pres.replace(new RegExp(`<p:sldId[^/>]*r:id="${rid}"[^/>]*/>`, "g"), ""));
   }
 }
+
+/** O slide do molde que traz o token, ou `null`. Le sem as tags, porque o PowerPoint parte token em runs. */
+export function slideDoToken(parts: PptxParts, token: string): string | null {
+  for (const sp of listPaths(parts, "ppt/slides/slide", ".xml")) {
+    if (readText(parts, sp).replace(/<[^>]+>/g, "").includes(`{{${token}}}`)) return sp;
+  }
+  return null;
+}

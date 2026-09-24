@@ -43,7 +43,7 @@ import { parseXml, serializeXml, qsa } from "../_shared/ooxml/xml.ts";
 import { applyTokensToSlideXml, applyTokensToNode, stripRemainingTokens, type Tokens } from "../_shared/ooxml/runs.ts";
 import { stripTiming } from "../_shared/ooxml/timing.ts";
 import { validatePptx } from "../_shared/ooxml/validate.ts";
-import { duplicateSlide, removeSlide } from "../_shared/ooxml/slide.ts";
+import { duplicateSlide, removeSlide, slideDoToken } from "../_shared/ooxml/slide.ts";
 import {
   listShapes, getShapeXfrm, setShapeXfrm, shapeContainsToken,
   cloneShapeWithId, removeShape,
@@ -68,7 +68,6 @@ import {
 } from "../_shared/apresentacao-osg/paginacao.ts";
 
 type DeckTipo = "patrimonial" | "societaria";
-type BodyTipo = DeckTipo | "ambas";
 
 /**
  * O que um gerador devolve: os bytes, as contagens e o SNAPSHOT.
@@ -92,6 +91,28 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
+
+/* O nome que entra no arquivo gravado: `PSA_<rotulo>_<cliente>_v<n>.pptx`. */
+const ROTULO_DO_ARQUIVO: Record<DeckTipo, string> = {
+  patrimonial: "Patrimonial",
+  societaria: "Societaria",
+};
+
+const TIPOS = Object.keys(TEMPLATE_PATHS) as DeckTipo[];
+const ehTipo = (t: unknown): t is DeckTipo => typeof t === "string" && (TIPOS as string[]).includes(t);
+
+/**
+ * Os decks pedidos: `tipos` (a lista marcada) ou `tipo` do contrato antigo, em que `ambas` e so
+ * patrimonial e societaria.
+ */
+function decksPedidos(body: { tipo?: unknown; tipos?: unknown }): DeckTipo[] | null {
+  if (Array.isArray(body?.tipos)) {
+    const unicos = [...new Set(body.tipos)];
+    return unicos.length > 0 && unicos.every(ehTipo) ? unicos : null;
+  }
+  if (body?.tipo === "ambas") return ["patrimonial", "societaria"];
+  return ehTipo(body?.tipo) ? [body.tipo] : null;
+}
 
 const BUCKET_TEMPLATES = "osg-templates";
 /* Provisionado em 14/08/2026 e vazio ate agora: a geracao nao persistia nada. */
@@ -123,13 +144,8 @@ function dataBR(d = new Date()): string {
 // PATRIMONIAL — 1 slide por sociedade, linhas clonadas por matricula
 // ============================================================================
 
-// Template patrimonial:
-//   slide1 = capa {{DATA}} {{CLIENTE}}
-//   slide2 = divisor
-//   slide3 = template repetivel: {{SOCIEDADE}} + tabela com row-template {{PROP}} {{REF}} {{MAT}} {{MUN}} {{VALOR}}
-//
-// Estrategia: pra cada sociedade em `sociedades[]`, duplicar slide3 → aplicar
-// tokens da sociedade + clonar rows. No fim, remover o slide3 original.
+// Molde patrimonial: as paginas se acham pelo token (`slideDoToken`); a de sociedade se duplica por
+// sociedade e clona uma linha por matricula.
 function renderPatrimonialSlide(
   parts: PptxParts,
   slidePath: string,
@@ -166,6 +182,13 @@ function renderPatrimonialSlide(
   writeText(parts, slidePath, serializeXml(doc));
 }
 
+/** Como o `slideDoToken`, mas a pagina e obrigatoria: molde sem ela nao gera. */
+function slideObrigatorio(parts: PptxParts, token: string, pagina: string): string {
+  const sp = slideDoToken(parts, token);
+  if (!sp) throw new Error(`O modelo em uso não tem a página ${pagina} (falta o campo {{${token}}}).`);
+  return sp;
+}
+
 async function gerarPatrimonial(
   admin: ReturnType<typeof createClient>,
   bytesDoMolde: Uint8Array,
@@ -177,15 +200,17 @@ async function gerarPatrimonial(
 
   const sociedades = await carregarPatrimonial(admin, clienteId, probs);
 
-  const TEMPLATE = "ppt/slides/slide3.xml";
+  const TEMPLATE = slideObrigatorio(parts, "PROP", "das sociedades");
   if (sociedades.length === 0) {
-    // Sem sociedades: mantem slide3 vazio, tira row-template pra nao ficar com token cru.
+    // Sem sociedades: mantem a pagina vazia, tira row-template pra nao ficar com token cru.
     const xml = readText(parts, TEMPLATE);
     const doc = parseXml(xml);
     const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "PROP"));
     if (gf) {
       const tr = listRows(gf).find((r) => rowContainsToken(r, "PROP"));
       if (tr) removeRow(tr);
+      const tot = listRows(gf).find((r) => rowContainsToken(r, "TOT_AREA"));
+      if (tot) removeRow(tot);
     }
     applyTokensToNode(doc, { SOCIEDADE: "—" } as Tokens);
     stripRemainingTokens(doc);
@@ -220,7 +245,11 @@ async function gerarPatrimonial(
       paths.push(dup.newPath);
     }
     for (let i = 0; i < chunks.length; i++) {
-      renderPatrimonialSlide(parts, paths[i], { nome: chunks[i].nome, linhas: chunks[i].linhas });
+      const ultimaDaSociedade = i === chunks.length - 1 || chunks[i + 1].nome !== chunks[i].nome;
+      renderPatrimonialSlide(
+        parts, paths[i], { nome: chunks[i].nome, linhas: chunks[i].linhas },
+        ultimaDaSociedade ? totais.get(chunks[i].nome) ?? null : null,
+      );
     }
   }
 
@@ -243,7 +272,7 @@ async function gerarPatrimonial(
 }
 
 // ============================================================================
-// ORGANOGRAMA (slide3 da societaria) — 4 faixas horizontais de {{ORG_ITEM}}
+// ORGANOGRAMA (pagina {{ORG_ITEM}} da societaria) — 4 faixas horizontais de {{ORG_ITEM}}
 // ============================================================================
 
 // Faixas Y (EMU) descobertas via debug-tpl no TEMPLATE_SOCIETARIA.pptx slide3:
@@ -393,7 +422,7 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
 }
 
 // ============================================================================
-// QUADRO SOCIETARIO (slide4 da societaria) — 1 tabela por empresa
+// QUADRO SOCIETARIO (pagina {{SOCIO}} da societaria) — 1 tabela por empresa
 // ============================================================================
 
 // Layout: 2 colunas × N linhas por slide. Ao esgotar altura, duplicar slide.
@@ -574,11 +603,12 @@ async function gerarSocietaria(
     resolverTitular(admin, clienteId, probs),
   ]);
 
-  // Organograma (slide3)
-  renderOrganograma(parts, "ppt/slides/slide3.xml", bands, titular);
+  // Organograma e quadro, cada um pelo token que so a pagina dele tem.
+  const SLIDE_ORGANOGRAMA = slideObrigatorio(parts, "ORG_ITEM", "do organograma");
+  const SLIDE_QUADRO = slideObrigatorio(parts, "SOCIO", "do quadro societário");
+  renderOrganograma(parts, SLIDE_ORGANOGRAMA, bands, titular);
 
-  // Quadro (slide4 + duplicatas)
-  const SLIDE_QUADRO = "ppt/slides/slide4.xml";
+  // Quadro (a pagina do molde + duplicatas)
   if (empresas.length === 0) {
     removeSlide(parts, SLIDE_QUADRO);
   } else {
@@ -681,9 +711,9 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const clienteId = String(body?.clienteId ?? "");
-    const tipoIn = String(body?.tipo ?? "") as BodyTipo;
-    if (!clienteId || !["ambas", "patrimonial", "societaria"].includes(tipoIn)) {
-      return json({ error: "clienteId e tipo obrigatorios (tipo ∈ ambas|patrimonial|societaria)" }, 400);
+    const decks = decksPedidos(body);
+    if (!clienteId || !decks) {
+      return json({ error: `clienteId e tipos obrigatorios (tipos ⊂ ${TIPOS.join("|")}; ou tipo = ambas)` }, 400);
     }
 
     // Cluster isolation
@@ -702,7 +732,6 @@ serve(async (req) => {
       .from("cliente").select("id, nome, excluido").eq("id", clienteId).maybeSingle();
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
-    const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
     const arquivos: Array<{
       tipo: DeckTipo;
       nome: string;
@@ -726,7 +755,6 @@ serve(async (req) => {
     for (const tipo of decks) {
       try {
         const problemas: ProblemaDoDeck[] = [];
-        const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
 
         /*
          * A CASCA COMPARTILHADA assume daqui: baixar o molde, validar o pacote,
@@ -754,7 +782,7 @@ serve(async (req) => {
             bucketSaida: BUCKET_SAIDA,
             pasta: clienteId,
             nomeArquivo: (versao) =>
-              `PSA_${tipoLabel}_${slugify(cli.nome)}_v${versao}.pptx`,
+              `PSA_${ROTULO_DO_ARQUIVO[tipo]}_${slugify(cli.nome)}_v${versao}.pptx`,
           },
           montar: async (bytesDoMolde) => {
             const montado = tipo === "patrimonial"

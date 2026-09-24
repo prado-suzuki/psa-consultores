@@ -58,7 +58,7 @@ describe('useGerarApresentacao', () => {
 
   it('sem cliente escolhido, nem chama o servidor', async () => {
     const { result } = montar(null);
-    const r = await result.current.mutateAsync('ambas');
+    const r = await result.current.mutateAsync(['patrimonial', 'societaria']);
 
     expect(r).toEqual({ arquivos: [], erro: 'nenhum cliente selecionado' });
     expect(invoke).not.toHaveBeenCalled();
@@ -71,10 +71,10 @@ describe('useGerarApresentacao', () => {
       error: null,
     });
     const { result } = montar();
-    const r = await result.current.mutateAsync('ambas');
+    const r = await result.current.mutateAsync(['patrimonial', 'societaria']);
 
     expect(invoke).toHaveBeenCalledWith('gerar-apresentacao', {
-      body: { clienteId: CLIENTE, tipo: 'ambas' },
+      body: { clienteId: CLIENTE, tipos: ['patrimonial', 'societaria'] },
     });
     expect(r.erro).toBeNull();
     expect(r.arquivos).toEqual([
@@ -118,7 +118,7 @@ describe('useGerarApresentacao', () => {
       error: null,
     });
     const { result } = montar();
-    const r = await result.current.mutateAsync('patrimonial');
+    const r = await result.current.mutateAsync(['patrimonial']);
 
     expect(r.erro).toBeNull();
     expect(r.arquivos).toHaveLength(1);
@@ -135,7 +135,7 @@ describe('useGerarApresentacao', () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false }) as never;
     invoke.mockResolvedValue({ data: { arquivos: [deck('societaria', 3)] }, error: null });
     const { result } = montar();
-    const r = await result.current.mutateAsync('societaria');
+    const r = await result.current.mutateAsync(['societaria']);
 
     expect(r.erro).toBeNull();
     expect(r.errosPorDeck).toEqual([
@@ -162,7 +162,7 @@ describe('useGerarApresentacao', () => {
       error: null,
     });
     const { result } = montar();
-    const r = await result.current.mutateAsync('ambas');
+    const r = await result.current.mutateAsync(['patrimonial', 'societaria']);
 
     expect(r.erro).toBeNull();
     expect(r.problemas).toEqual([
@@ -176,7 +176,7 @@ describe('useGerarApresentacao', () => {
   it('sem problemas nem erros, os dois vêm listas vazias e não undefined', async () => {
     invoke.mockResolvedValue({ data: { arquivos: [deck('patrimonial')] }, error: null });
     const { result } = montar();
-    const r = await result.current.mutateAsync('patrimonial');
+    const r = await result.current.mutateAsync(['patrimonial']);
 
     expect(r.problemas).toEqual([]);
     expect(r.errosPorDeck).toEqual([]);
@@ -185,7 +185,7 @@ describe('useGerarApresentacao', () => {
   it('404 do invoke vira "ainda não está publicada", que é outra conversa', async () => {
     invoke.mockResolvedValue({ data: null, error: { context: { status: 404 }, message: 'x' } });
     const { result } = montar();
-    const r = await result.current.mutateAsync('patrimonial');
+    const r = await result.current.mutateAsync(['patrimonial']);
 
     expect(r.erro).toBe('a geração ainda não está publicada no servidor');
     expect(r.arquivos).toEqual([]);
@@ -195,7 +195,7 @@ describe('useGerarApresentacao', () => {
   it('resposta vazia é erro, e não sucesso silencioso', async () => {
     invoke.mockResolvedValue({ data: { arquivos: [] }, error: null });
     const { result } = montar();
-    const r = await result.current.mutateAsync('ambas');
+    const r = await result.current.mutateAsync(['patrimonial', 'societaria']);
 
     expect(r.erro).toBe('o servidor não devolveu nenhum arquivo');
     expect(global.fetch).not.toHaveBeenCalled();

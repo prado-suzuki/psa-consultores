@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { useGerarApresentacao, type DeckTipo } from '@/hooks/useGerarApresentacao';
+import { useGerarApresentacao, type DeckDaApresentacao } from '@/hooks/useGerarApresentacao';
 import {
   useContagemDeSlides,
   SLIDES_DO_TRIBUTARIO,
@@ -17,7 +17,7 @@ import { useGerarApresentacaoTributaria } from '@/hooks/useDomainPapelDeTrabalho
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
 import { toast } from '@/hooks/use-toast';
-import { PECAS_COM_DECK, PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+import { PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
 
 /**
  * Apresentações: escolher e gerar, em segundos.
@@ -86,7 +86,7 @@ const BibliotecaApresentacoes = () => {
    * com um arquivo de três na mão. Revisão de 18/09/2026.
    */
   const disparar = async () => {
-    const decks = marcadosValidos.filter((p) => p.deck !== null).map((p) => p.deck as DeckTipo);
+    const decks = marcadosValidos.filter((p) => p.deck !== null).map((p) => p.deck as DeckDaApresentacao);
     const comTributaria = marcadosValidos.some((p) => p.id === 'papeis');
 
     const gerados: string[] = [];
@@ -94,10 +94,8 @@ const BibliotecaApresentacoes = () => {
     const avisos: string[] = [];
 
     if (decks.length > 0) {
-      // `ambas` não é um terceiro deck: é o atalho do servidor para o conjunto.
-      const r = await gerarDecks.mutateAsync(
-        decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0],
-      );
+      // A lista do que foi marcado: com três decks, um `tipo` só mandaria um.
+      const r = await gerarDecks.mutateAsync(decks);
       const resultado = conferirDecksGerados(
         marcadosValidos
           .filter((p) => p.deck !== null)
