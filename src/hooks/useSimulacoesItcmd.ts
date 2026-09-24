@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { FECHO_SUPORTE, frasePapelNecessario } from '@/lib/rlsMessages';
 import type { Cenario, SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
 
 /**
@@ -564,7 +565,12 @@ export function useSimulacoesItcmd(clienteId: string | null) {
         `)
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // A mensagem crua do PostgREST é de máquina: vai para o console, e a
+        // lista recebe a frase da casa (CI-E03) — falha não se veste de vazio.
+        console.error('itcd_simulacao: consulta do histórico falhou', error);
+        throw new Error('Não foi possível carregar as simulações.');
+      }
       return (data ?? []).map(paraSimulacaoSalva);
     },
   });
@@ -803,7 +809,10 @@ export function useGravarSimulacaoItcmd() {
 
       const { data: simulacaoId, error: erroDaGravacao } = await supabase
         .rpc('itcd_gravar_simulacao', { p: payload as unknown as Json });
-      if (erroDaGravacao) throw new Error(erroDaGravacao.message);
+      if (erroDaGravacao) {
+        console.error('itcd_gravar_simulacao:', erroDaGravacao);
+        throw new Error(FECHO_SUPORTE);
+      }
       if (simulacaoId == null) {
         throw new Error('A gravação não devolveu o id da simulação.');
       }
@@ -857,7 +866,10 @@ export function useRenomearSimulacaoItcmd() {
           updated_by: quem,
         })
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('itcd_simulacao: renomear falhou', error);
+        throw new Error(FECHO_SUPORTE);
+      }
 
       await logAction({
         area: 'osg',
@@ -908,7 +920,15 @@ export function useAlterarStatusSimulacaoItcmd() {
           updated_by: quem,
         })
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('itcd_simulacao: alterar status falhou', error);
+        // A única escrita com papel nesta tabela é aprovar (sublíder):
+        // recusa do RLS vira a frase do catálogo, não o inglês do banco.
+        const recusaDePapel =
+          (error as { code?: string })?.code === '42501'
+          || /row-level security/i.test(error.message);
+        throw new Error(recusaDePapel ? frasePapelNecessario('sublider') : FECHO_SUPORTE);
+      }
 
       // APROVAR é o portão antes de a apresentação sair para o cliente, e é a mudança
       // de status que mais importa registrar: `aprovada_por` diz quem aprovou AGORA, e

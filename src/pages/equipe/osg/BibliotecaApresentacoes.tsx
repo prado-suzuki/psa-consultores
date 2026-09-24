@@ -67,6 +67,27 @@ const BibliotecaApresentacoes = () => {
             ? cenarios.slides
             : 0;
 
+  /* A FALHA NÃO SE VESTE DE VAZIO (AP-E01): consulta que quebra não pode ler como
+     "Nenhuma simulação aprovada" nem "sem dados" — quem lê aprova ou importa de
+     novo. Cada linha diz o que não carregou e oferece tentar de novo. */
+  type FalhaDeCarga = 'simulacoes' | 'revisoes' | 'slides';
+  const TEXTO_DA_FALHA: Record<FalhaDeCarga, string> = {
+    simulacoes: 'Não foi possível carregar as simulações.',
+    revisoes: 'Não foi possível carregar as revisões.',
+    slides: 'Não foi possível contar os slides.',
+  };
+  const falhaDeCarga = (id: string): FalhaDeCarga | null =>
+    id === 'sucessoria'
+      ? cenarios.erro ? 'simulacoes' : null
+      : id === 'papeis'
+        ? revisao.erro ? 'revisoes' : null
+        : contagem.erro ? 'slides' : null;
+  const tentarDeNovo = (falha: FalhaDeCarga) => () => {
+    if (falha === 'simulacoes') cenarios.tentarDeNovo();
+    else if (falha === 'revisoes') revisao.tentarDeNovo();
+    else contagem.tentarDeNovo();
+  };
+
   /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão;
       o sucessório, pelas simulações aprovadas marcadas. */
   const temConteudo = (id: string): boolean =>
@@ -158,9 +179,10 @@ const BibliotecaApresentacoes = () => {
           });
         }
       } catch (e) {
-        falhas.push(
-          `Planejamento Tributário: ${e instanceof Error ? e.message : 'a geração falhou'}`,
-        );
+        /* A mensagem crua é de máquina e vai para o console; a tela recebe o
+           texto fixo, no molde dos decks da OSG (AP-E04). */
+        console.error('gerar-slides-tributarios:', e);
+        falhas.push('Planejamento Tributário: não foi possível gerar esta apresentação.');
       }
     }
 
@@ -235,12 +257,13 @@ const BibliotecaApresentacoes = () => {
                 const sucessoria = peca.id === 'sucessoria';
                 const vazio = !temConteudo(peca.id);
                 const recusa = bloqueio(peca.id);
+                const falha = falhaDeCarga(peca.id);
 
                 return (
                   <div key={peca.id} className="flex items-center gap-3 border-b border-osg-100 px-4 py-2.5">
                     <Checkbox
-                      checked={marcados.includes(peca.id) && !vazio && !recusa}
-                      disabled={vazio || !!recusa || ocupado}
+                      checked={marcados.includes(peca.id) && !vazio && !recusa && !falha}
+                      disabled={vazio || !!recusa || !!falha || ocupado}
                       onCheckedChange={() => alternar(peca.id)}
                       aria-label={peca.nome}
                     />
@@ -255,17 +278,34 @@ const BibliotecaApresentacoes = () => {
                           a dizer: o que vai no arquivo, como as outras, e QUAL
                           revisão vai, que é a escolha que só ela tem. */}
                       <span className="block truncate text-[11px] text-muted-foreground">{peca.origem}</span>
-                      {tributaria && <EscolhaDaRevisao estado={revisao} />}
-                      {sucessoria && <EscolhaDosCenarios estado={cenarios} />}
+                      {falha ? (
+                        <span role="alert" className="mt-0.5 flex items-center gap-2 text-[11px] text-destructive">
+                          {TEXTO_DA_FALHA[falha]}
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-[11px]"
+                            onClick={tentarDeNovo(falha)}
+                          >
+                            Tentar de novo
+                          </Button>
+                        </span>
+                      ) : (
+                        <>
+                          {tributaria && <EscolhaDaRevisao estado={revisao} />}
+                          {sucessoria && <EscolhaDosCenarios estado={cenarios} />}
+                        </>
+                      )}
                       {recusa && <span role="alert" className="mt-0.5 block text-[11px] text-destructive">{recusa}</span>}
                     </span>
 
                     <span className={cn('shrink-0 text-sm tabular-nums', vazio ? 'text-muted-foreground' : 'font-semibold text-osg-700')}>
                       {(tributaria ? revisao.carregando : sucessoria ? cenarios.carregando : contagem.carregando)
                         ? '…'
-                        : vazio
-                          ? 'sem dados'
-                          : slidesDaPeca(peca.id)}
+                        : falha
+                          ? '—'
+                          : vazio
+                            ? 'sem dados'
+                            : slidesDaPeca(peca.id)}
                     </span>
                   </div>
                 );

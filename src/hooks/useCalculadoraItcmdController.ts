@@ -1492,10 +1492,20 @@ export function useCalculadoraItcmdController() {
     setAlvoDigitado({});
   };
 
+  /* A TELA INTEIRA DE ERRO (CI-E03): a mensagem crua do PostgREST vai para o
+     console, e a tela recebe a frase da casa — quem lê não precisa de inglês
+     de banco para saber que a consulta não veio. */
+  const erroConsultaCru = bens.error ?? pessoas.error ?? parentescos.error ?? socios.error ?? null;
+  if (erroConsultaCru) {
+    console.error('calculadora-itcmd: consulta de cadastro falhou', erroConsultaCru);
+  }
+
   return {
     clienteId,
     carregando: bens.isLoading || pessoas.isLoading,
-    erroDeConsulta: bens.error ?? pessoas.error ?? parentescos.error ?? socios.error ?? null,
+    erroDeConsulta: erroConsultaCru
+      ? new Error('Não foi possível carregar os dados do cliente.')
+      : null,
 
     imoveis,
     acervo,

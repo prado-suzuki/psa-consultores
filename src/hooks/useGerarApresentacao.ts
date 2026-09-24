@@ -71,6 +71,9 @@ export interface ErroDeDeck {
 const statusDoErro = (erro: unknown): number | undefined =>
   (erro as { context?: { status?: number } } | null)?.context?.status;
 
+/** O texto genérico que o `supabase-js` põe no `message` quando a função devolve erro HTTP. */
+const MENSAGEM_CRUA_DO_INVOKE = /Edge Function returned a non-2xx status code/i;
+
 /**
  * O motivo de cada deck quando todos falharam: a função manda `detalhes` no 500, e o `supabase-js` descarta
  * o corpo e fica com "Edge Function returned a non-2xx status code".
@@ -137,12 +140,18 @@ export function useGerarApresentacao(clienteId: string | null, simulacaoIds: rea
         body: tipos.includes('sucessoria') ? { clienteId, tipos, simulacaoIds } : { clienteId, tipos },
       });
       if (error) {
+        /* A mensagem crua do `supabase-js` ("Edge Function returned a non-2xx
+           status code") é de máquina e não diz nada ao consultor: vai para o
+           console, e a tela recebe o texto fixo (AP-E04). */
+        console.error('gerar-apresentacao:', error);
         return {
           arquivos: [],
           erro:
             statusDoErro(error) === 404
               ? 'a geração ainda não está publicada no servidor'
-              : error.message || 'a geração falhou no servidor',
+              : MENSAGEM_CRUA_DO_INVOKE.test(error.message || '')
+                ? 'não foi possível gerar esta apresentação'
+                : error.message || 'não foi possível gerar esta apresentação',
           errosPorDeck: await errosDoCorpo(error),
         };
       }

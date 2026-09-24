@@ -21,11 +21,17 @@ export const fmtDataDaRevisao = (iso: string): string =>
   new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 export function useRevisaoParaSlides(clienteId: string | null) {
-  const { data: estudos = [], isLoading: carregandoEstudos } = useEstudosDoCliente(clienteId);
+  const {
+    data: estudos = [], isLoading: carregandoEstudos,
+    isError: erroEstudos, refetch: refetchEstudos,
+  } = useEstudosDoCliente(clienteId);
   const [estudoId, setEstudoId] = useState('');
   const estudoEscolhido = estudoId || estudos[0]?.id || '';
 
-  const { data: revisoes = [], isLoading: carregandoRevisoes } = useRevisoesDoEstudo(
+  const {
+    data: revisoes = [], isLoading: carregandoRevisoes,
+    isError: erroRevisoes, refetch: refetchRevisoes,
+  } = useRevisoesDoEstudo(
     estudoEscolhido || null,
   );
   const [revisaoId, setRevisaoId] = useState('');
@@ -55,6 +61,12 @@ export function useRevisaoParaSlides(clienteId: string | null) {
         ? 'Carregando as revisões…'
         : 'Nenhuma revisão importada.',
     carregando,
+    /** A consulta falhou: a linha diz que não carregou, nunca que falta importar. */
+    erro: erroEstudos || erroRevisoes,
+    tentarDeNovo: () => {
+      void refetchEstudos();
+      void refetchRevisoes();
+    },
     estudos,
     estudoEscolhido,
     setEstudoId,

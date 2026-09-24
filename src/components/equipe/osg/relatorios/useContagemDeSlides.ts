@@ -21,6 +21,9 @@ export interface ContagemDeSlides {
   patrimonial: number;
   societaria: number;
   carregando: boolean;
+  /** A consulta falhou: a coluna diz que não contou, nunca "sem dados". */
+  erro: boolean;
+  tentarDeNovo: () => void;
 }
 
 /**
@@ -42,8 +45,14 @@ export interface ContagemDeSlides {
 export const SLIDES_DO_TRIBUTARIO = 6;
 
 export function useContagemDeSlides(clienteId: string | null): ContagemDeSlides {
-  const { data: bens = [], isLoading: carregandoBens } = useRelatorioDP(clienteId);
-  const { data: empresas = [], isLoading: carregandoEmpresas } = useRelatorioSocietario(clienteId);
+  const {
+    data: bens = [], isLoading: carregandoBens,
+    isError: erroBens, refetch: refetchBens,
+  } = useRelatorioDP(clienteId);
+  const {
+    data: empresas = [], isLoading: carregandoEmpresas,
+    isError: erroEmpresas, refetch: refetchEmpresas,
+  } = useRelatorioSocietario(clienteId);
 
   return useMemo(() => {
     const participa = (b: DPBem) => b.participa_estruturacao !== false;
@@ -69,6 +78,11 @@ export function useContagemDeSlides(clienteId: string | null): ContagemDeSlides 
       patrimonial: destinos.size + paginasDeOutrosBens(outrosBens),
       societaria: empresas.length > 0 ? 1 + paginasDoQuadro(socios) : 0,
       carregando: carregandoBens || carregandoEmpresas,
+      erro: erroBens || erroEmpresas,
+      tentarDeNovo: () => {
+        void refetchBens();
+        void refetchEmpresas();
+      },
     };
-  }, [bens, empresas, carregandoBens, carregandoEmpresas]);
+  }, [bens, empresas, carregandoBens, carregandoEmpresas, erroBens, erroEmpresas, refetchBens, refetchEmpresas]);
 }

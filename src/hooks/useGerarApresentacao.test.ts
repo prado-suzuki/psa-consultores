@@ -214,7 +214,8 @@ describe('useGerarApresentacao', () => {
   });
 
   // O `supabase-js` troca o 500 por "Edge Function returned a non-2xx status code"; o motivo vem no
-  // corpo, e é ele que a tela mostra.
+  // corpo, e é ele que a tela mostra. A mensagem crua fica no console: o que o
+  // consultor lê é o texto fixo (AP-E04).
   it('quando nenhum deck saiu, o motivo de cada um vem do corpo do 500', async () => {
     const corpo = { error: 'Falha ao gerar', detalhes: [{ tipo: 'sucessoria', message: '"Cenário III" não está aprovada.' }] };
     invoke.mockResolvedValue({
@@ -228,7 +229,7 @@ describe('useGerarApresentacao', () => {
     expect(r.errosPorDeck).toEqual([{ tipo: 'sucessoria', message: '"Cenário III" não está aprovada.' }]);
   });
 
-  it('corpo do 500 que não é JSON não derruba: fica o erro genérico', async () => {
+  it('corpo do 500 que não é JSON não derruba: fica o texto fixo, sem a mensagem crua', async () => {
     invoke.mockResolvedValue({
       data: null,
       error: { message: 'Edge Function returned a non-2xx status code', context: new Response('<html>', { status: 502 }) },
@@ -236,7 +237,7 @@ describe('useGerarApresentacao', () => {
     const { result } = montar();
     const r = await result.current.mutateAsync(['patrimonial']);
 
-    expect(r.erro).toBe('Edge Function returned a non-2xx status code');
+    expect(r.erro).toBe('não foi possível gerar esta apresentação');
     expect(r.errosPorDeck).toEqual([]);
   });
 

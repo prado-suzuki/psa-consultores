@@ -7,7 +7,7 @@ import { slidesDoCapitulo04 } from '../../../../../supabase/functions/_shared/ap
 
 /** Quais simulações aprovadas entram no capítulo 04; a regra está em `lib/osg/cenariosDoCapitulo04.ts`, aqui só o estado. */
 export function useCenariosParaSlides(clienteId: string | null) {
-  const { data: todas, isLoading } = useSimulacoesItcmd(clienteId);
+  const { data: todas, isLoading, isError, refetch } = useSimulacoesItcmd(clienteId);
   const opcoes = useMemo(() => opcoesDeCenario(todas ?? []), [todas]);
 
   /* `null` = a escolha padrão. Só vira lista quando a pessoa mexe, e aí para de seguir o
@@ -47,6 +47,11 @@ export function useCenariosParaSlides(clienteId: string | null) {
           ? 'Nenhuma simulação aprovada na Calculadora de ITCMD.'
           : 'Nenhum cenário marcado.',
     carregando: isLoading,
+    /** A consulta falhou: a linha diz que não carregou, nunca que não há simulação. */
+    erro: isError,
+    tentarDeNovo: () => {
+      void refetch();
+    },
     opcoes,
     escolhidas,
     alternar,

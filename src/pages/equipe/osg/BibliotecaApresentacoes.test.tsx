@@ -110,13 +110,13 @@ describe('um aviso só, sempre', () => {
 
   it('os dois geradores falhando também dão UM toast, e destrutivo', async () => {
     osg.gerar.mockResolvedValue({ arquivos: [], erro: 'servidor fora', problemas: [], errosPorDeck: [] });
-    osg.tributaria.mockRejectedValue(new Error('revisão sumiu'));
+    osg.tributaria.mockRejectedValue(new Error('revisão sumiu')); // crua fica no console
     await gerar();
 
     expect(avisos.toast).toHaveBeenCalledTimes(1);
     expect(avisos.toast.mock.calls[0][0].variant).toBe('destructive');
     expect(ditoAoUsuario()).toContain('servidor fora');
-    expect(ditoAoUsuario()).toContain('revisão sumiu');
+    expect(ditoAoUsuario()).toContain('Planejamento Tributário: não foi possível gerar esta apresentação.');
   });
 
   // O sucesso parcial é o que o defeito escondia: o toast verde do tributário

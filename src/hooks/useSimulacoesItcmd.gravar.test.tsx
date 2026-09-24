@@ -239,7 +239,10 @@ describe('gravar a simulação', () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'RLS recusou' } });
     const { result } = renderHook(() => useGravarSimulacaoItcmd(), { wrapper: molde });
 
-    await expect(result.current.mutateAsync(retrato)).rejects.toThrow('RLS recusou');
+    // A mensagem crua fica no console; o que sobe é o fecho da casa (CI-E03).
+    await expect(result.current.mutateAsync(retrato)).rejects.toThrow(
+      'Tente novamente. Se o problema continuar, entre em contato com o suporte.',
+    );
     // Nada a desfazer: a transação não deixou rastro para apagar.
     expect(mocks.insertsAvulsos).toEqual([]);
   });
