@@ -45,7 +45,7 @@ export function useCenariosParaSlides(clienteId: string | null) {
         ? 'Carregando as simulações…'
         : opcoes.length === 0
           ? 'Nenhuma simulação aprovada na Calculadora de ITCMD.'
-          : 'Nenhum cenário marcado.',
+          : 'Nenhuma simulação marcada.',
     carregando: isLoading,
     /** A consulta falhou: a linha diz que não carregou, nunca que não há simulação. */
     erro: isError,

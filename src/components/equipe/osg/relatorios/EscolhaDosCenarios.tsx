@@ -18,11 +18,11 @@ export function EscolhaDosCenarios({ estado }: { estado: ReturnType<typeof useCe
 
       {opcoes.length > 0 && (
         <Popover>
-          <ButtonTooltip text="Trocar os cenários">
+          <ButtonTooltip text="Trocar as simulações">
             <PopoverTrigger asChild>
               <button
                 type="button"
-                aria-label="Trocar as simulações que vão para os slides"
+                aria-label="Trocar as simulações"
                 className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-osg-50 hover:text-osg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
               >
                 <Pencil className="h-3 w-3" aria-hidden />

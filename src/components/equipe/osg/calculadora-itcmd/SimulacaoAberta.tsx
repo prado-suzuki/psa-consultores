@@ -300,7 +300,7 @@ function NomeEditavel({ simulacao, aoRenomear, renomeando }: {
     return (
       <div className="flex items-center gap-2">
         <span className="text-base font-semibold">{rotulo}</span>
-        <DicaDoControle dica="Dar um nome ao cenário: “Sem reserva”, “51% pelo Avelino”. Sem nome, ela se chama pela versão.">
+        <DicaDoControle dica="Dá um nome à simulação, que vira o nome do cenário na apresentação. Sem nome, ela se chama pela versão.">
           <button
             type="button"
             aria-label="Renomear a simulação"
@@ -441,7 +441,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
             {/* O APORTE só ganha coluna quando houve um: é hipótese de cenário, e
                 uma coluna de zeros em toda simulação sem aporte seria ruído. */}
             {temAporte && (
-              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou nos três cenários pelo valor de face, sem ITCMD.">
+              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou pelo valor de face nos três valores de avaliação, sem ITCMD.">
                 Aporte (R$)
               </Th>
             )}
@@ -736,7 +736,7 @@ function DesfechoDoAto({ comReserva, guias, basesDaReserva, basesDaInstituicao }
   if (!comReserva && guias === 0) {
     return (
       <p className="rounded-md border border-border bg-muted/60 px-3 py-2.5 text-sm text-foreground">
-        <strong className="font-semibold">Nenhum ato de usufruto neste cenário.</strong>
+        <strong className="font-semibold">Nenhum ato de usufruto nesta simulação.</strong>
         {' Cada um vota o que tem: não há instrumento de usufruto nem guia a recolher. '}
         O quadro abaixo é como a sociedade fica depois da doação.
       </p>

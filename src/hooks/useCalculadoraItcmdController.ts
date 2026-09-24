@@ -2027,7 +2027,7 @@ export function useCalculadoraItcmdController() {
         .map((c) => faltaNoCenario[c])
         .filter((f): f is string => f != null)
         .join('; ')}. A simulação fica nesta sessão e não é gravada: o histórico só `
-        + 'guarda apuração com os três cenários sobre o acervo inteiro.',
+        + 'guarda apuração com os três valores de avaliação sobre o acervo inteiro.',
     /**
      * TROCAR STATUS e RENOMEAR levam o estado ANTERIOR junto.
      *

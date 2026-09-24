@@ -96,8 +96,8 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
               mentir quando o cenário virou indisponível por bem FALTANDO em vez de por
               cadastro vazio: o aviso dizia "3 de 13 bens sem valor de ITR" e este
               parágrafo, ao lado, dizia que não havia nenhum. */}
-          {falta ?? 'Cadastro incompleto neste cenário'}. O cenário fica de fora até o
-          cadastro dos bens fechar: em branco, nunca zerado.
+          {falta ?? 'Cadastro incompleto neste valor'}. Este valor fica de fora até o
+          cadastro dos bens fechar.
         </p>
       ) : (
         <dl className="divide-y divide-border/70">
@@ -105,7 +105,7 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
             rotulo="Total do acervo"
             valor={brlDeDecimal(saida.acervoPorCenario[cenario])}
             dica={'O acervo avaliado por esta régua. É ele que dá o preço da quota, e é '
-              + 'a única coisa que muda de um cenário para o outro.'}
+              + 'a única coisa que muda de um valor de avaliação para o outro.'}
           />
           <LinhaDeValor
             rotulo="Alíquota"

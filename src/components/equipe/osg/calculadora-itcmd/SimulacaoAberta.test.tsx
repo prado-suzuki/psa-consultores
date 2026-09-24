@@ -298,7 +298,7 @@ describe('SimulacaoAberta', () => {
       }),
     });
     irPara('Usufruto');
-    expect(screen.getByText(/Nenhum ato de usufruto neste cenário/)).toBeInTheDocument();
+    expect(screen.getByText(/Nenhum ato de usufruto nesta simulação/)).toBeInTheDocument();
     expect(screen.getByText(/não há instrumento de usufruto nem guia a recolher/))
       .toBeInTheDocument();
   });

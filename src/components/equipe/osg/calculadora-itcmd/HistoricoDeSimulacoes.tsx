@@ -149,7 +149,7 @@ export function HistoricoDeSimulacoes({
             <TableRow>
               <TableHead className={rotuloDeColunaCls}>
                 <ComDica
-                  dica={'O nome dado ao cenário, ou a versão quando ele não tem nome. O '
+                  dica={'O nome da simulação, ou a versão quando ela não tem nome. O '
                     + 'sinal ↳ diz de qual simulação este ato parte.'}
                 >
                   Simulação

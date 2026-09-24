@@ -83,7 +83,7 @@ describe('CenariosEmColunas', () => {
   it('sem a frase de fora, o quadro nao inventa a causa', () => {
     // Fallback: diz que o cadastro está incompleto, que é o que se sabe sem os números.
     render(<CenariosEmColunas porBase={nasDuas(saida)} comAlternativa={[]} />);
-    expect(screen.getAllByText(/Cadastro incompleto neste cenário/)).toHaveLength(2);
+    expect(screen.getAllByText(/Cadastro incompleto neste valor/)).toHaveLength(2);
   });
 
   it('doação anterior declarada aparece ao lado do imposto', () => {

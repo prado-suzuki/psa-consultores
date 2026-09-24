@@ -683,8 +683,8 @@ export function useGravarSimulacaoItcmd() {
       const exigir = (rotulo: string, v: string | null): string => {
         if (v == null) {
           throw new Error(
-            `Cenário ${rotulo} sem valor: complete o cadastro dos bens para apurar os `
-            + 'três cenários. A simulação não foi gravada.',
+            `Sem o valor ${rotulo}: complete o cadastro dos bens para apurar os três `
+            + 'valores de avaliação. A simulação não foi gravada.',
           );
         }
         return v;

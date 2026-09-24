@@ -215,7 +215,7 @@ describe('gravar a simulação', () => {
     };
 
     await expect(result.current.mutateAsync(pelaMetade))
-      .rejects.toThrow(/mercado da instituição em 70% sem valor/);
+      .rejects.toThrow(/Sem o valor mercado da instituição em 70%/);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
@@ -231,7 +231,7 @@ describe('gravar a simulação', () => {
       } as unknown as SaidaSimulacao,
     };
 
-    await expect(result.current.mutateAsync(semMercado)).rejects.toThrow(/mercado sem valor/);
+    await expect(result.current.mutateAsync(semMercado)).rejects.toThrow(/Sem o valor mercado:/);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 

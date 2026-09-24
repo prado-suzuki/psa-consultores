@@ -370,7 +370,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                       </Th>
                       {/* O APORTE vem ANTES de Quotas porque e ele que as forma: R$ X
                           integralizados viram quotas novas ao preco da quota. */}
-                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra nos três cenários pelo valor de face. Não recolhe ITCMD: a pessoa não recebeu de ninguém, ela pagou.">
+                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra pelo valor de face nos três valores de avaliação. Não recolhe ITCMD: a pessoa não recebeu de ninguém, ela pagou.">
                         Aporte (R$)
                       </Th>
                       <Th dica="O que a pessoa tem hoje, do quadro societário, mais as quotas que o aporte comprou.">
@@ -629,8 +629,9 @@ function LinhaDaTabela({ linha, calc }: {
       <NumCampo>
         <DicaDoControle
           dica={'Dinheiro integralizado no capital. Vira quotas novas ao preço da '
-            + 'quota do acervo e entra nos três cenários pelo valor de face, sem '
-            + 'multiplicar. Não recolhe ITCMD: a pessoa pagou por essas quotas.'}
+            + 'quota do acervo e entra pelo valor de face nos três valores de '
+            + 'avaliação, sem multiplicar. Não recolhe ITCMD: a pessoa pagou por '
+            + 'essas quotas.'}
         >
           <Input
             aria-label={`Aporte em moeda de ${linha.nome}, em reais`}
