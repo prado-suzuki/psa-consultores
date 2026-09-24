@@ -668,8 +668,12 @@ All colors MUST be HSL.
        — para o card de um componente shadcn e o card do Board serem o mesmo
        branco, e o fundo de página ser um só. */
     --background: 168 22% 99.4%;
+    --surface-elevada: 168 22% 99.4%;
     --card: 0 0% 100%;
     --popover: 0 0% 100%;
+    /* Miolo do controle de formulário. Separado do `--card` porque a superfície
+       do campo e a do cartão que o contém precisam diferir para o campo existir. */
+    --field: 0 0% 100%;
     /* ─── A pilha ganhou altura em 10/09/2026 (opção D) ───────────────────
        A página vinha a 96% e o cartão a 100%: 4 pontos de luminosidade para
        toda a pilha. Nessa faixa a cor não tem onde renderizar — foi o que a
@@ -777,7 +781,9 @@ All colors MUST be HSL.
        ensinava duas matizes para a mesma área, e a próxima superfície nasceria
        na errada — foi assim que o `--muted` ficou verde por dez dias. */
     --background: 192 18% 99.6%;
+    --surface-elevada: 192 18% 99.6%;
     --card: 192 18% 99.6%;
+    --field: 0 0% 100%;
     --popover: 192 18% 99.6%;
     /* ─── O fundo de página da área, e ele mudou de valor E de consumidor ───
        Até aqui o `FiscalLayout` pintava a tela com `bg-muted`, e este `--canvas`
@@ -993,7 +999,9 @@ All colors MUST be HSL.
        registro. */
     /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
     --border: 32 28% 86%;
-    --input: 32 28% 52%;
+    /* Dessaturado, não clareado: a luminosidade 52% é o teto que os 3:1 da
+       1.4.11 contra o `--card` permitem, e a saturação é que trazia o ocre. */
+    --input: 32 14% 52%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -1063,6 +1071,10 @@ All colors MUST be HSL.
     --background: 32 28% 98.5%;
     --card: 32 28% 98.5%;
     --popover: 32 28% 98.5%;
+    --field: 0 0% 100%;
+    /* O único degrau abaixo da OSG, e ele é SÓ do modal: é o que dá ao campo
+       branco de onde saltar sem tingir cromo nenhum. */
+    --surface-elevada: 32 28% 96%;
 
     /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
        escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
@@ -1104,8 +1116,10 @@ All colors MUST be HSL.
 
   .auditoria-theme {
     --background: 160 18% 99.6%;
+    --surface-elevada: 160 18% 99.6%;
     --foreground: 178 30% 9%;
     --card: 160 18% 99.6%;
+    --field: 0 0% 100%;
     --card-foreground: 178 30% 9%;
     --popover: 160 18% 99.6%;
     --popover-foreground: 178 30% 9%;
@@ -1157,8 +1171,10 @@ All colors MUST be HSL.
 
   .juridico-theme {
     --background: 330 18% 99.6%;
+    --surface-elevada: 330 18% 99.6%;
     --foreground: 178 30% 9%;
     --card: 330 18% 99.6%;
+    --field: 0 0% 100%;
     --card-foreground: 178 30% 9%;
     --popover: 330 18% 99.6%;
     --popover-foreground: 178 30% 9%;
@@ -1261,6 +1277,7 @@ All colors MUST be HSL.
      no mesmo bloco. O acento tem nota própria mais abaixo. */
   .dark {
     --background: 35 12% 9%;
+    --surface-elevada: 35 12% 9%;
     --foreground: 38 14% 97%;
 
     --card: 35 10% 14%;
@@ -1268,6 +1285,9 @@ All colors MUST be HSL.
 
     --popover: 34 9% 19%;
     --popover-foreground: 38 14% 97%;
+
+    /* No escuro o campo CLAREIA sobre o cartão; branco aqui viraria lanterna. */
+    --field: 35 10% 18%;
 
     /* ACENTO — `--teal-400`, escolhido em 27/08/2026 olhando
        `docs/geral/comparacoes-de-cor/porta-de-entrada.html`.

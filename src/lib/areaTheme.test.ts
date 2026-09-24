@@ -350,7 +350,7 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   const css = readFileSync('src/index.css', 'utf8');
   const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
 
-  it('o contrato tem as 50 variáveis', () => {
+  it('o contrato tem as 52 variáveis', () => {
     // 41 na origem
     // +2 o par `--surface-escura`/`-2`, quando o cartão escuro do Painel Dev
     //    precisou de um fundo por área
@@ -385,7 +385,20 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     // token que nenhum tema declara não quebra nada visível, só acumula
     // divergência em silêncio. Entrar no contrato é o que faz um tema novo ser
     // OBRIGADO a responder.
-    expect(contrato.size).toBe(50);
+    //
+    // +1 `--field`, o MIOLO do controle. Não é o caso do `--border-control`
+    //    acima: ali havia dois nomes para um trabalho, aqui o trabalho não
+    //    tinha nome nenhum — o miolo saía de `--background`, a variável da
+    //    PÁGINA, então campo e superfície eram a mesma cor por construção e
+    //    só a borda separava os dois. O `--input` continua sendo o contorno;
+    //    são lados opostos da mesma linha, e a 1.4.11 mede um contra o outro.
+    //
+    // +1 `--surface-elevada`, a superfície do que FLUTUA. Nasceu porque o modal
+    //    vinha de `--card`, e o `--card` é o branco do CROMO — tingir a
+    //    superfície do modal arrastava junto todo botão, barra e item
+    //    selecionável do produto, inclusive os blocos da Biblioteca. Quem
+    //    flutua e quem é cromo param em luminosidades diferentes.
+    expect(contrato.size).toBe(52);
   });
 
   /*
