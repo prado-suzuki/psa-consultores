@@ -1,6 +1,6 @@
 # Contrato congelado entre o motor (L2) e o conteúdo dos blocos (L3)
 
-Contexto: mutirão de correções do `docs/sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md`.
+Contexto: mutirão de correções do `docs/tarefas-executadas/2026_08_11_correcoes-e2e-de-geracao-de-contrato.md`.
 B4, B5, B12, B13, B14 e B19 são a mesma correção partida em duas: o **motor** (`src/lib/templates/**`,
 raia L2) e o **texto dos blocos** (migrations de conteúdo, raia L3). As duas correm em paralelo, então
 os nomes de variável e a semântica precisam estar fixados **antes** das duas começarem. Este arquivo é
