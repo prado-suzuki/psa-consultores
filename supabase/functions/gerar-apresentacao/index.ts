@@ -55,8 +55,9 @@ import {
 import { nextCNvPrId } from "../_shared/ooxml/ids.ts";
 import {
   carregarForaDaEstrutura, carregarOutrosBens, carregarPatrimonial, carregarTotaisPorSociedade, carregarOrganograma,
+  carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
-  type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
+  type BemForaDaEstrutura, type OutrosBens, type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
   type ProblemaDoDeck,
 } from "./data.ts";
 import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
@@ -196,6 +197,53 @@ function renderPatrimonialSlide(
   writeText(parts, slidePath, serializeXml(doc));
 }
 
+/** A tabela dos bens fora da estruturacao, com o motivo, em pagina propria. */
+function renderForaDaEstrutura(
+  parts: PptxParts, slidePath: string, linhas: readonly BemForaDaEstrutura[],
+): void {
+  const xml0 = readText(parts, slidePath);
+  const doc = parseXml(xml0);
+  const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "NI_REF"));
+  if (gf) {
+    const rows = listRows(gf);
+    const template = rows.find((r) => rowContainsToken(r, "NI_REF"));
+    if (template) {
+      for (const l of linhas) {
+        const clone = cloneRow(template);
+        applyTokensToNode(clone, {
+          NI_REF: l.referencia,
+          NI_MAT: l.matriculaLabel,
+          NI_MUN: l.municipioUf,
+          NI_TIT: l.titular,
+          NI_MOTIVO: l.motivo,
+        });
+        insertRowBefore(clone, template);
+      }
+      removeRow(template);
+    }
+  }
+  stripRemainingTokens(doc);
+  writeText(parts, slidePath, serializeXml(doc));
+}
+
+/**
+ * Leva a pagina para o fim do deck: o `duplicateSlide` poe toda copia no fim quando nao acha a origem,
+ * o que acontece se a relationship traz o `Type` antes do `Target`.
+ */
+function moverParaOFim(parts: PptxParts, slidePath: string): void {
+  const num = slidePath.match(/slide(\d+)\.xml$/)?.[1];
+  const rels = readText(parts, "ppt/_rels/presentation.xml.rels");
+  const rel = [...rels.matchAll(/<Relationship\s[^>]*>/g)].map((m) => m[0])
+    .find((r) => r.includes(`Target="slides/slide${num}.xml"`));
+  const rid = rel?.match(/Id="(rId\d+)"/)?.[1];
+  if (!rid) return;
+  const pres = readText(parts, "ppt/presentation.xml");
+  const el = pres.match(new RegExp(`<p:sldId[^>]*r:id="${rid}"[^>]*/>`))?.[0];
+  if (!el) return;
+  writeText(parts, "ppt/presentation.xml", pres.replace(el, "").replace("</p:sldIdLst>", `${el}</p:sldIdLst>`));
+}
+
+
 /** Como o `slideDoToken`, mas a pagina e obrigatoria: molde sem ela nao gera. */
 function slideObrigatorio(parts: PptxParts, token: string, pagina: string): string {
   const sp = slideDoToken(parts, token);
@@ -214,9 +262,13 @@ async function gerarPatrimonial(
 
   const [sociedades, foraDaEstrutura, totais, outros] = await Promise.all([
     carregarPatrimonial(admin, clienteId, probs),
+    carregarForaDaEstrutura(admin, clienteId, probs),
     carregarTotaisPorSociedade(admin, clienteId),
 
   const TEMPLATE = slideObrigatorio(parts, "PROP", "das sociedades");
+  /* Achada ANTES das copias da pagina de sociedade, que nao a trazem, mas mudam a
+     lista de slides. */
+  const SLIDE_FORA = slideDoToken(parts, "NI_REF");
   if (sociedades.length === 0) {
     // Sem sociedades: mantem a pagina vazia, tira row-template pra nao ficar com token cru.
     const xml = readText(parts, TEMPLATE);
@@ -269,6 +321,23 @@ async function gerarPatrimonial(
     }
   }
 
+
+  /* O slide dos que ficaram de fora sai do deck quando nao ha nenhum: tabela com
+     cabecalho e nenhuma linha e pior que slide ausente — parece dado perdido. */
+  if (!SLIDE_FORA) {
+    /* Molde sem esta pagina: o codigo aceita o antigo, porque a funcao e publicada antes do molde. */
+    if (foraDaEstrutura.length > 0) {
+      anota(probs, ONDE.patrimonial,
+        `${foraDaEstrutura.length === 1 ? "O imóvel fora da estruturação não saiu" : `Os ${foraDaEstrutura.length} imóveis fora da estruturação não saíram`}: o modelo do capítulo 01 no sistema está desatualizado e não tem a página deles. Avise o suporte da PSA Digital.`,
+        "sistema");
+    }
+  } else if (foraDaEstrutura.length === 0) {
+    removeSlide(parts, SLIDE_FORA);
+  } else {
+    renderForaDaEstrutura(parts, SLIDE_FORA, foraDaEstrutura);
+    moverParaOFim(parts, SLIDE_FORA);
+  }
+
   // Capa + divisor: aplicar globais
   const globais: Tokens = { CLIENTE: clienteNome, DATA: dataBR() };
   for (const sp of listPaths(parts, "ppt/slides/slide", ".xml")) {
@@ -282,8 +351,8 @@ async function gerarPatrimonial(
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
   return {
     bytes: packPptx(parts),
-    contagens: { sociedades: sociedades.length },
-    snapshot: { sociedades },
+    contagens: { sociedades: sociedades.length, outrosBens: outros.linhas.length, foraDaEstrutura: foraDaEstrutura.length },
+    snapshot: { sociedades, outrosBens: outros, foraDaEstrutura },
   };
 }
 

@@ -68,12 +68,22 @@ export interface SociedadePatrimonial {
   linhas: LinhaPatrimonial[];
 }
 
+/** Uma linha da tabela dos bens que ficaram FORA da estruturacao. */
+export interface BemForaDaEstrutura {
+  referencia: string;
+  matriculaLabel: string;
+  municipioUf: string;
+  titular: string;
+  motivo: string;
+}
+
 /** A forma crua que a query do `bem` devolve. Frouxa de proposito: e JSON do PostgREST. */
 export interface BemCru {
   denominacao?: string | null;
   vlr_contabil?: number | string | null;
   participa_estruturacao?: boolean | null;
   status_integralizacao?: string | null;
+  motivo_nao_integralizacao?: string | null;
   empresa_destino?: { denominacao?: string | null } | null;
   titularidade?: Array<TitularidadeCrua> | null;
   matricula?: Array<{
@@ -96,6 +106,7 @@ export interface TitularidadeCrua {
 
 export const SOCIEDADE_A_DEFINIR = "Sociedade a definir";
 export const MATRICULA_NAO_SE_APLICA = "Não se aplica";
+export const SEM_MOTIVO_DECLARADO = "Motivo não declarado no cadastro";
 
 /** Imovel e o que pode ter matricula (rural e urbano): a mesma fronteira de `matricula_tipo_bem_check`. */
 export function ehImovel(b: Pick<BemCru, "tipo_bem">): boolean {
@@ -167,11 +178,7 @@ export function situacaoDaMatricula(m: {
  * cliente parecendo conteudo.
  */
 export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): SociedadePatrimonial[] {
-  // quem conferir a apresentação contra o cadastro não procurar o que foi tirado de propósito.
-  const fora = bensCrus.length - bens.length;
-  if (fora > 0) {
-    anota(probs, ONDE.patrimonial, `${plural(fora, "bem está", "bens estão")} fora da estruturação e não ${fora === 1 ? "entrou" : "entraram"} na apresentação.`);
-  }
+  /* So imovel da estruturacao: os fora dela saem na pagina propria, e os que nao sao imovel na de
 
   const buckets = new Map<string, LinhaPatrimonial[]>();
   let semDestino = 0;
@@ -275,6 +282,44 @@ export function montaForaDaEstrutura(bensCrus: readonly BemCru[], probs?: Probs)
   /* O motivo e a unica coluna sem substituto: sem ele a linha nao diz por que o bem ficou de fora. */
   if (semMotivo > 0) {
     anota(
+      probs,
+      ONDE.patrimonial,
+      `${plural(semMotivo, "bem fora da estruturação está", "bens fora da estruturação estão")} sem motivo declarado no cadastro.`,
+    );
+  }
+
+  return linhas.sort((a, b) => a.referencia.localeCompare(b.referencia, "pt-BR"));
+}
+
+/** Uma linha da tabela dos bens integralizados que nao sao imovel. */
+export interface LinhaOutroBem {
+  referencia: string;
+  tipo: string;
+  sociedade: string;
+  propriedade: string;
+  valor: string;
+}
+
+export interface OutrosBens {
+  linhas: LinhaOutroBem[];
+  /** O TOTAL de valor da tabela inteira. */
+  total: string;
+}
+
+/**
+ * Os bens da estruturacao que nao sao imovel, numa tabela so com a coluna da sociedade: na de
+ * imoveis sairiam sem matricula, municipio nem area.
+ */
+export function montaOutrosBens(bensCrus: readonly BemCru[], probs?: Probs): OutrosBens {
+  const bens = bensCrus.filter((b) => b.participa_estruturacao !== false && !ehImovel(b));
+  let semDestino = 0;
+  let soma = 0;
+  const linhas = bens.map((b) => {
+    const destino = b.empresa_destino?.denominacao;
+    if (!destino) semDestino++;
+    soma += Number(b.vlr_contabil ?? 0) || 0;
+    return {
+      referencia: b.denominacao ?? "—",
 // ---------------------------------------------------------------------------
 // Quadro derivado dos bens (empresa a integralizar)
 // ---------------------------------------------------------------------------

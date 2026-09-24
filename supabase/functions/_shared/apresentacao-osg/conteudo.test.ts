@@ -17,6 +17,7 @@ import {
   fmtPct,
   MATRICULA_NAO_SE_APLICA,
   momentoDoBem,
+  montaForaDaEstrutura,
   montaPatrimonial,
   SEM_MOTIVO_DECLARADO,
   situacaoDaMatricula,
@@ -24,6 +25,7 @@ import {
   nomesTitulares,
   rateioDaMatricula,
   SOCIEDADE_A_DEFINIR,
+  totaisPorSociedade,
   type BemCru,
   type BemParaQuadro,
   type Titular,
@@ -214,11 +216,13 @@ describe('montaPatrimonial', () => {
     expect(probs.some((p) => p.detalhe.includes(SOCIEDADE_A_DEFINIR))).toBe(true);
   });
 
-  it('fora da estruturação nao entra, e o aviso diz quantos', () => {
+  it('fora da estruturação nao entra na tabela das sociedades, e nao vira aviso aqui', () => {
+    // Eles saem na pagina propria do capitulo 01; quem avisa quando o molde nao tem a pagina e o
+    // `gerarPatrimonial`.
     const probs: ProblemaDoDeck[] = [];
     const r = montaPatrimonial([bem(), bem({ participa_estruturacao: false })], probs);
     expect(r[0].linhas).toHaveLength(1);
-    expect(probs.some((p) => p.detalhe.includes('1 bem está fora da estruturação'))).toBe(true);
+    expect(probs.some((p) => p.detalhe.includes('fora da estruturação'))).toBe(false);
   });
 
   it('sem bem nenhum, devolve vazio e nao inventa sociedade', () => {
@@ -485,3 +489,41 @@ describe('montaPatrimonial — as colunas novas', () => {
     expect(soc.linhas[0].area).toBe('500,00');
     expect(soc.linhas[0].momento).toBe('2º');
     expect(soc.linhas[0].situacao).toBe('Regular');
+  });
+
+  it('sem titular de fato, a coluna sai com travessao e nao repete o de direito', () => {
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda Y', participa_estruturacao: true,
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '2', impedimento: [],
+        titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }],
+      }],
+    }]);
+    expect(soc.linhas[0].deFato).toBe('—');
+  });
+
+  it('matricula travada por impedimento vira Pendente, sem aviso: e o estado real do imovel', () => {
+    const probs: Array<{ onde: string; detalhe: string }> = [];
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda Z', participa_estruturacao: true,
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '3', impedimento: [{ cancelado: false, impede_transferencia: true }], titularidade: [],
+      }],
+    }], probs);
+    expect(soc.linhas[0].situacao).toBe('Pendente');
+    expect(probs.some((p) => p.detalhe.includes('Pendente'))).toBe(false);
+  });
+});
+
+describe('totaisPorSociedade', () => {
+  const imovel = (denominacao: string, destino: string, extra: Partial<BemCru> = {}): BemCru => ({
+    tipo_bem: 'IR',
+    denominacao,
+    vlr_contabil: 999,
+    participa_estruturacao: true,
+    empresa_destino: { denominacao: destino },
+    matricula: [{ numero: `${denominacao}-0`, area_documento: 100, area_unidade: 'ha', vlr_contabil: 10 }],
+    ...extra,
+  });

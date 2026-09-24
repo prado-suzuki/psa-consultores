@@ -13,6 +13,7 @@ import {
 import {
   exploracaoDoOrganograma, montaForaDaEstrutura, montaOutrosBens, montaPatrimonial, montaQuadroDerivado,
   totaisPorSociedade,
+  type BemCru, type BemForaDaEstrutura, type BemParaQuadro, type ExploracaoRuralCrua, type OutrosBens,
   type QuadroLinha, type QuadroResult, type SociedadePatrimonial, type SocioIdent, type TotalDaSociedade,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
@@ -30,13 +31,13 @@ type SB = any;
  */
 export { fmtBRL, fmtInt, fmtPct } from "../_shared/apresentacao-osg/conteudo.ts";
 export type {
-  LinhaPatrimonial, SociedadePatrimonial, TotalDaSociedade,
+  BemForaDaEstrutura, LinhaPatrimonial, SociedadePatrimonial, TotalDaSociedade,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
 /* Um select para as duas tabelas do patrimonial (integralizados e fora da estruturacao), para que
    as duas saiam do mesmo cadastro. */
 const SELECT_PATRIMONIAL = `
-   motivo_nao_integralizacao,empresa_destino_pessoa_id,
+  id,tipo_bem,descricao_outros,denominacao,vlr_contabil,participa_estruturacao,status_integralizacao,
   motivo_nao_integralizacao,empresa_destino_pessoa_id,
   empresa_destino:empresa_destino_pessoa_id(denominacao),
   titularidade(tipo,fracao,titular:titular_pessoa_id(denominacao)),
@@ -60,6 +61,15 @@ export async function carregarPatrimonial(admin: SB, clienteId: string, probs?: 
 /** O TOTAL de cada sociedade pela mesma regra das linhas; a chave e o nome, como o `montaPatrimonial` agrupa. */
 export async function carregarTotaisPorSociedade(admin: SB, clienteId: string): Promise<Map<string, TotalDaSociedade>> {
   return totaisPorSociedade(await lerBens(admin, clienteId));
+}
+
+/** Os bens fora da estruturacao, com o motivo — a segunda tabela do deck. */
+export async function carregarForaDaEstrutura(
+  admin: SB, clienteId: string, probs?: Probs,
+): Promise<BemForaDaEstrutura[]> {
+  /* Sem `probs`: quem ja relatou quantos ficaram de fora foi o `montaPatrimonial`,
+     que le a mesma lista. O que passa aqui e so o aviso de motivo em branco. */
+  return montaForaDaEstrutura(await lerBens(admin, clienteId), probs);
 
 }
 
