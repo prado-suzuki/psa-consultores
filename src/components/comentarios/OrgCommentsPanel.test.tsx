@@ -29,6 +29,15 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'U1' } }),
 }));
 
+vi.mock('@/hooks/useEnriquecerTexto', () => ({
+  useEnriquecerTexto: () => ({
+    data: null,
+    isPending: false,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 /**
  * O editor rico tem testes próprios (formato em `orgCommentRichText.test.ts`,
  * leitura em `OrgCommentBody.test.tsx`, inserção da menção em

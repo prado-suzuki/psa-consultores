@@ -323,7 +323,9 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
         </p>
 
         {corpo && (
-          <div className="ml-3 mt-1 border-l-2 border-primary/30 pl-3 text-[13px] leading-relaxed text-foreground/85">
+          /* Mesma caixa branca da fala humana: no cartão cinza do feed, o corpo
+             do evento é conteúdo e não pode ler como legenda do cartão. */
+          <div className="ml-3 mt-1 rounded-md border-l-2 border-primary/30 bg-card px-3 py-2 text-[13px] leading-relaxed text-foreground/85">
             <OrgCommentBody body={corpo} />
           </div>
         )}

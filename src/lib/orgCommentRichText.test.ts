@@ -12,6 +12,7 @@ import {
   NO_DE_MENCAO,
   serializarDoc,
   textoPlanoDoCorpo,
+  restaurarMencoesDoCorpo,
   textoPlanoDoDoc,
 } from '@/lib/orgCommentRichText';
 
@@ -89,6 +90,38 @@ describe('mencoesDoDoc', () => {
 
   it('documento sem menção devolve vazio', () => {
     expect(mencoesDoDoc(DOC_VAZIO)).toEqual([]);
+  });
+});
+
+describe('restaurarMencoesDoCorpo', () => {
+  it('recria o chip pelo nome preservado no texto enriquecido', () => {
+    const enriquecido: JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Confira com @Ana Souza hoje.' }],
+        },
+      ],
+    };
+
+    const resultado = restaurarMencoesDoCorpo(enriquecido, serializarDoc(DOC));
+
+    expect(resultado.mencoesAusentes).toEqual([]);
+    expect(mencoesDoDoc(resultado.doc)).toEqual(['U2']);
+    expect(textoPlanoDoDoc(resultado.doc)).toBe('Confira com @Ana Souza hoje.');
+  });
+
+  it('avisa quando a IA remove uma menção', () => {
+    const resultado = restaurarMencoesDoCorpo(
+      {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Confira.' }] }],
+      },
+      serializarDoc(DOC),
+    );
+
+    expect(resultado.mencoesAusentes).toEqual(['@Ana Souza']);
   });
 });
 

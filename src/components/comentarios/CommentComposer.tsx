@@ -1,16 +1,25 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { AtSign, Paperclip, Reply, Send, X } from 'lucide-react';
+import { AtSign, Loader2, Paperclip, Reply, Send, Sparkles, X } from 'lucide-react';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
 
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
+import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import { Button } from '@/components/ui/button';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { BotaoDitado } from '@/components/shared/BotaoDitado';
 import type { MentionCandidate } from '@/lib/orgCommentMentions';
-import { docEstaVazio, lerCorpo, mencoesDoDoc, serializarDoc } from '@/lib/orgCommentRichText';
+import {
+  docEstaVazio,
+  lerCorpo,
+  mencoesDoDoc,
+  restaurarMencoesDoCorpo,
+  serializarDoc,
+  textoPlanoDoCorpo,
+} from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
+import { useEnriquecerTexto } from '@/hooks/useEnriquecerTexto';
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -74,7 +83,9 @@ export function CommentComposer({
   const inserirTextoRef = useRef<((texto: string) => void) | null>(null);
   /** Há um "@" esperando a lista de gente aparecer para ser reaberto. */
   const [mencaoPendente, setMencaoPendente] = useState(false);
+  const [corpoNaSolicitacao, setCorpoNaSolicitacao] = useState<string | null>(null);
   const [ditadoOcupado, setDitadoOcupado] = useState(false);
+  const formatacao = useEnriquecerTexto('comentario-para-tarefa');
 
   /*
     A menção só reabre no render em que os candidatos JÁ ESTÃO aqui. Chamar
@@ -89,6 +100,16 @@ export function CommentComposer({
 
   const corpo = lerCorpo(body);
   const vazio = corpo.formato === 'rich' ? docEstaVazio(corpo.doc) : !corpo.texto.trim();
+  const campoSugerido = formatacao.data
+    ? formatacao.data.estruturado === true
+      ? formatacao.data.campos.descricao
+      : formatacao.data.resultado
+    : undefined;
+  const sugestao =
+    campoSugerido?.destino === 'rico'
+      ? restaurarMencoesDoCorpo(campoSugerido.conteudo, corpoNaSolicitacao ?? '')
+      : null;
+  const sugestaoAtual = corpoNaSolicitacao === body;
 
   const addFiles = (incoming: File[]) => {
     const valid = incoming.filter((file) => file.size <= MAX_FILE_SIZE);
@@ -130,7 +151,37 @@ export function CommentComposer({
     }
     setBody('');
     setFiles([]);
+    formatacao.reset();
+    setCorpoNaSolicitacao(null);
     setGeracao((atual) => atual + 1);
+  };
+
+  const formatarComIa = async () => {
+    if (vazio || formatacao.isPending) return;
+    formatacao.reset();
+    setCorpoNaSolicitacao(body);
+    try {
+      await formatacao.mutateAsync(textoPlanoDoCorpo(body));
+    } catch (erro) {
+      setCorpoNaSolicitacao(null);
+      toast.error(erro instanceof Error ? erro.message : 'Não foi possível formatar o texto');
+    }
+  };
+
+  const usarSugestao = () => {
+    if (!sugestao || !sugestaoAtual) return;
+    if (sugestao.mencoesAusentes.length > 0) {
+      toast.error(`A IA não preservou ${sugestao.mencoesAusentes.join(', ')}. Revise o texto.`);
+      return;
+    }
+    setBody(serializarDoc(sugestao.doc));
+    formatacao.reset();
+    setCorpoNaSolicitacao(null);
+  };
+
+  const descartarSugestao = () => {
+    formatacao.reset();
+    setCorpoNaSolicitacao(null);
   };
 
   return (
@@ -212,6 +263,29 @@ export function CommentComposer({
         ariaLabel={compact ? 'Escrever resposta' : 'Escrever comentário'}
       />
 
+      {caixa && sugestao && (
+        <div className="mx-2 mb-2 rounded-md border border-primary/20 bg-primary/[0.04] p-3">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Sugestão da IA
+          </div>
+          <OrgCommentBody body={serializarDoc(sugestao.doc)} />
+          {!sugestaoAtual && (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+              O texto mudou depois da solicitação. Formate novamente para gerar outra sugestão.
+            </p>
+          )}
+          <div className="mt-3 flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={descartarSugestao}>
+              Descartar
+            </Button>
+            <Button type="button" size="sm" disabled={!sugestaoAtual} onClick={usarSugestao}>
+              Usar sugestão
+            </Button>
+          </div>
+        </div>
+      )}
+
       {files.length > 0 && (
         <div className={cn('flex flex-wrap gap-2', caixa ? 'px-3 pb-2' : 'mt-2')}>
           {files.map((file, index) => (
@@ -278,10 +352,29 @@ export function CommentComposer({
                   <AtSign className="h-4 w-4" />
                 </Button>
               </ButtonTooltip>
+              <ButtonTooltip text="Formatar com IA">
+                <span className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={vazio || formatacao.isPending || isPending}
+                    className="h-8 w-8 text-muted-foreground"
+                    aria-label="Formatar com IA"
+                    onClick={formatarComIa}
+                  >
+                    {formatacao.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Sparkles className="h-4 w-4" aria-hidden />
+                    )}
+                  </Button>
+                </span>
+              </ButtonTooltip>
               <BotaoDitado
                 ditado="comentario"
                 alvo={{ inserirTexto: (texto) => inserirTextoRef.current?.(texto) }}
-                disabled={isPending}
+                disabled={isPending || formatacao.isPending}
                 onEstadoChange={(estado) =>
                   setDitadoOcupado(estado === 'gravando' || estado === 'transcrevendo')
                 }
@@ -296,9 +389,7 @@ export function CommentComposer({
         </div>
         <div className="flex min-w-0 items-center gap-2">
           {caixa && (
-            <span className="hidden text-[11px] text-muted-foreground sm:inline">
-              Enter envia
-            </span>
+            <span className="hidden text-[11px] text-muted-foreground sm:inline">Enter envia</span>
           )}
           {onCancel && (
             <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
@@ -308,14 +399,12 @@ export function CommentComposer({
           <Button
             type="button"
             size="sm"
-            disabled={isPending || ditadoOcupado || (vazio && files.length === 0)}
+            disabled={
+              isPending || formatacao.isPending || ditadoOcupado || (vazio && files.length === 0)
+            }
             onClick={submit}
           >
-            {isPending ? (
-              <AreaLoader area={area} size={18} />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            {isPending ? <AreaLoader area={area} size={18} /> : <Send className="h-4 w-4" />}
             <span className="ml-2">Publicar</span>
           </Button>
         </div>

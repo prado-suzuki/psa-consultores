@@ -90,6 +90,92 @@ export function mencoesDoDoc(doc: JSONContent): string[] {
   return ids;
 }
 
+interface MencaoDoDocumento {
+  id: string;
+  label: string;
+}
+
+function mencoesComRotulo(doc: JSONContent): MencaoDoDocumento[] {
+  const mencoes: MencaoDoDocumento[] = [];
+  percorrer(doc, (node) => {
+    if (node.type !== NO_DE_MENCAO) return;
+    const id = typeof node.attrs?.id === 'string' ? node.attrs.id : '';
+    const label = typeof node.attrs?.label === 'string' ? node.attrs.label : '';
+    if (id && label && !mencoes.some((mencao) => mencao.id === id)) mencoes.push({ id, label });
+  });
+  return mencoes.sort((a, b) => b.label.length - a.label.length);
+}
+
+function restaurarMencoesNoTexto(
+  node: JSONContent,
+  mencoes: MencaoDoDocumento[],
+  encontradas: Set<string>,
+): JSONContent[] {
+  const texto = node.text ?? '';
+  const resultado: JSONContent[] = [];
+  let cursor = 0;
+
+  while (cursor < texto.length) {
+    let proxima: { mencao: MencaoDoDocumento; indice: number } | null = null;
+    for (const mencao of mencoes) {
+      const indice = texto.indexOf(`@${mencao.label}`, cursor);
+      if (indice < 0) continue;
+      if (!proxima || indice < proxima.indice) proxima = { mencao, indice };
+    }
+    if (!proxima) break;
+
+    if (proxima.indice > cursor) {
+      resultado.push({
+        type: 'text',
+        text: texto.slice(cursor, proxima.indice),
+        ...(node.marks?.length ? { marks: node.marks } : {}),
+      });
+    }
+    resultado.push({
+      type: NO_DE_MENCAO,
+      attrs: { id: proxima.mencao.id, label: proxima.mencao.label },
+    });
+    encontradas.add(proxima.mencao.id);
+    cursor = proxima.indice + proxima.mencao.label.length + 1;
+  }
+
+  if (cursor < texto.length) {
+    resultado.push({
+      type: 'text',
+      text: texto.slice(cursor),
+      ...(node.marks?.length ? { marks: node.marks } : {}),
+    });
+  }
+  return resultado.length > 0 ? resultado : [node];
+}
+
+/** Recria os chips que a conversão do texto enriquecido recebe como `@Nome`. */
+export function restaurarMencoesDoCorpo(
+  doc: JSONContent,
+  corpoOriginal: string,
+): { doc: JSONContent; mencoesAusentes: string[] } {
+  const mencoes = mencoesComRotulo(docDoCorpo(corpoOriginal));
+  if (mencoes.length === 0) return { doc, mencoesAusentes: [] };
+
+  const encontradas = new Set<string>();
+  const visitar = (node: JSONContent): JSONContent[] => {
+    if (node.type === 'text') return restaurarMencoesNoTexto(node, mencoes, encontradas);
+    return [
+      {
+        ...node,
+        ...(node.content ? { content: node.content.flatMap(visitar) } : {}),
+      },
+    ];
+  };
+  const restaurado = visitar(doc)[0];
+  return {
+    doc: restaurado,
+    mencoesAusentes: mencoes
+      .filter((mencao) => !encontradas.has(mencao.id))
+      .map((mencao) => `@${mencao.label}`),
+  };
+}
+
 /**
  * Texto plano do documento — é o que alimenta resumo de auditoria e qualquer
  * lugar que precise do comentário sem marcação. A menção volta como `@Nome`.
