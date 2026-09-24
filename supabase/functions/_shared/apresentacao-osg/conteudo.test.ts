@@ -13,6 +13,7 @@ import {
   dedupTitulares,
   emHectares,
   ehImovel,
+  exploracaoDoOrganograma,
   fmtBRL,
   fmtPct,
   MATRICULA_NAO_SE_APLICA,
@@ -29,6 +30,7 @@ import {
   totaisPorSociedade,
   type BemCru,
   type BemParaQuadro,
+  type ExploracaoRuralCrua,
   type Titular,
 } from './conteudo.ts';
 import type { ProblemaDoDeck } from '../apresentacao/problema.ts';
@@ -596,3 +598,50 @@ describe('montaOutrosBens — o que não é imóvel sai da tabela de imóveis', 
     tipo_bem: 'OU', denominacao: 'Moeda corrente integralizada no capital', vlr_contabil: '40983.60',
     participa_estruturacao: true, empresa_destino: null, titularidade: [], matricula: [],
   };
+  const fazenda: BemCru = {
+    tipo_bem: 'IR', denominacao: 'Fazenda A', vlr_contabil: 100, participa_estruturacao: true,
+    empresa_destino: { denominacao: 'Soc' }, matricula: [{ numero: '1', area_documento: 10, area_unidade: 'ha', vlr_contabil: 100 }],
+  };
+
+  it('só rural e urbano são imóvel', () => {
+    expect(['IR', 'IB', 'AP', 'PS', 'OU'].map((t) => ehImovel({ tipo_bem: t }))).toEqual([true, true, false, false, false]);
+  });
+
+  it('a moeda sai da tabela de imóveis e entra na de outros bens, em "Sociedade a definir" e com aviso', () => {
+    expect(montaPatrimonial([fazenda, moeda]).map((s) => s.nome)).toEqual(['Soc']);
+    const probs: ProblemaDoDeck[] = [];
+    const r = montaOutrosBens([fazenda, moeda], probs);
+    expect(r.linhas).toEqual([{
+      referencia: 'Moeda corrente integralizada no capital', tipo: 'Outros',
+      sociedade: SOCIEDADE_A_DEFINIR, propriedade: '—', valor: fmtBRL(40983.6),
+    }]);
+    expect(r.total).toBe(fmtBRL(40983.6));
+    expect(probs.some((p) => p.detalhe.includes('outro bem sai') && p.detalhe.includes(SOCIEDADE_A_DEFINIR))).toBe(true);
+    // A moeda não conta mais como "bem sem matrícula" da tabela de imóveis.
+    const probsImoveis: ProblemaDoDeck[] = [];
+    montaPatrimonial([fazenda, moeda], probsImoveis);
+    expect(probsImoveis.some((p) => p.detalhe.includes(MATRICULA_NAO_SE_APLICA))).toBe(false);
+  });
+
+  it('o tipo diz o que o bem é, "Outros" usa a descrição, e fora da estrutura não entra', () => {
+    const r = montaOutrosBens([
+      { tipo_bem: 'PS', denominacao: 'Quotas da Alfa', vlr_contabil: 10, empresa_destino: { denominacao: 'Beta' },
+        titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }] },
+      { tipo_bem: 'OU', descricao_outros: 'Camionete Hilux', denominacao: 'Veículo', vlr_contabil: 5, empresa_destino: { denominacao: 'Alfa' } },
+      { tipo_bem: 'AP', denominacao: 'Arrendamento Faz B', vlr_contabil: 1, empresa_destino: { denominacao: 'Alfa' } },
+      { tipo_bem: 'OU', denominacao: 'Trator', vlr_contabil: 99, participa_estruturacao: false, empresa_destino: { denominacao: 'Alfa' } },
+    ]);
+    expect(r.linhas.map((l) => [l.sociedade, l.referencia, l.tipo, l.propriedade])).toEqual([
+      ['Alfa', 'Arrendamento Faz B', 'Arrendamento e/ou parceria', '—'],
+      ['Alfa', 'Veículo', 'Camionete Hilux', '—'],
+      ['Beta', 'Quotas da Alfa', 'Participação societária', 'Ana'],
+    ]);
+    expect(r.total).toBe(fmtBRL(16));
+  });
+
+  it('sem outro bem, a tabela vem vazia e não avisa nada', () => {
+    const probs: ProblemaDoDeck[] = [];
+    expect(montaOutrosBens([fazenda], probs)).toEqual({ linhas: [], total: fmtBRL(0) });
+    expect(probs).toEqual([]);
+  });
+});

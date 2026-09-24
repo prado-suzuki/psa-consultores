@@ -265,16 +265,22 @@ async function quadroDaEmpresa(admin: SB, e: EmpresaPJ, probs?: Probs): Promise<
   };
 }
 
+/** O cadastro de Exploracao Rural do cliente, com as partes; a regra fica em `exploracaoDoOrganograma`. */
+async function lerExploracoesRurais(admin: SB, clienteId: string): Promise<ExploracaoRuralCrua[]> {
+  const { data, error } = await admin.from("exploracao_rural")
+    .select("tipo_exploracao,partes:exploracao_rural_parte(papel,fracao,pessoa:pessoa_id(denominacao))")
+    .eq("cliente_id", clienteId);
+  if (error) throw new Error(`organograma.exploracao_rural: ${error.message}`);
+  return (data ?? []) as ExploracaoRuralCrua[];
+}
+
 export async function carregarOrganograma(admin: SB, clienteId: string, probs?: Probs): Promise<OrganogramaBands> {
   /* Sem `probs` no `listarEmpresasPJ`: quem relata empresa sem denominacao e o
      `carregarQuadro`, que chama a mesma funcao. Passar nos dois duplicaria. */
   const [empresas, explRes] = await Promise.all([
     listarEmpresasPJ(admin, clienteId),
-    admin.from("exploracao_rural")
-      .select("id,tipo_exploracao,referencia,partes:exploracao_rural_parte(papel,pessoa:pessoa_id(denominacao))")
-      .eq("cliente_id", clienteId),
+    lerExploracoesRurais(admin, clienteId),
   ]);
-  if (explRes.error) throw new Error(`organograma.exploracao_rural: ${explRes.error.message}`);
 
   const controladoras: string[] = [];
   const controladas: string[] = [];
@@ -311,14 +317,14 @@ export async function carregarOrganograma(admin: SB, clienteId: string, probs?: 
     }
   }
 
-  const rural: string[] = [];
-  for (const e of (explRes.data ?? []) as any[]) {
-    const label = e.referencia;
-    if (label) rural.push(label);
-    const partes = (e.partes ?? []) as any[];
-    for (const p of partes) {
-      if (p.papel === "explorador" && p.pessoa?.denominacao) rural.push(p.pessoa.denominacao);
-    }
+  /* A faixa rural vem da Exploracao Rural, que e a estrutura almejada; sem cadastro sai vazia, com aviso. */
+  const { rural } = exploracaoDoOrganograma(exploracoes);
+  if (rural.length === 0) {
+    anota(
+      probs,
+      ONDE.organograma,
+      "A faixa rural do organograma saiu vazia: nenhum explorador ou compossuidor no cadastro de Exploração Rural.",
+    );
   }
 
   const uniq = (xs: string[]) => [...new Set(xs)].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -363,23 +369,11 @@ export async function carregarQuadro(admin: SB, clienteId: string, probs?: Probs
 // ---------- Titular ----------
 
 export async function resolverTitular(admin: SB, clienteId: string, probs?: Probs): Promise<string> {
-  // Titular = explorador principal da composse cadastrada.
-  // Sem composse cadastrada → placeholder claro (nunca inventar via is_fundador).
-  const { data: expl, error } = await admin
-    .from("exploracao_rural")
-    .select("id,partes:exploracao_rural_parte(papel,pessoa:pessoa_id(denominacao))")
-    .eq("cliente_id", clienteId)
-    .eq("tipo_exploracao", "composse")
-    .limit(1);
-  if (error) throw new Error(`resolverTitular: ${error.message}`);
-  if (expl && expl.length > 0) {
-    const partes = (expl[0] as any)?.partes ?? [];
-    const explorador = partes.find((p: any) => p.papel === "explorador");
-    const n = explorador?.pessoa?.denominacao;
-    if (n) return String(n);
-  }
+  /* O titular e o compossuidor que titula a composse; a regra de escolha esta em `exploracaoDoOrganograma`. */
+  const { titular } = exploracaoDoOrganograma(await lerExploracoesRurais(admin, clienteId));
+  if (titular) return titular;
   // O placeholder vai IMPRESSO no slide, entao o aviso nao e opcional: e a unica
   // chance de alguem trocar antes de a apresentacao chegar ao cliente.
-  anota(probs, ONDE.organograma, "O titular sai como \"[titular da composse — a definir]\" — não há composse com explorador cadastrado.");
-  return "[titular da composse — a definir]";
+  anota(probs, ONDE.organograma, "O titular sai como \"[titular a definir]\" — não há composse com compossuidor no cadastro de Exploração Rural.");
+  return "[titular a definir]";
 }

@@ -379,6 +379,48 @@ export function totaisPorSociedade(bens: readonly BemCru[]): Map<string, TotalDa
 // ---------------------------------------------------------------------------
 
 /** Uma linha de `exploracao_rural` com as partes, como o gerador le. */
+export interface ExploracaoRuralCrua {
+  tipo_exploracao?: string | null;
+  partes?: Array<{
+    papel?: string | null;
+    fracao?: number | string | null;
+    pessoa?: { denominacao?: string | null } | null;
+  }> | null;
+}
+
+/**
+ * A faixa rural e o titular da composse, do cadastro de Exploracao Rural; sem cadastro, vazios.
+ * Quem entra na faixa e como se escolhe o titular: docs/osg/apresentacao-da-osg.md.
+ */
+export function exploracaoDoOrganograma(
+  exploracoes: readonly ExploracaoRuralCrua[],
+): { rural: string[]; titular: string | null } {
+  const rural = new Set<string>();
+  const fracaoDoCompossuidor = new Map<string, number>();
+  const administradores = new Set<string>();
+
+  for (const e of exploracoes) {
+    for (const p of e.partes ?? []) {
+      const nome = p.pessoa?.denominacao?.trim();
+      if (!nome) continue;
+      if (p.papel === "explorador") rural.add(nome);
+      if (p.papel === "compossuidor") {
+        rural.add(nome);
+        const f = Number(p.fracao ?? 0) || 0;
+        fracaoDoCompossuidor.set(nome, Math.max(fracaoDoCompossuidor.get(nome) ?? 0, f));
+      }
+      if (p.papel === "administrador_nomeado") administradores.add(nome);
+    }
+  }
+
+  const titular = [...fracaoDoCompossuidor].sort(([a, fa], [b, fb]) =>
+    fb - fa
+    || Number(administradores.has(b)) - Number(administradores.has(a))
+    || a.localeCompare(b, "pt-BR"))[0]?.[0] ?? null;
+
+  return { rural: [...rural].sort((a, b) => a.localeCompare(b, "pt-BR")), titular };
+}
+
 // ---------------------------------------------------------------------------
 // Quadro derivado dos bens (empresa a integralizar)
 // ---------------------------------------------------------------------------
