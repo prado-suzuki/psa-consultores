@@ -57,7 +57,7 @@ traço quer dizer que a tarefa não toca o banco.
 | [2026_09_23 · As exclusões apagam mais do que dizem](2026_09_23_exclusoes-que-apagam-mais-do-que-dizem.md) | Excluir um bem reescreve o capital social registrado; 4 defeitos, 8 subtarefas | — |
 | [2026_09_23 · O histórico de solicitações de um cliente](2026_09_23_historico-de-solicitacoes-do-cliente.md) | **Bloqueada na D1**. A T0 mede e pode encerrar a tarefa | — |
 | [2026_09_23 · A lista geral de solicitações de documentos](2026_09_23_lista-geral-de-solicitacoes.md) | Não existe tela que mostre todas as solicitações | — |
-| [2026_09_23 · Nomenclaturas e tooltips do OSG Work](2026_09_23_nomenclaturas-e-tooltips-conferencia.md) | 34 a fazer, 6 já no código (medidos em 23/09, contra a TIP-03 que se dava por executada); 6 decisões dela travam itens específicos | Só B-14, que é `tmpl_documento.descricao` |
+| [2026_09_23 · Nomenclaturas e tooltips do OSG Work](2026_09_23_nomenclaturas-e-tooltips-conferencia.md) | 35 a fazer, 6 já no código, **5** decisões dela; remedido em 24/09: A-02 são 15 telas e não dez, E-09 são 13 pontos e não sete, P-06 deixou de ser decisão. **63,5 h de execução + 14 h de varredura**. Tem roteiro de validação em tela por sessão de cliente, medido por SELECT em 24/09 | Só B-14, que é `tmpl_documento.descricao` |
 
 ### Ordem de serviço, faturamento e cadastro
 
