@@ -9,6 +9,7 @@ const hooks = createEntityHooks<Processo>({
   defaultOrder: 'order_index',
   // MAPA-only: esconde os 28 processos do Digital Rotina (cluster_id NULL).
   listNotNull: ['cluster_id'],
+  auditoria: { area: 'dev', entityType: 'processo', campoDoNome: 'name' },
 });
 
 export const useProcessos = hooks.useList;

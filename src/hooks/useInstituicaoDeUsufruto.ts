@@ -90,6 +90,17 @@ export function useInstituirUsufruto() {
         },
       });
 
+      if (quantos > 0) {
+        await logAction({
+          area: 'osg',
+          entity_type: 'onus_quota',
+          entity_id: atoId,
+          entity_name: descricao,
+          action: 'created',
+          changed_fields: { criados: { old: 0, new: quantos } },
+        });
+      }
+
       toast({
         title: 'Instituição de usufruto registrada',
         description: `${quantos} concessão(ões) de usufruto, sem mudança na titularidade das quotas.`,

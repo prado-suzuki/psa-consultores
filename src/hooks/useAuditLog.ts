@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-type AuditArea = 'tax' | 'osg' | 'auditoria' | 'juridico' | 'estrutura' | 'cadastros' | 'dev';
+export type AuditArea = 'tax' | 'osg' | 'auditoria' | 'juridico' | 'estrutura' | 'cadastros' | 'dev';
 
-type AuditEntityType =
+export type AuditEntityType =
   | 'project'
   | 'task'
   | 'subtask'
@@ -103,7 +103,34 @@ type AuditEntityType =
   // pergunta que se faz ao log e sempre "o que mudou no acesso do fulano", e a
   // linha de `user_roles` deixa de existir no momento em que o papel e tirado.
   | 'papel'
-  | 'area_de_acesso';
+  | 'area_de_acesso'
+  // O onus sobre a quota: so o ato era auditado, e o gravame nao deixava rastro.
+  | 'onus_quota'
+  // O MAPA: as duas entidades que o factory de CRUD cria.
+  | 'processo'
+  | 'documento_processo';
+
+/** `null` e `undefined` são a mesma ausência; o resto compara por valor. */
+function mesmoValor(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Só os campos que mudaram de verdade.
+ *
+ * Quem chama monta o diff com o objeto inteiro, e o log passava a afirmar
+ * alteração em campo que ficou igual. Sem `undefined` quando nada sobra.
+ */
+export function apenasOQueMudou(
+  campos: Record<string, { old: unknown; new: unknown }> | undefined,
+): Record<string, { old: unknown; new: unknown }> | undefined {
+  if (!campos) return undefined;
+  const mudou = Object.entries(campos).filter(([, par]) => !mesmoValor(par.old, par.new));
+  return mudou.length > 0 ? Object.fromEntries(mudou) : undefined;
+}
 
 interface AuditLogEntry {
   area: AuditArea;
@@ -132,7 +159,7 @@ export const useAuditLog = () => {
         // O cast é só do diff: `changed_fields` é uma coluna jsonb, e o tipo `Json`
         // gerado não aceita o `unknown` de dentro do FieldDiff. Antes o escape era
         // no `.from('audit_logs' as any)`, que tirava a checagem da tabela inteira.
-        changed_fields: (entry.changed_fields ?? null) as Json,
+        changed_fields: (apenasOQueMudou(entry.changed_fields) ?? null) as Json,
         performed_by: userId,
         details: entry.details ?? null,
       });

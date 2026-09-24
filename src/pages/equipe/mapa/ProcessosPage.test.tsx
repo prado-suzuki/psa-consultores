@@ -12,6 +12,11 @@ import { PROCESSO_OSG_ROW, PROJETO_OSG_ROW, CLUSTER_ROW, ETAPA_ROW } from '@/tes
 import ProcessosPage from './ProcessosPage';
 import { supabase } from '@/integrations/supabase/client';
 
+// O factory de CRUD passou a auditar, e auditar pede o contexto de autenticação.
+vi.mock('@/hooks/useAuditLog', () => ({
+  useAuditLog: () => ({ logAction: vi.fn(), logActionOrThrow: vi.fn() }),
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),

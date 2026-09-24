@@ -206,6 +206,17 @@ export function useDoarQuotas() {
         },
       });
 
+      if (onus > 0) {
+        await logAction({
+          area: 'osg',
+          entity_type: 'onus_quota',
+          entity_id: atoId,
+          entity_name: descricao,
+          action: 'created',
+          changed_fields: { criados: { old: 0, new: onus } },
+        });
+      }
+
       toast({
         title: 'Doação de quotas registrada',
         description: `${plano.lancamentos.length} lançamento(s) em um ato`

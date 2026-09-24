@@ -10,6 +10,7 @@ import {
   type UseMutationResult, type UseQueryResult,
 } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog, type AuditArea, type AuditEntityType } from './useAuditLog';
 
 export interface EntityHooksConfig {
   /** Nome da tabela Supabase. */
@@ -25,6 +26,16 @@ export interface EntityHooksConfig {
    * Aplica apenas em `useList()` — `useById()` continua aberto pra navegação direta.
    */
   listNotNull?: string[];
+  /**
+   * Liga a auditoria das três mutações. Sem isto a entidade nasce sem rastro,
+   * contra a regra "sempre auditar" do AGENTS.md.
+   */
+  auditoria?: {
+    area: AuditArea;
+    entityType: AuditEntityType;
+    /** Coluna que dá o nome legível no log. */
+    campoDoNome: string;
+  };
 }
 
 export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
@@ -38,7 +49,13 @@ export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
 export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'>>(
   cfg: EntityHooksConfig,
 ): EntityHooks<T, Input> {
-  const { resource, defaultOrder, selectClause = '*', listNotNull } = cfg;
+  const { resource, defaultOrder, selectClause = '*', listNotNull, auditoria } = cfg;
+
+  /** O nome legível da linha, com o id como último recurso. */
+  const nomeDe = (linha: Record<string, unknown> | null | undefined, id: string) => {
+    const bruto = auditoria ? linha?.[auditoria.campoDoNome] : undefined;
+    return bruto == null || bruto === '' ? id : String(bruto);
+  };
 
   function useList(): UseQueryResult<T[]> {
     return useQuery<T[]>({
@@ -75,6 +92,7 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
 
   function useCreate(): UseMutationResult<T, Error, Input> {
     const qc = useQueryClient();
+    const { logAction } = useAuditLog();
     return useMutation({
       mutationFn: async (input: Input) => {
         const { data, error } = await supabase
@@ -85,12 +103,22 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
         if (error) throw new Error(error.message);
         return data as unknown as T;
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: [resource] }); },
+      onSuccess: (data) => {
+        qc.invalidateQueries({ queryKey: [resource] });
+        if (!auditoria) return;
+        const linha = data as unknown as Record<string, unknown>;
+        void logAction({
+          area: auditoria.area, entity_type: auditoria.entityType,
+          entity_id: String(linha.id), entity_name: nomeDe(linha, String(linha.id)),
+          action: 'created',
+        });
+      },
     });
   }
 
   function useUpdate(): UseMutationResult<T, Error, { id: string; patch: Partial<T>; old: T }> {
     const qc = useQueryClient();
+    const { logAction } = useAuditLog();
     return useMutation({
       mutationFn: async ({ id, patch }) => {
         const { data, error } = await supabase
@@ -102,18 +130,42 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
         if (error) throw new Error(error.message);
         return data as unknown as T;
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: [resource] }); },
+      // O diff sai do `old` que o chamador já passava e o factory ignorava; o
+      // campo que não mudou é descartado no `useAuditLog`.
+      onSuccess: (data, { id, patch, old }) => {
+        qc.invalidateQueries({ queryKey: [resource] });
+        if (!auditoria) return;
+        const antes = old as unknown as Record<string, unknown>;
+        const mudancas: Record<string, { old: unknown; new: unknown }> = {};
+        for (const campo of Object.keys(patch as Record<string, unknown>)) {
+          mudancas[campo] = { old: antes?.[campo], new: (patch as Record<string, unknown>)[campo] };
+        }
+        void logAction({
+          area: auditoria.area, entity_type: auditoria.entityType,
+          entity_id: id, entity_name: nomeDe(data as unknown as Record<string, unknown>, id),
+          action: 'updated', changed_fields: mudancas,
+        });
+      },
     });
   }
 
   function useDelete(): UseMutationResult<void, Error, { id: string; old: T }> {
     const qc = useQueryClient();
+    const { logAction } = useAuditLog();
     return useMutation({
       mutationFn: async ({ id }) => {
         const { error } = await supabase.from(resource as never).delete().eq('id', id);
         if (error) throw new Error(error.message);
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: [resource] }); },
+      onSuccess: (_vazio, { id, old }) => {
+        qc.invalidateQueries({ queryKey: [resource] });
+        if (!auditoria) return;
+        void logAction({
+          area: auditoria.area, entity_type: auditoria.entityType,
+          entity_id: id, entity_name: nomeDe(old as unknown as Record<string, unknown>, id),
+          action: 'deleted',
+        });
+      },
     });
   }
 

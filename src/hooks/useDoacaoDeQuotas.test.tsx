@@ -208,7 +208,10 @@ describe('useDoarQuotas, o que invalida e audita', () => {
     const { onSuccess } = useDoarQuotas() as unknown as Mutacao;
     await onSuccess(resultadoDoGesto);
 
-    expect(auditMocks.logAction).toHaveBeenCalledTimes(1);
+    // Duas linhas: o ato e o ônus que ele criou. O que segue não acontecendo é
+    // uma linha por lançamento, e é o tipo de cada chamada que prova isso.
+    expect(auditMocks.logAction.mock.calls.map(([e]) => e.entity_type))
+      .toEqual(['ato_societario', 'onus_quota']);
     expect(auditMocks.logAction).toHaveBeenCalledWith(expect.objectContaining({
       entity_type: 'ato_societario', entity_id: 'ato-1', entity_name: gesto.descricao, action: 'created',
       changed_fields: {
@@ -217,6 +220,26 @@ describe('useDoarQuotas, o que invalida e audita', () => {
         descricao: { old: null, new: gesto.descricao },
       },
     }));
+  });
+
+  /* O gravame só aparecia dentro do ato, então uma alteração de ônus não tinha
+     rastro nenhum de quem a fez. */
+  it('o ônus sobre a quota deixa rastro próprio', async () => {
+    const { onSuccess } = useDoarQuotas() as unknown as Mutacao;
+    await onSuccess(resultadoDoGesto);
+
+    expect(auditMocks.logAction).toHaveBeenCalledWith(expect.objectContaining({
+      entity_type: 'onus_quota', entity_id: 'ato-1', action: 'created',
+      changed_fields: { criados: { old: 0, new: 1 } },
+    }));
+  });
+
+  it('sem ônus no ato, não inventa registro de ônus', async () => {
+    const { onSuccess } = useDoarQuotas() as unknown as Mutacao;
+    await onSuccess({ ...resultadoDoGesto, onus: 0 });
+
+    expect(auditMocks.logAction.mock.calls.map(([e]) => e.entity_type))
+      .toEqual(['ato_societario']);
   });
 });
 

@@ -5,6 +5,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
+// O factory de CRUD passou a auditar, e auditar pede o contexto de autenticação.
+vi.mock('@/hooks/useAuditLog', () => ({
+  useAuditLog: () => ({ logAction: vi.fn(), logActionOrThrow: vi.fn() }),
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
 import { mockSupabaseCapture } from '@/test/supabaseCapture';

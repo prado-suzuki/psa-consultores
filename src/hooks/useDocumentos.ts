@@ -4,6 +4,7 @@ import type { Documento } from '@/types';
 const hooks = createEntityHooks<Documento>({
   resource: 'documentos_processo',
   defaultOrder: 'nome',
+  auditoria: { area: 'dev', entityType: 'documento_processo', campoDoNome: 'nome' },
 });
 
 export const useDocumentos = hooks.useList;

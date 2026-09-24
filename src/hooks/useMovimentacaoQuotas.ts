@@ -394,6 +394,20 @@ export function useRegistrarMovimento() {
         action: 'created',
       });
 
+      if (subrogacao.extintos.length > 0 || subrogacao.novos.length > 0) {
+        await logAction({
+          area: 'osg',
+          entity_type: 'onus_quota',
+          entity_id: id,
+          entity_name: entityName,
+          action: 'updated',
+          changed_fields: {
+            criados: { old: 0, new: subrogacao.novos.length },
+            extintos: { old: 0, new: subrogacao.extintos.length },
+          },
+        });
+      }
+
       toast({
         title: `${forma.label} registrada`,
         description: `${movimento.quotas.toLocaleString('pt-BR')} quota(s) · ${entityName}`
