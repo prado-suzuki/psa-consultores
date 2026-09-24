@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { markdownParaConteudo, parseInline, pareceMarkdown } from '@/lib/markdownTarefa';
 
 describe('pareceMarkdown', () => {
-  it('reconhece cerca, listas, cabeçalho, negrito e código na linha', () => {
+  it('reconhece cerca, listas, cabeçalho, negrito, sublinhado e código na linha', () => {
     expect(pareceMarkdown('```sql\nselect 1;\n```')).toBe(true);
     expect(pareceMarkdown('- item')).toBe(true);
     expect(pareceMarkdown('1. passo')).toBe(true);
     expect(pareceMarkdown('## Título')).toBe(true);
     expect(pareceMarkdown('texto **forte**')).toBe(true);
+    expect(pareceMarkdown('texto ++sublinhado++')).toBe(true);
     expect(pareceMarkdown('a coluna `grupo`')).toBe(true);
   });
 
@@ -18,14 +19,16 @@ describe('pareceMarkdown', () => {
 });
 
 describe('parseInline', () => {
-  it('aplica negrito, itálico e código na linha', () => {
-    expect(parseInline('a **b** c `d` e *f*')).toEqual([
+  it('aplica negrito, itálico, sublinhado e código na linha', () => {
+    expect(parseInline('a **b** c `d` e *f* g ++h++')).toEqual([
       { type: 'text', text: 'a ' },
       { type: 'text', text: 'b', marks: [{ type: 'bold' }] },
       { type: 'text', text: ' c ' },
       { type: 'text', text: 'd', marks: [{ type: 'code' }] },
       { type: 'text', text: ' e ' },
       { type: 'text', text: 'f', marks: [{ type: 'italic' }] },
+      { type: 'text', text: ' g ' },
+      { type: 'text', text: 'h', marks: [{ type: 'underline' }] },
     ]);
   });
 
@@ -66,7 +69,11 @@ describe('markdownParaConteudo', () => {
 
   it('cerca sem linguagem e sem fechamento ainda vira bloco', () => {
     expect(markdownParaConteudo('```\nselect 1;')).toEqual([
-      { type: 'codeBlock', attrs: { language: null }, content: [{ type: 'text', text: 'select 1;' }] },
+      {
+        type: 'codeBlock',
+        attrs: { language: null },
+        content: [{ type: 'text', text: 'select 1;' }],
+      },
     ]);
   });
 
@@ -82,7 +89,10 @@ describe('markdownParaConteudo', () => {
 
   it('cabeçalho vira parágrafo em negrito e linha em branco não gera bloco', () => {
     expect(markdownParaConteudo('## O QUE É\n\ntexto')).toEqual([
-      { type: 'paragraph', content: [{ type: 'text', text: 'O QUE É', marks: [{ type: 'bold' }] }] },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'O QUE É', marks: [{ type: 'bold' }] }],
+      },
       { type: 'paragraph', content: [{ type: 'text', text: 'texto' }] },
     ]);
   });

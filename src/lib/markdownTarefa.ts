@@ -22,11 +22,12 @@ export function pareceMarkdown(texto: string): boolean {
     CABECALHO,
     /\*\*[^*\n]+\*\*/,
     /__[^_\n]+__/,
+    /\+\+[^+\n]+\+\+/,
     /`[^`\n]+`/,
   ].some((padrao) => padrao.test(texto));
 }
 
-type MarcaInline = 'bold' | 'italic' | 'code';
+type MarcaInline = 'bold' | 'italic' | 'underline' | 'code';
 
 interface PadraoInline {
   regex: RegExp;
@@ -44,6 +45,7 @@ const PADROES_INLINE: PadraoInline[] = [
   { regex: /`([^`\n]+)`/, marca: 'code', literal: true },
   { regex: /\*\*([^*\n]+)\*\*/, marca: 'bold' },
   { regex: /(?<![\w])__([^_\n]+)__(?![\w])/, marca: 'bold' },
+  { regex: /\+\+([^+\n]+)\+\+/, marca: 'underline' },
   { regex: /\*([^*\n]+)\*/, marca: 'italic' },
   { regex: /(?<![\w])_([^_\n]+)_(?![\w])/, marca: 'italic' },
 ];
