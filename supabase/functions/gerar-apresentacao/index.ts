@@ -88,8 +88,10 @@ interface DeckMontado {
 }
 
 const TEMPLATE_PATHS: Record<DeckTipo, string> = {
-  patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
-  societaria: "TEMPLATE_SOCIETARIA.pptx",
+  /* O nome do molde muda quando o desenho muda: cada ambiente guarda o seu no bucket, e a funcao
+     antiga do outro ambiente leria o desenho novo. */
+  patrimonial: "TEMPLATE_CAP01_PATRIMONIAL.pptx",
+  societaria: "TEMPLATE_CAP02_SOCIETARIA.pptx",
 };
 
 /* O nome que entra no arquivo gravado: `PSA_<rotulo>_<cliente>_v<n>.pptx`. */

@@ -5,7 +5,7 @@ import { unzipSync, strFromU8 } from "npm:fflate@0.8.2";
 serve(async (req) => {
   try {
     const u = new URL(req.url);
-    const tpl = u.searchParams.get("tpl") || "TEMPLATE_PATRIMONIAL.pptx";
+    const tpl = u.searchParams.get("tpl") || "TEMPLATE_CAP01_PATRIMONIAL.pptx";
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,

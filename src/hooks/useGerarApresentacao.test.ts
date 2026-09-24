@@ -154,7 +154,7 @@ describe('useGerarApresentacao', () => {
     invoke.mockResolvedValue({
       data: {
         arquivos: [deck('patrimonial')],
-        erros: [{ tipo: 'societaria', message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' }],
+        erros: [{ tipo: 'societaria', message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' }],
         problemas: [
           { tipo: 'origem', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
         ],
@@ -169,7 +169,7 @@ describe('useGerarApresentacao', () => {
       { tipo: 'origem', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
     ]);
     expect(r.errosPorDeck).toEqual([
-      { tipo: 'societaria', message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' },
+      { tipo: 'societaria', message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' },
     ]);
   });
 

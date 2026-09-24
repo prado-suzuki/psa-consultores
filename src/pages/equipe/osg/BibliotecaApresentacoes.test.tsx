@@ -107,11 +107,11 @@ describe('o motivo que chega ao usuário', () => {
       arquivos: [{ tipo: 'patrimonial' as const, nome: 'DP.pptx' }],
       erro: null,
       problemas: [],
-      errosPorDeck: [{ tipo: 'societaria' as const, message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' }],
+      errosPorDeck: [{ tipo: 'societaria' as const, message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' }],
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('Template ausente: TEMPLATE_SOCIETARIA.pptx');
+    expect(ditoAoUsuario()).toContain('Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx');
     expect(ditoAoUsuario()).not.toContain('não devolveu o arquivo');
   });
 
