@@ -87,7 +87,7 @@ async function gerar() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  contagem.valor = { patrimonial: 3, societaria: 2, carregando: false };
+  contagem.valor = { patrimonial: 3, societaria: 2, carregando: false, erro: false, tentarDeNovo: () => {} };
   cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [] as unknown[] };
   osg.simulacaoIds = [];
   osg.gerar.mockResolvedValue(doisDecks);
