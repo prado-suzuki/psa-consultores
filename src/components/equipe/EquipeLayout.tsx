@@ -200,7 +200,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           // duas pílulas cheias na mesma coluna não dizem qual
                           // página está na tela. Ver `ancestral`.
                           classesItemDaBarra({
-                            ativo: isActive(item.path),
+                            ativo: false,
                             ancestral: isChildActive(item.children),
                             trilho,
                           }),
@@ -209,7 +209,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         onClick={() => navigate(item.path)}
                         title={trilho ? item.label : undefined}
                       >
-                        <item.icon className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!trilho && item.label}
                       </Button>
                       {/* No trilho o grupo não abre: os filhos não teriam onde
@@ -228,7 +228,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                       )}
                     </div>
                     {!trilho && (
-                      <CollapsibleContent className="mt-1 ml-4 space-y-1 border-l border-border/60 pl-3">
+                      <CollapsibleContent className="mt-1 ml-[18px] space-y-1 border-l border-border/60 pl-2">
                         {item.children.map((child) => (
                           <Button
                             key={child.path}
@@ -236,7 +236,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                             className={classesItemDaBarra({ ativo: isActive(child.path), trilho, sub: true })}
                             onClick={() => navigate(child.path)}
                           >
-                            <child.icon className="h-4 w-4 mr-3" />
+                            <child.icon className="h-4 w-4 flex-shrink-0" />
                             {child.label}
                           </Button>
                         ))}
@@ -251,7 +251,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     onClick={() => navigate(item.path)}
                     title={trilho ? item.label : undefined}
                   >
-                    <item.icon className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
                     {!trilho && item.label}
                   </Button>
                 )
