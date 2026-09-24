@@ -9,6 +9,7 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { createRef } from 'react';
 
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { serializarDoc, textoPlanoDoCorpo, NO_DE_MENCAO } from '@/lib/orgCommentRichText';
@@ -100,5 +101,24 @@ describe('OrgCommentEditor', () => {
     await waitFor(() => expect(onChange).toHaveBeenCalled());
     const emitido = onChange.mock.calls.at(-1)?.[0] as string;
     expect(textoPlanoDoCorpo(emitido)).toBe('@');
+  });
+
+  it('expõe uma ação estreita que insere o ditado na seleção do editor', async () => {
+    const onChange = vi.fn();
+    const inserirTextoRef = createRef<((texto: string) => void) | null>();
+    render(
+      <OrgCommentEditor
+        value=""
+        onChange={onChange}
+        candidates={CANDIDATOS}
+        inserirTextoRef={inserirTextoRef}
+      />,
+    );
+
+    inserirTextoRef.current?.('Texto ditado.');
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    const emitido = onChange.mock.calls.at(-1)?.[0] as string;
+    expect(textoPlanoDoCorpo(emitido)).toBe('Texto ditado.');
   });
 });

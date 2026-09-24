@@ -1,5 +1,7 @@
 const ENDPOINT_LOVABLE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const ENDPOINT_TRANSCRICAO = 'https://ai.gateway.lovable.dev/v1/audio/transcriptions';
 const TIMEOUT_PADRAO_MS = 60_000;
+const TIMEOUT_TRANSCRICAO_MS = 140_000;
 
 export const REGRAS_BASE_PROMPT = [
   'Responda sempre em português do Brasil.',
@@ -62,6 +64,22 @@ export interface RespostaChat {
   finishReason: string | null;
 }
 
+export interface ParametrosTranscricao {
+  modelo: string;
+  arquivo: Blob;
+  nomeArquivo: string;
+  idioma?: string;
+  prompt?: string;
+  palavrasChave?: string[];
+  temperatura?: number;
+  timeoutMs?: number;
+}
+
+export interface RespostaTranscricao {
+  texto: string;
+  usage?: unknown;
+}
+
 export class ErroIA extends Error {
   constructor(
     message: string,
@@ -118,6 +136,22 @@ export function erroDoGateway(status: number): ErroIA {
     );
   }
   return new ErroIA(`Gateway de IA respondeu ${status}.`, 502);
+}
+
+export function montarFormularioTranscricao(params: ParametrosTranscricao): FormData {
+  const formulario = new FormData();
+  formulario.append('model', params.modelo);
+  formulario.append('file', params.arquivo, params.nomeArquivo);
+  formulario.append('response_format', 'json');
+  formulario.append('language', params.idioma ?? 'pt');
+  if (params.prompt) formulario.append('prompt', params.prompt);
+  if (params.palavrasChave?.length) {
+    formulario.append('keywords', params.palavrasChave.join(','));
+  }
+  if (params.temperatura !== undefined) {
+    formulario.append('temperature', String(params.temperatura));
+  }
+  return formulario;
 }
 
 function lerChaveLovable(): string {
@@ -197,6 +231,36 @@ export async function chamarChat(params: ParametrosChat): Promise<RespostaChat> 
       throw new ErroIA('A solicitação de IA excedeu o tempo limite.', 504);
     }
     throw new ErroIA('Não foi possível acessar o gateway de IA.', 502);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function transcrever(params: ParametrosTranscricao): Promise<RespostaTranscricao> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? TIMEOUT_TRANSCRICAO_MS);
+
+  try {
+    const resposta = await fetch(ENDPOINT_TRANSCRICAO, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${lerChaveLovable()}` },
+      body: montarFormularioTranscricao(params),
+      signal: controller.signal,
+    });
+
+    if (!resposta.ok) throw erroDoGateway(resposta.status);
+
+    const payload = (await resposta.json()) as { text?: unknown; usage?: unknown };
+    if (typeof payload.text !== 'string' || !payload.text.trim()) {
+      throw new ErroIA('Gateway de IA devolveu uma transcrição vazia.', 502);
+    }
+    return { texto: payload.text.trim(), ...(payload.usage ? { usage: payload.usage } : {}) };
+  } catch (erro) {
+    if (erro instanceof ErroIA) throw erro;
+    if (erro instanceof DOMException && erro.name === 'AbortError') {
+      throw new ErroIA('A transcrição excedeu o tempo limite.', 504);
+    }
+    throw new ErroIA('Não foi possível acessar o gateway de transcrição.', 502);
   } finally {
     clearTimeout(timeout);
   }

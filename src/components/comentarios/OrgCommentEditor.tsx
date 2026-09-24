@@ -113,6 +113,8 @@ interface OrgCommentEditorProps {
    * um alvo estável: o botão vive numa barra irmã, renderizada no mesmo passo.
    */
   inserirMencaoRef?: MutableRefObject<(() => void) | null>;
+  /** Insere texto plano na seleção atual sem expor a instância do TipTap. */
+  inserirTextoRef?: MutableRefObject<((texto: string) => void) | null>;
 }
 
 /**
@@ -146,6 +148,7 @@ export function OrgCommentEditor({
   barraEmFaixa,
   botaoDeMencao = true,
   inserirMencaoRef,
+  inserirTextoRef,
   aoMencionarSemGente,
   reabrirMencaoRef,
 }: OrgCommentEditorProps) {
@@ -386,9 +389,22 @@ export function OrgCommentEditor({
     acao.insertContent('@').run();
   };
 
+  const inserirTexto = (texto: string) => {
+    if (!editor || !texto) return;
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .command(({ tr }) => {
+        tr.insertText(texto);
+        return true;
+      })
+      .run();
+  };
+
   // As duas ações, à disposição de quem desenha o botão (ou o modal) fora daqui.
   if (inserirMencaoRef) inserirMencaoRef.current = inserirGatilhoDeMencao;
   if (reabrirMencaoRef) reabrirMencaoRef.current = reabrirMencao;
+  if (inserirTextoRef) inserirTextoRef.current = inserirTexto;
 
   const marcas = useEditorState({
     editor,
@@ -452,18 +468,18 @@ export function OrgCommentEditor({
             {index === 3 && <span className="mx-1 h-4 w-px bg-border" aria-hidden />}
             <ButtonTooltip text={label}>
               <button
-              type="button"
-              aria-label={label}
-              aria-pressed={ativo}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={acao}
-              className={cn(
-                'rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-                ativo && 'bg-muted text-foreground',
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </button>
+                type="button"
+                aria-label={label}
+                aria-pressed={ativo}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={acao}
+                className={cn(
+                  'rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                  ativo && 'bg-muted text-foreground',
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </button>
             </ButtonTooltip>
           </Fragment>
         ))}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { erroDoGateway, montarPayloadChat } from './ia';
+import { erroDoGateway, montarFormularioTranscricao, montarPayloadChat } from './ia';
 
 describe('montarPayloadChat', () => {
   it('preserva o histórico completo de ferramentas', () => {
@@ -61,5 +61,28 @@ describe('erroDoGateway', () => {
 
   it('não repassa status interno inesperado do provedor', () => {
     expect(erroDoGateway(500)).toMatchObject({ status: 502 });
+  });
+});
+
+describe('montarFormularioTranscricao', () => {
+  it('envia o arquivo binário e os parâmetros aceitos pelo endpoint', () => {
+    const arquivo = new Blob(['audio'], { type: 'audio/webm' });
+    const formulario = montarFormularioTranscricao({
+      modelo: 'openai/gpt-4o-transcribe',
+      arquivo,
+      nomeArquivo: 'ditado.webm',
+      idioma: 'pt-BR',
+      prompt: 'Preserve nomes próprios.',
+      palavrasChave: ['PSA', 'OSG'],
+      temperatura: 0,
+    });
+
+    expect(formulario.get('model')).toBe('openai/gpt-4o-transcribe');
+    expect(formulario.get('language')).toBe('pt-BR');
+    expect(formulario.get('response_format')).toBe('json');
+    expect(formulario.get('prompt')).toBe('Preserve nomes próprios.');
+    expect(formulario.get('keywords')).toBe('PSA,OSG');
+    expect(formulario.get('temperature')).toBe('0');
+    expect(formulario.get('file')).toBeInstanceOf(Blob);
   });
 });

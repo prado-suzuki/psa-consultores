@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { AtSign, Mic, Paperclip, Reply, Send, X } from 'lucide-react';
+import { AtSign, Paperclip, Reply, Send, X } from 'lucide-react';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { Button } from '@/components/ui/button';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { BotaoDitado } from '@/components/shared/BotaoDitado';
 import type { MentionCandidate } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo, mencoesDoDoc, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
@@ -70,8 +71,10 @@ export function CommentComposer({
   const inserirMencaoRef = useRef<(() => void) | null>(null);
   /** A de recomeçar a menção depois que a lista de gente chegou. */
   const reabrirMencaoRef = useRef<(() => void) | null>(null);
+  const inserirTextoRef = useRef<((texto: string) => void) | null>(null);
   /** Há um "@" esperando a lista de gente aparecer para ser reaberto. */
   const [mencaoPendente, setMencaoPendente] = useState(false);
+  const [ditadoOcupado, setDitadoOcupado] = useState(false);
 
   /*
     A menção só reabre no render em que os candidatos JÁ ESTÃO aqui. Chamar
@@ -182,6 +185,7 @@ export function CommentComposer({
         // que é onde o Slack o põe; a barra de cima fica só com formatação.
         botaoDeMencao={!caixa}
         inserirMencaoRef={inserirMencaoRef}
+        inserirTextoRef={inserirTextoRef}
         reabrirMencaoRef={reabrirMencaoRef}
         aoMencionarSemGente={
           aoMencionarSemGente &&
@@ -274,27 +278,14 @@ export function CommentComposer({
                   <AtSign className="h-4 w-4" />
                 </Button>
               </ButtonTooltip>
-              {/*
-                O microfone é DESENHO, não função: gravar áudio (com transcrição
-                no ato) é o item 8 do checklist do feed, e entra depois. Ele fica
-                desabilitado e diz isso no balão — botão que não faz nada e não
-                avisa é pior do que botão nenhum. O balão precisa do `span` em
-                volta porque botão desabilitado não emite evento de ponteiro.
-              */}
-              <ButtonTooltip text="Gravar áudio — ainda não disponível">
-                <span className="inline-flex">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled
-                    className="h-8 w-8 text-muted-foreground"
-                    aria-label="Gravar áudio (ainda não disponível)"
-                  >
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                </span>
-              </ButtonTooltip>
+              <BotaoDitado
+                ditado="comentario"
+                alvo={{ inserirTexto: (texto) => inserirTextoRef.current?.(texto) }}
+                disabled={isPending}
+                onEstadoChange={(estado) =>
+                  setDitadoOcupado(estado === 'gravando' || estado === 'transcrevendo')
+                }
+              />
             </>
           )}
           {!caixa && (
@@ -317,7 +308,7 @@ export function CommentComposer({
           <Button
             type="button"
             size="sm"
-            disabled={isPending || (vazio && files.length === 0)}
+            disabled={isPending || ditadoOcupado || (vazio && files.length === 0)}
             onClick={submit}
           >
             {isPending ? (
