@@ -43,6 +43,14 @@ export const ONDE = {
   patrimonial: "Diagnóstico Patrimonial",
   quadro: "Quadro Societário",
   organograma: "Organograma",
+  // Capitulo 04: a instituicao se repete por cenario, e o aviso leva o nome dele junto.
+  qualificacao: "Qualificação das Partes",
+  tributacaoAtual: "Tributação atual",
+  instituicao: "Tributação da instituição",
+  resumoDosTributos: "Resumo dos tributos",
+  resumoDosCenarios: "Resumo dos cenários",
+  /** O que o molde do 04 nao tem: forma ou pagina que o gerador procura. */
+  sucessoria: "Organização Sucessória",
 } as const;
 
 /** "1 imovel" / "3 imoveis" — o relato e lido por humano, entao concorda. */

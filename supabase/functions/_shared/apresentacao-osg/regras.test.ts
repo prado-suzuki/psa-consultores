@@ -194,7 +194,8 @@ describe('plural e anota', () => {
     ]);
   });
 
-  it('as tres secoes do deck da OSG sao distintas', () => {
-    expect(new Set(Object.values(ONDE)).size).toBe(3);
+  // O que se confere e que duas partes do deck nao dividem o mesmo rotulo.
+  it('as secoes do deck da OSG sao distintas', () => {
+    expect(new Set(Object.values(ONDE)).size).toBe(Object.keys(ONDE).length);
   });
 });

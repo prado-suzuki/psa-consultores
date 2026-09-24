@@ -1,30 +1,6 @@
 /**
- * A aritmetica que decide quantas linhas do quadro societario cabem numa pagina.
- *
- * ## Por que mora aqui e nao no gerador
- *
- * Isto e conta pura, e era o unico pedaco da montagem sem teste possivel: vivia
- * dentro do `gerar-apresentacao/index.ts`, que importa os modulos OOXML e por isso
- * nem o `deno check` alcanca sozinho. Em `_shared` o vitest roda em cima.
- *
- * E precisa de teste porque foi onde o deck perdeu dado. Ate 21/09/2026 a
- * paginacao nao sabia PARTIR uma empresa: quem nao coubesse numa pagina era adiado
- * para a proxima, do mesmo tamanho, onde tambem nao cabia. Uma holding com 42
- * socios era adiada para sempre, e um teto de 20 voltas no laco escondia o
- * sintoma produzindo slides vazios. O deck saia com 17 de 41 socios.
- *
- * ## O molde
- *
- * As medidas sao EMU (914.400 por polegada) e vem do template `.pptx`. A altura
- * por linha e super-estimada de proposito, para nunca sobrepor: e melhor sobrar
- * espaco em branco do que uma tabela invadir a de baixo.
- *
- * ## Este arquivo tambem e importado pelo FRONT
- *
- * `useContagemDeSlides` usa a `paginasDoQuadro` para dizer na tela quantos slides
- * o deck vai ter. Por isso ele nao pode ganhar import de nada — nem de modulo
- * OOXML, nem de API so do Deno: e o unico arquivo de Edge Function que entra no
- * bundle do Vite. Conta pura, sem dependencia, de proposito.
+ * A aritmetica das paginas (quadro societario, capitulo 04, outros bens), em EMU do molde e com folga
+ * para nunca sobrepor. O front importa este arquivo, entao ele nao pode ter import nenhum.
  */
 
 /** Onde a primeira tabela comeca, medido do topo do slide. 1,55". */
@@ -151,6 +127,134 @@ export function paginasDoQuadro(socios: readonly number[]): number {
   }
   return paginas;
 }
+
+// ---------------------------------------------------------------------------
+// Capitulo 04 — Organizacao sucessoria
+// ---------------------------------------------------------------------------
+// So estrutura (atos, guias, instituicoes), nunca texto. As medidas sao as do molde, em polegadas,
+// tiradas do montar-cap04.ts: mudou o molde, muda aqui.
+
+/** O Resumo dos cenarios tem tres vagas; o capitulo aceita ate tres cenarios. */
+export const MAXIMO_DE_CENARIOS = 3;
+
+/** As paginas fixas: capa, aspectos legais, testamento x doacao e as duas de tributacao. */
+const PAGINAS_DA_FRENTE = 5;
+/** Resumo dos cenarios e reforma tributaria. */
+const PAGINAS_DO_FIM = 2;
+
+/** O Resumo dos tributos (slide 7 do molde). */
+const RESUMO = {
+  /** Onde a introducao comeca. */
+  topo: 1.55,
+  /** A introducao longa (primeiro cenario) ocupa quatro linhas; a curta, uma. */
+  introLonga: 0.85,
+  introCurta: 0.30,
+  /** O rotulo "Doacao de Regina para a Cristina:", so quando o cenario e cadeia. */
+  rotulo: 0.30,
+  /** Cartao: cabecalho 0,28 + total, aliquota e subtitulo 0,25 cada + TOTAL 0,28. */
+  cartaoFixo: 0.28 + 0.25 * 3 + 0.28,
+  /** Duas linhas por guia: a base e o ITCD. */
+  cartaoPorGuia: 0.5,
+  vao: 0.15,
+  /** O painel ATENCAO nasce em 5,60": acima dele, 5,50. */
+  limiteComNotas: 5.5,
+  /** O rodape comeca em 7,0": 6,85 deixa a margem. */
+  limite: 6.85,
+} as const;
+
+export interface PosicaoDoAto {
+  /** Indice do ato na cadeia. */
+  ato: number;
+  /** Topo do rotulo; `null` quando o cenario tem um ato so e nao ha rotulo. */
+  yRotulo: number | null;
+  /** Topo dos tres cartoes. */
+  yCartoes: number;
+}
+
+export interface PaginaDoResumoPlano {
+  /** So a primeira pagina do cenario tem a introducao. */
+  comIntro: boolean;
+  /** So a primeira pagina do PRIMEIRO cenario tem o painel ATENCAO. */
+  comNotas: boolean;
+  atos: PosicaoDoAto[];
+}
+
+/**
+ * Distribui os atos de um cenario pelas paginas do Resumo dos tributos; o que nao cabe vai para uma
+ * continuacao sem introducao. Se nem o primeiro cabe, a primeira pagina fica so com a introducao.
+ */
+export function planoDoResumo(guiasPorAto: readonly number[], primeiroCenario: boolean): PaginaDoResumoPlano[] {
+  const cadeia = guiasPorAto.length > 1;
+  const paginas: PaginaDoResumoPlano[] = [];
+
+  let pagina: PaginaDoResumoPlano = { comIntro: true, comNotas: primeiroCenario, atos: [] };
+  let y = RESUMO.topo + (primeiroCenario ? RESUMO.introLonga : RESUMO.introCurta) + 0.1;
+  let limite = primeiroCenario ? RESUMO.limiteComNotas : RESUMO.limite;
+
+  const novaPagina = () => {
+    paginas.push(pagina);
+    pagina = { comIntro: false, comNotas: false, atos: [] };
+    y = RESUMO.topo;
+    limite = RESUMO.limite;
+  };
+
+  guiasPorAto.forEach((guias, ato) => {
+    const altura = (cadeia ? RESUMO.rotulo : 0) + RESUMO.cartaoFixo + RESUMO.cartaoPorGuia * guias;
+    if (y + altura > limite && (pagina.atos.length > 0 || pagina.comIntro)) novaPagina();
+    pagina.atos.push({
+      ato,
+      yRotulo: cadeia ? y : null,
+      yCartoes: y + (cadeia ? RESUMO.rotulo : 0),
+    });
+    y += altura + RESUMO.vao;
+  });
+  paginas.push(pagina);
+  return paginas;
+}
+
+/** O que a paginacao le de um ato: o ato do servidor e a `SimulacaoSalva` da tela tem esta forma. */
+export interface AtoParaPaginar {
+  comReserva: boolean;
+  gias: readonly unknown[];
+  concessoes: readonly { origem: string }[];
+}
+
+/** O que a paginacao precisa saber de um cenario — estrutura, e nada de texto. */
+interface EstruturaDoCenario {
+  /** Quantas guias de doacao cada ato tem, na ordem da cadeia. */
+  guiasPorAto: number[];
+  /** O ultimo ato tem reserva ou instituicao: ha pagina de usufruto. */
+  temUsufruto: boolean;
+  /** Guias de instituicao do ultimo ato: uma pagina de tributacao cada. */
+  instituicoes: number;
+}
+
+function estruturaDoCenario(atos: readonly AtoParaPaginar[]): EstruturaDoCenario {
+  const ultimo = atos[atos.length - 1];
+  const instituicoes = ultimo ? ultimo.concessoes.filter((c) => c.origem === 'instituicao').length : 0;
+  return {
+    guiasPorAto: atos.map((a) => a.gias.length),
+    temUsufruto: !!ultimo && (ultimo.comReserva || instituicoes > 0),
+    instituicoes,
+  };
+}
+
+/** As paginas de um cenario: uma Simulacao por ato, o Resumo, o Usufruto e uma Tributacao por instituicao. */
+function paginasDoCenario(estrutura: EstruturaDoCenario, primeiroCenario: boolean): number {
+  return estrutura.guiasPorAto.length
+    + planoDoResumo(estrutura.guiasPorAto, primeiroCenario).length
+    + (estrutura.temUsufruto ? 1 : 0)
+    + estrutura.instituicoes;
+}
+
+/** Quantos slides o capitulo 04 inteiro tem, com os cenarios escolhidos. Zero sem cenario. */
+export function slidesDoCapitulo04(cenarios: readonly (readonly AtoParaPaginar[])[]): number {
+  if (cenarios.length === 0) return 0;
+  return PAGINAS_DA_FRENTE
+    + cenarios.reduce((s, atos, i) => s + paginasDoCenario(estruturaDoCenario(atos), i === 0), 0)
+    + PAGINAS_DO_FIM;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Capitulo 01 · Outros bens integralizados
 // ═══════════════════════════════════════════════════════════════════════════
