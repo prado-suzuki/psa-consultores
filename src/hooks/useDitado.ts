@@ -29,9 +29,12 @@ export function escolherMimeTypeDitado(): string | undefined {
   return tipos.find((tipo) => MediaRecorder.isTypeSupported?.(tipo));
 }
 
-function mimeSomenteAudio(mime: string): string {
-  if (mime.toLowerCase().startsWith('video/webm')) return 'audio/webm';
-  return mime || 'audio/webm';
+export function normalizarMimeDitado(mime: string): string {
+  const base = mime.toLowerCase().split(';', 1)[0].trim();
+  if (base === 'video/webm' || base === 'audio/webm') return 'audio/webm';
+  if (base === 'audio/mp4') return 'audio/mp4';
+  if (base === 'audio/wav') return 'audio/wav';
+  return 'audio/webm';
 }
 
 function extensaoDoMime(mime: string): string {
@@ -90,7 +93,10 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
   const parar = () => {
     limparRelogios();
     const recorder = recorderRef.current;
-    if (recorder?.state === 'recording') recorder.stop();
+    if (recorder?.state === 'recording') {
+      recorder.stop();
+      return;
+    }
     liberarMicrofone();
   };
   const pararRef = useRef(parar);
@@ -110,7 +116,7 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
 
   const enviarAudio = async (partes: Blob[], mimeGravado: string) => {
     if (!montadoRef.current) return;
-    const mime = mimeSomenteAudio(mimeGravado);
+    const mime = normalizarMimeDitado(mimeGravado);
     const audio = new Blob(partes, { type: mime });
     if (audio.size === 0) {
       setEstado('erro');
@@ -173,6 +179,7 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
       };
       recorder.onstop = () => {
         recorderRef.current = null;
+        liberarMicrofone();
         void enviarAudio(partes, recorder.mimeType || mimeType || 'audio/webm');
       };
       recorder.onerror = () => {

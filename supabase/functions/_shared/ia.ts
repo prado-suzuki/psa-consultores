@@ -90,6 +90,13 @@ export class ErroIA extends Error {
   }
 }
 
+export class ErroTranscricaoVazia extends ErroIA {
+  constructor() {
+    super('Gateway de IA devolveu uma transcrição vazia.', 502);
+    this.name = 'ErroTranscricaoVazia';
+  }
+}
+
 function conteudoComoTexto(conteudo: ConteudoDeMensagem | null): string | null {
   if (conteudo === null || typeof conteudo === 'string') return conteudo;
   return conteudo.map((trecho) => trecho.texto).join('\n\n');
@@ -248,11 +255,18 @@ export async function transcrever(params: ParametrosTranscricao): Promise<Respos
       signal: controller.signal,
     });
 
-    if (!resposta.ok) throw erroDoGateway(resposta.status);
+    if (!resposta.ok) {
+      const detalhe = await resposta.text().catch(() => 'sem corpo');
+      console.error('gateway transcription error:', resposta.status, detalhe.slice(0, 1_000));
+      if (resposta.status === 400) {
+        throw new ErroIA('O áudio não pôde ser lido. Tente gravar novamente.', 400);
+      }
+      throw erroDoGateway(resposta.status);
+    }
 
     const payload = (await resposta.json()) as { text?: unknown; usage?: unknown };
     if (typeof payload.text !== 'string' || !payload.text.trim()) {
-      throw new ErroIA('Gateway de IA devolveu uma transcrição vazia.', 502);
+      throw new ErroTranscricaoVazia();
     }
     return { texto: payload.text.trim(), ...(payload.usage ? { usage: payload.usage } : {}) };
   } catch (erro) {

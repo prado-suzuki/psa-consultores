@@ -7,9 +7,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: { functions: { invoke: mocks.invoke } },
 }));
 
-import { useDitado } from '@/hooks/useDitado';
+import { normalizarMimeDitado, useDitado } from '@/hooks/useDitado';
 
 class GravadorFalso {
+  static ultimo: GravadorFalso | null = null;
+
   static isTypeSupported(tipo: string) {
     return tipo === 'audio/webm;codecs=opus';
   }
@@ -22,6 +24,7 @@ class GravadorFalso {
 
   constructor(_stream: MediaStream, opcoes?: MediaRecorderOptions) {
     this.mimeType = opcoes?.mimeType ?? 'video/webm';
+    GravadorFalso.ultimo = this;
   }
 
   start() {
@@ -30,6 +33,9 @@ class GravadorFalso {
 
   stop() {
     this.state = 'inactive';
+  }
+
+  finalizar() {
     this.ondataavailable?.({ data: new Blob(['voz'], { type: this.mimeType }) } as BlobEvent);
     this.onstop?.();
   }
@@ -43,6 +49,7 @@ describe('useDitado', () => {
     mocks.invoke.mockReset();
     pararFaixa.mockReset();
     getUserMedia.mockReset();
+    GravadorFalso.ultimo = null;
     getUserMedia.mockResolvedValue({ getTracks: () => [{ stop: pararFaixa }] });
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
@@ -63,13 +70,15 @@ describe('useDitado', () => {
     expect(result.current.estado).toBe('gravando');
 
     act(() => result.current.parar());
+    expect(pararFaixa).not.toHaveBeenCalled();
+    act(() => GravadorFalso.ultimo?.finalizar());
     await waitFor(() => expect(result.current.estado).toBe('ocioso'));
 
     expect(pararFaixa).toHaveBeenCalled();
     expect(mocks.invoke).toHaveBeenCalledWith('ditar', { body: expect.any(FormData) });
     const formulario = mocks.invoke.mock.calls[0][1].body as FormData;
     expect(formulario.get('ditado')).toBe('comentario');
-    expect((formulario.get('file') as File).type).toBe('audio/webm;codecs=opus');
+    expect((formulario.get('file') as File).type).toBe('audio/webm');
     expect(onResultado).toHaveBeenCalledWith({ texto: 'Texto limpo.', enriquecimento: null });
   });
 
@@ -87,6 +96,8 @@ describe('useDitado', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
+    expect(pararFaixa).not.toHaveBeenCalled();
+    act(() => GravadorFalso.ultimo?.finalizar());
 
     expect(pararFaixa).toHaveBeenCalled();
     expect(mocks.invoke).toHaveBeenCalled();
@@ -117,8 +128,19 @@ describe('useDitado', () => {
 
     await act(async () => result.current.iniciar());
     act(() => result.current.parar());
+    act(() => GravadorFalso.ultimo?.finalizar());
 
     await waitFor(() => expect(result.current.estado).toBe('erro'));
     expect(result.current.erro).toBe('Créditos de IA esgotados.');
+  });
+});
+
+describe('normalizarMimeDitado', () => {
+  it.each([
+    ['audio/webm;codecs=opus', 'audio/webm'],
+    ['video/webm;codecs=opus', 'audio/webm'],
+    ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'],
+  ])('normaliza %s para %s', (entrada, esperado) => {
+    expect(normalizarMimeDitado(entrada)).toBe(esperado);
   });
 });

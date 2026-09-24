@@ -9,7 +9,10 @@ import {
 
 describe('configuração de ditado', () => {
   it('mantém o modelo no servidor e aplica o padrão por nome', () => {
-    expect(configuracaoDitado('comentario')).toEqual({ modelo: MODELO_TRANSCRICAO_PADRAO });
+    expect(configuracaoDitado('comentario')).toEqual({
+      modelo: MODELO_TRANSCRICAO_PADRAO,
+      modeloAlternativo: 'openai/gpt-4o-transcribe',
+    });
     expect(ehNomeDitado('comentario')).toBe(true);
     expect(ehNomeDitado('modelo-escolhido-pelo-front')).toBe(false);
   });

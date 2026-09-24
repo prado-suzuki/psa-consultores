@@ -9,6 +9,7 @@ export interface ConfiguracaoEnriquecimentoDitado {
 
 export interface Ditado {
   modelo?: ModeloTranscricao;
+  modeloAlternativo?: ModeloTranscricao;
   enriquecimento?: ConfiguracaoEnriquecimentoDitado;
 }
 
@@ -16,7 +17,7 @@ export const MODELO_TRANSCRICAO_PADRAO: ModeloTranscricao = 'google/gemini-3.5-t
 export const TAMANHO_MAXIMO_AUDIO = 14 * 1024 * 1024;
 
 export const DITADOS = {
-  comentario: {},
+  comentario: { modeloAlternativo: 'openai/gpt-4o-transcribe' },
   'comentario-para-tarefa': {
     modelo: 'openai/gpt-4o-transcribe',
     enriquecimento: { perfil: 'comentario-para-tarefa', quando: 'oferecer' },

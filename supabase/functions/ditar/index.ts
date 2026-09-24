@@ -12,7 +12,12 @@ import {
   interpretarEnriquecimento,
   prepararEnriquecimento,
 } from '../_shared/enriquecimentoTexto.ts';
-import { chamarChat, ErroIA, transcrever } from '../_shared/ia.ts';
+import {
+  chamarChat,
+  ErroIA,
+  ErroTranscricaoVazia,
+  transcrever,
+} from '../_shared/ia.ts';
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -69,13 +74,37 @@ serve(async (req) => {
     }
 
     const configuracao = configuracaoDitado(nomeDitado);
-    const transcricao = await transcrever({
-      modelo: configuracao.modelo,
-      arquivo,
-      nomeArquivo: `ditado.${extensaoDoAudio(arquivo.type)}`,
-      idioma: 'pt-BR',
-      timeoutMs: 90_000,
-    });
+    const mimeNormalizado = arquivo.type
+      .toLowerCase()
+      .split(';', 1)[0]
+      .trim()
+      .replace('video/', 'audio/');
+    const audioNormalizado = new Blob([arquivo], { type: mimeNormalizado });
+    const executarTranscricao = (modelo: string) =>
+      transcrever({
+        modelo,
+        arquivo: audioNormalizado,
+        nomeArquivo: `ditado.${extensaoDoAudio(arquivo.type)}`,
+        idioma: 'pt-BR',
+        timeoutMs: 45_000,
+      });
+    let transcricao;
+    try {
+      transcricao = await executarTranscricao(configuracao.modelo);
+    } catch (erro) {
+      const modeloAlternativo = configuracao.modeloAlternativo;
+      const tentarAlternativo =
+        modeloAlternativo &&
+        erro instanceof ErroIA &&
+        (erro.status === 400 || erro instanceof ErroTranscricaoVazia);
+      if (!tentarAlternativo) throw erro;
+      console.warn(
+        'primary transcription failed, retrying alternate model:',
+        configuracao.modelo,
+        erro.status,
+      );
+      transcricao = await executarTranscricao(modeloAlternativo);
+    }
 
     const pedidoLimpeza = {
       perfil: 'transcricao-fiel' as const,
@@ -88,7 +117,7 @@ serve(async (req) => {
       temperatura: limpeza.temperatura,
       mensagens: limpeza.mensagens,
       maxTokens: 4096,
-      timeoutMs: 45_000,
+      timeoutMs: 40_000,
     });
     const resultado = interpretarEnriquecimento(pedidoLimpeza, respostaLimpeza);
     if (resultado.estruturado) {
