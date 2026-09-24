@@ -247,6 +247,8 @@ export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): So
     }
   }
 
+  /* "Pendente" e o estado real do imovel, nao dado faltando: sai na coluna, sem aviso. */
+
   if (semDestino > 0) {
     anota(probs, ONDE.patrimonial, `${plural(semDestino, "bem sai", "bens saem")} em "${SOCIEDADE_A_DEFINIR}" — falta a sociedade de destino no cadastro.`);
   }
@@ -502,9 +504,8 @@ export function montaQuadroDerivado(
   bensCrus: readonly BemParaQuadro[], denominacao = "", probs?: Probs,
 ): QuadroResult {
   const integralizam = bensCrus.filter((b) => bemIntegraliza(b.status_integralizacao));
-  if (foraPorStatus > 0) {
-    anota(probs, ONDE.quadro, `${plural(foraPorStatus, "bem não entrou", "bens não entraram")} no quadro de "${denominacao}": status de integralização diferente de "Aprovado".`);
-  }
+  /* Bem ainda nao "Aprovado" nao vira quota: e regra, nao dado faltando, e nao avisa. Se todos ficam
+     de fora, o `motivoDoQuadroAusente` avisa o quadro vazio. */
 
   interface Acc extends SocioIdent { cent: number }
   const porChave = new Map<string, Acc>();

@@ -184,13 +184,10 @@ export function temImpedimentoAtivo(impedimentos: Array<{ cancelado?: unknown }>
 export function relatoDasMatriculas(denominacao: string, motivos: MotivoDaMatricula[]): string[] {
   const conta = (m: MotivoDaMatricula) => motivos.filter((x) => x === m).length;
   const saida: string[] = [];
-  const impedidas = conta("impedimento");
   const semValor = conta("sem_valor");
   const semTitular = conta("sem_titular");
 
-  if (impedidas > 0) {
-    saida.push(`${plural(impedidas, "matrícula ficou", "matrículas ficaram")} fora do quadro de "${denominacao}": impedimento ativo.`);
-  }
+  /* Matricula com impedimento ativo fica fora do quadro por regra; nao e dado faltando, e nao avisa. */
   if (semValor > 0) {
     saida.push(`${plural(semValor, "matrícula ficou", "matrículas ficaram")} fora do quadro de "${denominacao}": sem valor contábil na matrícula nem no bem.`);
   }

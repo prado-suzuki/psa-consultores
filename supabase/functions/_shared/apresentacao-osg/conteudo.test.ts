@@ -280,11 +280,11 @@ describe('montaQuadroDerivado', () => {
     expect(r.linhas.map((l) => l.socio)).toEqual(['BRUNO', 'ANA']);
   });
 
-  it('so bem aprovado vira quota, e o resto vira aviso', () => {
+  it('so bem aprovado vira quota, e o resto nao vira aviso: e regra, nao dado faltando', () => {
     const probs: ProblemaDoDeck[] = [];
     const r = montaQuadroDerivado([bemPR(), bemPR({ status_integralizacao: 'Pendente' })], 'Fazenda X', probs);
     expect(r.totalValor).toBe(1000);
-    expect(probs.some((p) => p.detalhe.includes('status de integralização'))).toBe(true);
+    expect(probs).toEqual([]);
   });
 
   // O caso que o `return` antecipado engolia: tudo descartado, quadro vazio, e o
@@ -303,11 +303,13 @@ describe('montaQuadroDerivado', () => {
     expect(probs.map((p) => p.detalhe).join(' ')).toContain('nenhum titular vinculado');
   });
 
-  it('impedimento ativo tira a matricula; cancelado nao', () => {
+  it('impedimento ativo tira a matricula, sem aviso (o impedimento e real); cancelado nao', () => {
+    const probs: ProblemaDoDeck[] = [];
     const ativo = montaQuadroDerivado([bemPR({
       matricula: [{ vlr_contabil: 100, titularidade: [comTitular(100)], impedimento: [{ cancelado: false }] }],
-    })]);
+    })], 'Fazenda X', probs);
     expect(ativo.linhas).toEqual([]);
+    expect(probs.some((p) => p.detalhe.includes('impedimento'))).toBe(false);
 
     const cancelado = montaQuadroDerivado([bemPR({
       matricula: [{ vlr_contabil: 100, titularidade: [comTitular(100)], impedimento: [{ cancelado: true }] }],
