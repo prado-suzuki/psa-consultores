@@ -2,7 +2,7 @@ import { resolverCabecalho, type TextoDoCabecalho } from '@/config/textosDasTela
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
@@ -74,62 +74,16 @@ const ROTAS_OSG_WORK_SEM_CLIENTE = new Set([
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
   const { data: clientes = [], isLoading, isError } = useClientesLista();
-  const [params, setParams] = useSearchParams();
-  const clienteNaUrl = params.get('cliente') ?? '';
 
   /**
-   * EX-07: a seleção do cliente precisa sobreviver ao F5 e a um link
-   * compartilhado.
-   *
-   * Nesta primeira fatia a barra faz a ponte entre a URL e o contexto legado.
-   * A responsabilidade estrutural ainda fica fora daqui de propósito: ela é a
-   * CD-11, aplicada em outro commit depois da validação desta mudança.
-   *
-   * A URL não concede acesso. Um id vindo do endereço só é aceito quando está
-   * entre os clientes que o usuário conseguiu carregar; se não estiver, o
-   * parâmetro e a seleção são limpos.
+   * A URL não é autorização. O contexto agora lê o cliente dela (CD-11), mas a
+   * barra continua sendo o ponto que conhece a lista visível do usuário. Por
+   * isso é aqui que um UUID inexistente ou fora do recorte é descartado.
    */
   useEffect(() => {
-    if (isLoading || isError) return;
-
-    if (clienteNaUrl) {
-      const clienteVisivel = clientes.some((cliente) => cliente.id === clienteNaUrl);
-      if (clienteVisivel) {
-        if (clienteId !== clienteNaUrl) setClienteId(clienteNaUrl);
-        return;
-      }
-
-      setParams((atuais) => {
-        const proximos = new URLSearchParams(atuais);
-        proximos.delete('cliente');
-        return proximos;
-      }, { replace: true });
-      if (clienteId) setClienteId('');
-      return;
-    }
-
-    // Os links internos do OSG Work ainda navegam só pelo pathname. Enquanto o
-    // contexto continua legado, ele segura a seleção durante a troca de tela e
-    // a barra devolve imediatamente o cliente para a URL. Num F5 não existe
-    // memória anterior: sem ?cliente= a tela abre sem cliente.
-    if (clienteId && clientes.some((cliente) => cliente.id === clienteId)) {
-      setParams((atuais) => {
-        const proximos = new URLSearchParams(atuais);
-        proximos.set('cliente', clienteId);
-        return proximos;
-      }, { replace: true });
-    }
-  }, [clienteId, clienteNaUrl, clientes, isError, isLoading, setClienteId, setParams]);
-
-  const selecionarCliente = (id: string) => {
-    setClienteId(id);
-    setParams((atuais) => {
-      const proximos = new URLSearchParams(atuais);
-      if (id) proximos.set('cliente', id);
-      else proximos.delete('cliente');
-      return proximos;
-    }, { replace: true });
-  };
+    if (isLoading || isError || !clienteId) return;
+    if (!clientes.some((cliente) => cliente.id === clienteId)) setClienteId('');
+  }, [clienteId, clientes, isError, isLoading, setClienteId]);
 
   const semCliente = !clienteId;
 
@@ -156,7 +110,7 @@ const OsgWorkClienteBar = () => {
           <SelecaoDeCliente
             clientes={clientes}
             value={clienteId}
-            onChange={selecionarCliente}
+            onChange={setClienteId}
             loading={isLoading}
             placeholder="Selecione…"
             className={cn(
