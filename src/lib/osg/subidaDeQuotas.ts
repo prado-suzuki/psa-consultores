@@ -5,10 +5,10 @@ import { problemaDoPagamento, type MovimentoDeQuotas } from './movimentoQuotas';
 // para a Controladora e recebem, em troca, quotas da Controladora.
 //
 // Ele existe porque esse movimento não tem formulário a preencher: dadas as
-// duas empresas e a data, TUDO o mais se calcula. Pedir ao consultor que digite
-// quatro lançamentos espelhados, com a aritmética batendo dos dois lados, é
-// pedir que ele reproduza à mão uma conta que o sistema sabe fazer, e é onde o
-// erro entra.
+// duas empresas, quem transfere e a data, TUDO o mais se calcula. Pedir ao
+// consultor que digite quatro lançamentos espelhados, com a aritmética batendo
+// dos dois lados, é pedir que ele reproduza à mão uma conta que o sistema sabe
+// fazer, e é onde o erro entra.
 //
 // As duas regras de domínio que a conta obedece (extraídas dos instrumentos
 // reais do grupo MMS, ver docs/planos/ledger-societario-e-alteracao-derivada.md):
@@ -71,6 +71,8 @@ export interface ArgsDaSubida {
   socios: SocioQueSobe[];
   /** Quadro atual da controladora: o capital de constituição a que o aporte SOMA. */
   quadroControladora: SocioQueSobe[];
+  /** Sócios da proprietária que NÃO transferem e seguem no quadro dela. Ausente: todos sobem. */
+  pessoaIdsQueFicam?: ReadonlySet<string>;
   /** ISO (yyyy-mm-dd). A mesma data nos dois lados: é um ato só. */
   dataMovimento: string | null;
 }
@@ -82,6 +84,7 @@ export interface ArgsDaSubida {
  */
 export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
   const { proprietariaPessoaId, controladoraPessoaId, socios, quadroControladora, dataMovimento } = args;
+  const ficam = args.pessoaIdsQueFicam ?? new Set<string>();
 
   const vazio: PlanoDaSubida = {
     lancamentos: [],
@@ -109,12 +112,16 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
   // seguinte tem de concentrar OUTRA VEZ, agora só o que entrou. Antes, a
   // presença da holding no quadro travava o macro inteiro e a segunda
   // concentração não tinha por onde ser gravada.
-  const queSobem = comQuotas.filter((s) => s.pessoaId !== controladoraPessoaId);
-  if (queSobem.length === 0) {
+  const candidatos = comQuotas.filter((s) => s.pessoaId !== controladoraPessoaId);
+  if (candidatos.length === 0) {
     return {
       ...vazio,
       problema: 'A controladora já é a única sócia da proprietária: não há quotas a subir.',
     };
+  }
+  const queSobem = candidatos.filter((s) => !ficam.has(s.pessoaId));
+  if (queSobem.length === 0) {
+    return { ...vazio, problema: 'Selecione ao menos um sócio para transferir as quotas.' };
   }
 
   const lancamentos: LancamentoDaSubida[] = [];
@@ -217,7 +224,7 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
     avisoDeProporcao: avisoDeProporcao(
       queSobem,
       quadroResultante,
-      comQuotas.reduce((soma, s) => soma + s.quotas, 0),
+      comQuotas.filter((s) => !ficam.has(s.pessoaId)).reduce((soma, s) => soma + s.quotas, 0),
     ),
     totalValorCedido,
     totalValorAportado,
@@ -239,9 +246,9 @@ function avisoDeProporcao(
   naProprietaria: readonly SocioQueSobe[],
   naControladora: readonly SocioQueSobe[],
   /**
-   * Capital TOTAL da proprietária, e não a soma de quem sobe. Na primeira
-   * concentração os dois são a mesma coisa; na segunda, a holding já detém uma
-   * parte, e dividir pela soma de quem sobe inflaria a participação de cada um.
+   * Capital da proprietária sem os sócios que ficam, e não a soma de quem sobe:
+   * na segunda concentração a parte que a holding já detém entra na base, senão
+   * a participação de cada um sairia inflada. Quem fica não tem par na controladora.
    */
   totalPR: number,
 ): string | null {

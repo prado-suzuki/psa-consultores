@@ -138,6 +138,34 @@ describe('planejarSubidaDeQuotas: o que ele recusa', () => {
   });
 });
 
+describe('planejarSubidaDeQuotas: só parte dos sócios transfere', () => {
+  const CARLA = 'pessoa-carla';
+  const parcial = () =>
+    plano({
+      socios: [socio(ANA, 'Ana', 1000), socio(BRUNO, 'Bruno', 1000), socio(CARLA, 'Carla', 2000)],
+      quadroControladora: [],
+      pessoaIdsQueFicam: new Set([BRUNO]),
+    });
+
+  it('quem fica não cede nem recebe quotas da controladora', () => {
+    const { lancamentos, quadroResultante, totalValorCedido } = parcial();
+    expect(lancamentos).toHaveLength(4);
+    expect(lancamentos.some((l) => [l.movimento.origemPessoaId, l.movimento.destinoPessoaId].includes(BRUNO))).toBe(false);
+    expect(quadroResultante.map((s) => s.pessoaId)).toEqual([ANA, CARLA]);
+    expect(totalValorCedido).toBe(3000);
+  });
+
+  it('a proporção compara só quem sobe: sem capital de constituição, não avisa', () => {
+    expect(parcial().avisoDeProporcao).toBeNull();
+  });
+
+  it('recusa quando ninguém foi selecionado', () => {
+    const { problema, lancamentos } = plano({ pessoaIdsQueFicam: new Set([ANA, BRUNO]) });
+    expect(problema).toMatch(/ao menos um sócio/);
+    expect(lancamentos).toHaveLength(0);
+  });
+});
+
 describe('a SEGUNDA concentração, depois de um aumento de capital', () => {
   // O ciclo real da casa: concentrada a primeira vez, a proprietária recebe
   // imóveis novos, os subscritores voltam ao quadro dela, e a alteração seguinte

@@ -3,6 +3,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,9 +22,9 @@ import { fmtBRL, fmtInt } from './quadroFmt';
 // O MACRO da subida das quotas: os sócios da Proprietária passam as quotas dela
 // para a Controladora e recebem quotas da Controladora em troca.
 //
-// Não há formulário além da controladora e da data porque não há mais nada a
-// perguntar: dadas as duas empresas, quem sobe, com quantas quotas e por qual
-// valor sai do quadro, e a quantidade a emitir sai do valor. Pedir esses números
+// Não há formulário além da controladora, de quem transfere e da data porque
+// não há mais nada a perguntar: com quantas quotas e por qual valor cada um sobe
+// sai do quadro, e a quantidade a emitir sai do valor. Pedir esses números
 // ao consultor seria pedir que ele reproduzisse à mão a conta que o sistema faz,
 // nas duas empresas, com o invariante fechando dos dois lados.
 //
@@ -65,6 +66,8 @@ export const SubirQuotasDialog = ({
 }: SubirQuotasDialogProps) => {
   const [controladoraId, setControladoraId] = useState('');
   const [data, setData] = useState('');
+  // Guarda quem foi DESMARCADO: o padrão é todos transferirem.
+  const [queFicam, setQueFicam] = useState<ReadonlySet<string>>(new Set());
   const subir = useSubirQuotas();
 
   const controladora = controladoras.find((c) => c.id === controladoraId) ?? null;
@@ -98,13 +101,25 @@ export const SubirQuotasDialog = ({
       socios: quadro.map(paraSocioQueSobe),
       quadroControladora: quadroCN.map(paraSocioQueSobe),
       dataMovimento: data || null,
+      pessoaIdsQueFicam: queFicam,
     });
-  }, [controladora, proprietaria.id, quadro, quadroCN, data]);
+  }, [controladora, proprietaria.id, quadro, quadroCN, data, queFicam]);
+
+  // A controladora já sócia da proprietária não cede para si mesma.
+  const selecionaveis = quadro.filter((s) => s.quotas > 0 && s.pessoaId !== controladoraId);
+  const alternar = (pessoaId: string, transfere: boolean) =>
+    setQueFicam((atual) => {
+      const proximo = new Set(atual);
+      if (transfere) proximo.delete(pessoaId);
+      else proximo.add(pessoaId);
+      return proximo;
+    });
 
   const fechar = (aberto: boolean) => {
     if (!aberto) {
       setControladoraId('');
       setData('');
+      setQueFicam(new Set());
     }
     onOpenChange(aberto);
   };
@@ -146,7 +161,7 @@ export const SubirQuotasDialog = ({
             />
           </DialogTitle>
           <DialogDescription>
-            Os sócios de <span className="font-medium text-foreground">{proprietaria.denominacao}</span>{' '}
+            Os sócios selecionados de <span className="font-medium text-foreground">{proprietaria.denominacao}</span>{' '}
             cedem as quotas que têm nela e recebem, em troca, quotas da controladora, no mesmo ato.
           </DialogDescription>
         </DialogHeader>
@@ -180,6 +195,35 @@ export const SubirQuotasDialog = ({
               />
             </div>
           </div>
+
+          {selecionaveis.length > 1 && (
+            <fieldset className="space-y-1.5">
+              <legend className={labelCls}>Sócios que transferem</legend>
+              <ul className="divide-y divide-osg-200/60 rounded-md border border-osg-200/80">
+                {selecionaveis.map((s) => {
+                  const idCampo = `subida-socio-${s.pessoaId}`;
+                  return (
+                    <li key={s.pessoaId} className="flex items-center gap-3 px-3 py-2">
+                      <Checkbox
+                        id={idCampo}
+                        checked={!queFicam.has(s.pessoaId)}
+                        onCheckedChange={(v) => alternar(s.pessoaId, v === true)}
+                      />
+                      <label htmlFor={idCampo} className="flex min-w-0 flex-1 cursor-pointer justify-between gap-3 text-sm">
+                        <span className="truncate">{s.denominacao}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {fmtInt.format(s.quotas)} quotas · {fmtBRL.format(s.vlrTotal)}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                Quem ficar desmarcado continua com as quotas em {proprietaria.denominacao}.
+              </p>
+            </fieldset>
+          )}
 
           {controladoras.length === 0 && (
             <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
