@@ -626,6 +626,22 @@ export function contarPorProduto(
   return contagem;
 }
 
+/**
+ * A geração a partir da OS tem o que trazer?
+ *
+ * Só se sabe que NÃO tem num caso: uma OS única sem nenhum documento vinculado
+ * ao produto. Com mais de uma OS, zero significa apenas que o consultor ainda
+ * não escolheu de qual gerar — o total depende da escolha, e dizer que não há o
+ * que trazer seria mentira.
+ *
+ * Mora aqui, e não na tela vazia que a usa, porque a página também pergunta: é
+ * essa resposta que decide se o botão de gerar fica no corpo ou no topo, e duas
+ * cópias divergiriam no primeiro ajuste, deixando a tela sem botão nenhum.
+ */
+export function geracaoTemOQueTrazer(documentosDaOs: number, ordensServico: number): boolean {
+  return !(ordensServico === 1 && documentosDaOs === 0);
+}
+
 /** Remover um documento pede confirmação quando o cliente já vê a lista no portal. */
 export function removerPedeConfirmacao(status: SolicitacaoStatus | null): boolean {
   return status === 'enviada' || status === 'em_checklist';

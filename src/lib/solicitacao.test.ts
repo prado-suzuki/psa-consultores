@@ -5,6 +5,7 @@ import {
   encontrarItemDoCatalogo,
   filtrarPorProduto,
   FILTRO_TODOS,
+  geracaoTemOQueTrazer,
   graoSugeridoParaGrupo,
   GRAOS_DE_BENS_IMOVEIS,
   montarAtualizacaoItem,
@@ -385,6 +386,34 @@ describe('montarAtualizacaoItem', () => {
       grupo: 'outros',
       granularidade: 'cliente',
     })).toEqual({ grupo: 'outros', granularidade: 'cliente' });
+  });
+});
+
+describe('geracaoTemOQueTrazer', () => {
+  // A resposta decide se o botão de gerar fica no corpo da tela vazia ou no topo.
+  // Mora em `lib` porque as DUAS pontas perguntam — a página e o estado vazio — e
+  // duas cópias divergiriam no primeiro ajuste, deixando a tela sem botão nenhum.
+  it('só é não quando a OS é única e não tem documento vinculado', () => {
+    expect(geracaoTemOQueTrazer(0, 1)).toBe(false);
+  });
+
+  it('com documento vinculado, tem o que trazer', () => {
+    expect(geracaoTemOQueTrazer(1, 1)).toBe(true);
+    expect(geracaoTemOQueTrazer(58, 1)).toBe(true);
+  });
+
+  it('com mais de uma OS, zero é "ainda não escolheu", não "não tem"', () => {
+    // O total depende de qual OS o consultor escolher. Dizer que não há o que
+    // trazer seria mentira — e era esse o caso que a condição antiga confundia.
+    expect(geracaoTemOQueTrazer(0, 2)).toBe(true);
+    expect(geracaoTemOQueTrazer(0, 7)).toBe(true);
+  });
+
+  it('não é ela que guarda o caso de nenhuma OS', () => {
+    // Sem OS nenhuma a pergunta não chega aqui: quem filtra é a página, no
+    // `ordensServico.length > 0`. Registrado para ninguém ler o `true` como
+    // permissão de gerar sem OS.
+    expect(geracaoTemOQueTrazer(0, 0)).toBe(true);
   });
 });
 

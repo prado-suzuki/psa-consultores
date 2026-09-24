@@ -18,6 +18,7 @@ import { useDomainSolicitacao, type EscolhaDoEnvio } from '@/hooks/useDomainSoli
 import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import { contarArquivosSemTipo } from '@/lib/checklistDerivado';
 import {
+  geracaoTemOQueTrazer,
   type CatalogoDocumento,
   type EdicaoItem,
   type EstruturaDoItem,
@@ -203,12 +204,41 @@ const Onboarding = () => {
     || encerrarSolicitacao.isPending
     || abrirNovaSolicitacao.isPending;
 
+  /**
+   * Lista em zero num cliente que TEM OS da OSG: o corpo convida a gerar.
+   *
+   * Cobre os três caminhos que chegam a zero — nunca gerou, encerrou e abriu
+   * outra, ou dispensou tudo e a lista voltou a ficar vazia — e sai do ar assim
+   * que existir o primeiro item, porque aí o número prometido pela geração
+   * deixaria de bater.
+   *
+   * Encerrada fica de fora: ela não recebe item novo, e o topo já oferece "Abrir
+   * nova solicitação".
+   */
+  const convidarAGerar = !encerrada
+    && itens.length === 0
+    && ordensServico.length > 0;
+
+  /**
+   * Com o botão no meio da tela, o do topo sai — 21/09/2026.
+   *
+   * Eram dois botões para o mesmo ato e com rótulos diferentes ("Gerar lista a
+   * partir da OS" no topo, "Gerar os 58 documentos da OS" no meio), o que fazia
+   * a tela vazia parecer ter duas saídas. Ficou a do meio, com o rótulo do topo.
+   *
+   * A pergunta vai ao componente do corpo e não se repete aqui: o corpo vazio
+   * nem sempre traz botão, e nesse caso o do topo tem de continuar.
+   */
+  const geracaoNoCorpo = convidarAGerar
+    && geracaoTemOQueTrazer(documentosDaOs, ordensServico.length);
+
   const acoesDoTopo = clienteId && (solicitacao || ordensServico.length > 0)
     ? (
       <SolicitacaoAcoes
         status={solicitacao?.status ?? null}
         temOrigemNaOs={ordensServico.length > 0}
         listaVazia={itens.length === 0}
+        geracaoNoCorpo={geracaoNoCorpo}
         itensAtivos={ativos.length}
         arquivosSemTipo={contarArquivosSemTipo(documentosDoCliente)}
         ocupado={ocupado}
@@ -231,21 +261,6 @@ const Onboarding = () => {
    */
   const semOrigemNaOs = !solicitacao
     && (catalogo.data?.produtosContratados.length ?? 0) === 0;
-
-  /**
-   * Lista em zero num cliente que TEM OS da OSG: o corpo convida a gerar.
-   *
-   * Cobre os três caminhos que chegam a zero — nunca gerou, encerrou e abriu
-   * outra, ou dispensou tudo e a lista voltou a ficar vazia — e sai do ar assim
-   * que existir o primeiro item, porque aí o número prometido pela geração
-   * deixaria de bater.
-   *
-   * Encerrada fica de fora: ela não recebe item novo, e o topo já oferece "Abrir
-   * nova solicitação".
-   */
-  const convidarAGerar = !encerrada
-    && itens.length === 0
-    && ordensServico.length > 0;
 
   /** Data curta, para dizer desde quando o cliente vê a lista. */
   const emData = (iso: string | null) =>

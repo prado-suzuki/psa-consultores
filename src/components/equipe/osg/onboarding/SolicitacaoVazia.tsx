@@ -1,5 +1,6 @@
 import { FileStack, Loader2, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { geracaoTemOQueTrazer } from '@/lib/solicitacao';
 import { OnboardingEmptyState } from './OnboardingEmptyState';
 
 /**
@@ -53,7 +54,7 @@ export function SolicitacaoVazia({
    * "ainda não sei de qual OS": com várias, zero significa apenas que a escolha
    * não foi feita, e dizer que a OS está vazia seria mentira.
    */
-  if (ordensServico === 1 && documentosDaOs === 0) {
+  if (!geracaoTemOQueTrazer(documentosDaOs, ordensServico)) {
     return (
       <OnboardingEmptyState icon={Unlink} title="A OS não tem documento vinculado">
         O cliente tem produto OSG contratado, mas nenhum documento está vinculado a
@@ -77,11 +78,10 @@ export function SolicitacaoVazia({
           {ocupado
             ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             : <FileStack className="mr-2 h-4 w-4" />}
-          {documentosDaOs === 0
-            ? 'Gerar a lista a partir da OS'
-            : documentosDaOs === 1
-              ? 'Gerar o documento da OS'
-              : `Gerar os ${documentosDaOs} documentos da OS`}
+          {/* O mesmo rótulo do botão do topo, e não mais a contagem ("Gerar os 58
+              documentos da OS"): com um botão só, ele é O nome do ato na tela, e
+              dois nomes para o mesmo ato faziam parecer que havia duas saídas. */}
+          Gerar lista a partir da OS
         </Button>
       )}
     >
