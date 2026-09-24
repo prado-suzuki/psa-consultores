@@ -59,11 +59,16 @@ import {
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
-import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
+import { GRUPOS_OSG_WORK, INICIO_OSG_WORK, TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
+
+const ROTAS_OSG_WORK_SEM_CLIENTE = new Set([
+  TELAS_OSG_WORK.bibliotecaModelos.path,
+  TELAS_OSG_WORK.montagemDocumentos.path,
+]);
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -188,6 +193,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
   // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
+  const exibeBarraDeCliente = isWork && !ROTAS_OSG_WORK_SEM_CLIENTE.has(location.pathname);
   const isProjects =
     location.pathname.startsWith('/equipe/osg/inicio') ||
     location.pathname.startsWith('/equipe/osg/dashboard') ||
@@ -578,7 +584,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
           </div>
         </header>
 
-        {isWork && <OsgWorkClienteBar />}
+        {exibeBarraDeCliente && <OsgWorkClienteBar />}
 
         {/* Scrollable Content Area */}
         <div className={rolagemNoConteudo ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto'}>
