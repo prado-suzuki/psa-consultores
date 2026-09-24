@@ -134,7 +134,7 @@ export function EscolherMovimentoDialog<V extends string>({
           <Button
             onClick={() => escolhido && onEscolher(escolhido)}
             disabled={!escolhido}
-            className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Continuar
           </Button>

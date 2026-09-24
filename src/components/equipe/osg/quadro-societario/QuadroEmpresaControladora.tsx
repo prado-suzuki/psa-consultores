@@ -144,7 +144,7 @@ export const QuadroEmpresaControladora = ({
           <Button
             ref={botaoRegistrar}
             size="sm"
-            className="h-9 gap-1.5 bg-osg-moss text-white shadow-sm shadow-osg-moss/20 transition-all hover:bg-osg-moss/90 hover:shadow-md hover:shadow-osg-moss/25 active:scale-[0.98]"
+            className="h-9 gap-1.5 bg-primary text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
             onClick={() => setPorta({ aberta: true, inicial: null })}
           >
             <Plus className="h-3.5 w-3.5" /> Registrar movimento

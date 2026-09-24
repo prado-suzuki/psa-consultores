@@ -335,7 +335,7 @@ export function MovimentoModal({
             <Button
               onClick={handleSalvar}
               disabled={!!problema || registrar.isPending}
-              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {registrar.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Registrar {forma.label.toLowerCase()}

@@ -213,7 +213,7 @@ export function PessoaModal({
             </div>
             <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
               <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={pending} className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90">
+              <Button onClick={handleSave} disabled={pending} className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
                 {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {rascunhoExterno?.rotuloSalvar ?? (isEdit ? 'Salvar alterações' : 'Cadastrar pessoa')}
               </Button>

@@ -381,7 +381,7 @@ export function ClassificarLevaDialog({
             size="sm"
             onClick={confirmar}
             disabled={salvando}
-            className="min-w-0 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+            className="min-w-0 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {salvando && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />}
             <span className="truncate">{rotuloConfirmar}</span>

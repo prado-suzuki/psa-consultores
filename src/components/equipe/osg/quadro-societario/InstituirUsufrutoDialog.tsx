@@ -380,7 +380,7 @@ export function InstituirUsufrutoDialog({
               Cancelar
             </Button>
             <Button
-              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleSalvar}
               disabled={!podeGravar}
             >

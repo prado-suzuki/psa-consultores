@@ -439,7 +439,7 @@ export function DoarQuotasDialog({
             <Button
               onClick={handleSalvar}
               disabled={!preenchido || !!plano.problema || doar.isPending}
-              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {doar.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Registrar doação

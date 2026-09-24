@@ -63,7 +63,7 @@ export function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: 
           <div className={switchBoxCls}><Switch checked={draft.impede_transferencia} onCheckedChange={(v) => set('impede_transferencia', v)} /><Label className="text-sm">Impede transferência</Label></div>
           <div className={switchBoxCls}><Switch checked={draft.cancelado} onCheckedChange={(v) => set('cancelado', v)} /><Label className="text-sm">Cancelado</Label></div>
         </div>
-        <div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={closeForm}>Cancelar</Button><Button type="button" size="sm" className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}{editingId ? 'Salvar' : 'Adicionar'}</Button></div>
+        <div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={closeForm}>Cancelar</Button><Button type="button" size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}{editingId ? 'Salvar' : 'Adicionar'}</Button></div>
       </div> : <Button type="button" variant="ghost" size="sm" className="h-8 w-full justify-start gap-1.5 border border-dashed border-osg-200 text-muted-foreground hover:text-osg-700" onClick={() => { setEditingId(null); setDraft(emptyDraft()); setAdding(true); }}><Plus className="h-3.5 w-3.5" />Adicionar impedimento</Button>}
     </div>
   </FieldSection>;

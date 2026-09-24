@@ -367,7 +367,7 @@ function TitularBucket({
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                  className="h-9 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={handleSave}
                   disabled={upsert.isPending}
                 >

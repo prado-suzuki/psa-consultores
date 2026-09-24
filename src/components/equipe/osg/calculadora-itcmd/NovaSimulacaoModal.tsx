@@ -495,7 +495,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
           {aba === 'doacao' ? (
             <Button
               onClick={() => setAba('usufruto')}
-              className="bg-osg-moss text-white hover:bg-osg-moss/90"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Continuar
             </Button>
@@ -503,7 +503,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
             <Button
               onClick={calc.gerar}
               disabled={!calc.podeGerar}
-              className="bg-osg-moss text-white hover:bg-osg-moss/90"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Gerar simulação
             </Button>

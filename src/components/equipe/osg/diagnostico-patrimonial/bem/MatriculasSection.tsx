@@ -22,7 +22,7 @@ export function MatriculasSection(props: MatriculasSectionProps) {
     <FieldSection number={number} title="Matrículas" hint={isEdit && matriculas.length ? `${matriculas.length} registro(s)` : undefined}
       actions={<div className="flex gap-1.5">
         <Button type="button" size="sm" variant="outline" className="h-7 gap-1.5" disabled={!isEdit} onClick={props.onLink}><Link2 className="h-3.5 w-3.5" /> Vincular existente</Button>
-        <Button type="button" size="sm" className="h-7 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90" disabled={!isEdit} onClick={props.onAdd}><Plus className="h-3.5 w-3.5" /> Nova matrícula</Button>
+        <Button type="button" size="sm" className="h-7 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" disabled={!isEdit} onClick={props.onAdd}><Plus className="h-3.5 w-3.5" /> Nova matrícula</Button>
       </div>}>
       {!isEdit ? <p className="text-xs italic text-muted-foreground">Salve o bem primeiro para cadastrar matrículas.</p>
         : loading ? <p className="text-xs text-muted-foreground">Carregando...</p>

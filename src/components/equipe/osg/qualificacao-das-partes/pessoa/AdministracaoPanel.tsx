@@ -137,7 +137,7 @@ export function AdministracaoPanel({ pjPessoaId, pessoasCliente }: Administracao
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>Cancelar</Button>
-              <Button type="button" size="sm" className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90" onClick={save} disabled={upsert.isPending}>
+              <Button type="button" size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={save} disabled={upsert.isPending}>
                 {upsert.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 {editingId ? 'Salvar' : 'Adicionar'}
               </Button>
