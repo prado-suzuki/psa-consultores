@@ -139,7 +139,7 @@ export function useGerarApresentacao(clienteId: string | null) {
       const falhasAoBaixar: ErroDeDeck[] = [];
       for (const f of arquivos) {
         if (!f.url) {
-          falhasAoBaixar.push({ tipo: f.tipo, message: 'o arquivo foi gravado, mas o link não foi assinado' });
+          falhasAoBaixar.push({ tipo: f.tipo, message: 'a apresentação ficou guardada, mas o link para baixar não veio' });
           continue;
         }
         try {

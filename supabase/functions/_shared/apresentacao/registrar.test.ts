@@ -252,12 +252,12 @@ describe('quando o upload falha depois de a versão ser reservada', () => {
 });
 
 describe('o que impede a escrita', () => {
-  it('molde ausente é 503, e a mensagem diz que alguém precisa subir o arquivo', async () => {
+  it('molde ausente é 503, e a mensagem nomeia o arquivo que falta', async () => {
     const d = montarDubles({ moldeExiste: false });
     const r = await chamar(d);
 
     expect(falhou(r) ? r.status : null).toBe(503);
-    expect(falhou(r) ? r.erro : '').toContain('não viaja no código');
+    expect(falhou(r) ? r.erro : '').toContain('não está disponível neste ambiente');
     expect(d.diario.inserts).toEqual([]);
     expect(d.diario.uploads).toEqual([]);
   });

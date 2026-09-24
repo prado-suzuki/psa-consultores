@@ -123,7 +123,7 @@ describe('useGerarApresentacao', () => {
     expect(r.erro).toBeNull();
     expect(r.arquivos).toHaveLength(1);
     expect(r.errosPorDeck).toEqual([
-      { tipo: 'patrimonial', message: 'o arquivo foi gravado, mas o link não foi assinado' },
+      { tipo: 'patrimonial', message: 'a apresentação ficou guardada, mas o link para baixar não veio' },
     ]);
     expect(global.fetch).not.toHaveBeenCalled();
   });

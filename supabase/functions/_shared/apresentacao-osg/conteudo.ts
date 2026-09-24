@@ -99,13 +99,10 @@ export function nomesTitulares(
  * cliente parecendo conteudo.
  */
 export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): SociedadePatrimonial[] {
-  const bens = bensCrus.filter((b) => b.participa_estruturacao !== false);
-
-  // Fora da estruturacao e DECISAO, nao falta de dado — vale dizer quantos, para
-  // quem conferir o deck contra o cadastro nao procurar o que foi tirado de proposito.
+  // quem conferir a apresentação contra o cadastro não procurar o que foi tirado de propósito.
   const fora = bensCrus.length - bens.length;
   if (fora > 0) {
-    anota(probs, ONDE.patrimonial, `${plural(fora, "bem esta", "bens estao")} fora da estruturacao e nao ${fora === 1 ? "entrou" : "entraram"} no deck.`);
+    anota(probs, ONDE.patrimonial, `${plural(fora, "bem está", "bens estão")} fora da estruturação e não ${fora === 1 ? "entrou" : "entraram"} na apresentação.`);
   }
 
   const buckets = new Map<string, LinhaPatrimonial[]>();
@@ -151,7 +148,7 @@ export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): So
     anota(probs, ONDE.patrimonial, `${plural(semDestino, "bem sai", "bens saem")} em "${SOCIEDADE_A_DEFINIR}" — falta a sociedade de destino no cadastro.`);
   }
   if (semMatricula > 0) {
-    anota(probs, ONDE.patrimonial, `${plural(semMatricula, "bem sai", "bens saem")} com matricula "Nao se aplica" — nenhuma matricula vinculada.`);
+    anota(probs, ONDE.patrimonial, `${plural(semMatricula, "bem sai", "bens saem")} com matrícula "${MATRICULA_NAO_SE_APLICA}" — nenhuma matrícula vinculada.`);
   }
 
   return [...buckets.entries()]
@@ -284,9 +281,8 @@ export function montaQuadroDerivado(
   bensCrus: readonly BemParaQuadro[], denominacao = "", probs?: Probs,
 ): QuadroResult {
   const integralizam = bensCrus.filter((b) => bemIntegraliza(b.status_integralizacao));
-  const foraPorStatus = bensCrus.length - integralizam.length;
   if (foraPorStatus > 0) {
-    anota(probs, ONDE.quadro, `${plural(foraPorStatus, "bem nao entrou", "bens nao entraram")} no quadro de "${denominacao}": status de integralizacao diferente de "Aprovado".`);
+    anota(probs, ONDE.quadro, `${plural(foraPorStatus, "bem não entrou", "bens não entraram")} no quadro de "${denominacao}": status de integralização diferente de "Aprovado".`);
   }
 
   interface Acc extends SocioIdent { cent: number }

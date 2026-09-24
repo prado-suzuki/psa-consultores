@@ -209,11 +209,11 @@ describe('montaPatrimonial', () => {
     expect(probs.some((p) => p.detalhe.includes(SOCIEDADE_A_DEFINIR))).toBe(true);
   });
 
-  it('fora da estruturacao nao entra, e o aviso diz quantos', () => {
+  it('fora da estruturação nao entra, e o aviso diz quantos', () => {
     const probs: ProblemaDoDeck[] = [];
     const r = montaPatrimonial([bem(), bem({ participa_estruturacao: false })], probs);
     expect(r[0].linhas).toHaveLength(1);
-    expect(probs.some((p) => p.detalhe.includes('1 bem esta fora da estruturacao'))).toBe(true);
+    expect(probs.some((p) => p.detalhe.includes('1 bem está fora da estruturação'))).toBe(true);
   });
 
   it('sem bem nenhum, devolve vazio e nao inventa sociedade', () => {
@@ -273,7 +273,7 @@ describe('montaQuadroDerivado', () => {
     const probs: ProblemaDoDeck[] = [];
     const r = montaQuadroDerivado([bemPR(), bemPR({ status_integralizacao: 'Pendente' })], 'Fazenda X', probs);
     expect(r.totalValor).toBe(1000);
-    expect(probs.some((p) => p.detalhe.includes('status de integralizacao'))).toBe(true);
+    expect(probs.some((p) => p.detalhe.includes('status de integralização'))).toBe(true);
   });
 
   // O caso que o `return` antecipado engolia: tudo descartado, quadro vazio, e o
@@ -288,7 +288,7 @@ describe('montaQuadroDerivado', () => {
       ],
     })], 'Fazenda X', probs);
     expect(r.linhas).toEqual([]);
-    expect(probs.map((p) => p.detalhe).join(' ')).toContain('sem valor contabil');
+    expect(probs.map((p) => p.detalhe).join(' ')).toContain('sem valor contábil');
     expect(probs.map((p) => p.detalhe).join(' ')).toContain('nenhum titular vinculado');
   });
 

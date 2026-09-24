@@ -70,17 +70,7 @@ async function listarEmpresasPJ(admin: SB, clienteId: string, probs?: Probs): Pr
     .eq("tipo_pessoa", "PJ");
   if (error) throw new Error(`listarEmpresasPJ: ${error.message}`);
 
-  const todas = (data ?? []) as any[];
-  const comNome = todas.filter((p) => p?.denominacao);
-  // `pessoa.denominacao` e NOT NULL no schema, entao isto so acontece com dado
-  // que entrou por fora. Se acontecer, a empresa some do deck inteiro — e ai o
-  // relato e a unica pista de que ela existia.
-  const semNome = todas.length - comNome.length;
-  if (semNome > 0) {
-    anota(probs, ONDE.quadro, `${plural(semNome, "empresa foi ignorada", "empresas foram ignoradas")}: sem denominacao no cadastro.`);
-  }
-
-  return comNome.map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
+    anota(probs, ONDE.quadro, `${plural(semNome, "empresa foi ignorada", "empresas foram ignoradas")}: sem denominação no cadastro.`);
 }
 
 // Quadro GRAVADO, igual para CN e PR: o acumulado dos movimentos de quota, lido
@@ -117,12 +107,7 @@ async function quadroGravado(
   if (viewRes.error) throw new Error(`quadroGravado(${empresaId}): ${viewRes.error.message}`);
   if (movRes.error) throw new Error(`quadroGravado.movimentos(${empresaId}): ${movRes.error.message}`);
 
-  const todas = (viewRes.data ?? []) as any[];
-  const rows = todas.filter((r) => r?.pessoa_id);
-  const semPessoa = todas.length - rows.length;
-  if (semPessoa > 0) {
-    anota(probs, ONDE.quadro, `${plural(semPessoa, "linha do quadro de", "linhas do quadro de")} "${denominacao}" nao aponta para uma pessoa e ficou de fora.`);
-  }
+    anota(probs, ONDE.quadro, `${plural(semPessoa, "linha do quadro de", "linhas do quadro de")} "${denominacao}" não aponta para uma pessoa e ficou de fora.`);
 
   const houveMovimento = ((movRes.data ?? []) as any[]).length > 0;
   if (rows.length === 0) return { resultado: null, houveMovimento };
@@ -366,6 +351,6 @@ export async function resolverTitular(admin: SB, clienteId: string, probs?: Prob
   }
   // O placeholder vai IMPRESSO no slide, entao o aviso nao e opcional: e a unica
   // chance de alguem trocar antes de a apresentacao chegar ao cliente.
-  anota(probs, ONDE.organograma, "O titular sai como \"[titular da composse — a definir]\" — nao ha composse com explorador cadastrado.");
+  anota(probs, ONDE.organograma, "O titular sai como \"[titular da composse — a definir]\" — não há composse com explorador cadastrado.");
   return "[titular da composse — a definir]";
 }

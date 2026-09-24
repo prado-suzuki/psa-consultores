@@ -206,9 +206,7 @@ export async function registrarApresentacao(args: {
   if (baixado.error || !baixado.data) {
     return {
       status: 503,
-      erro:
-        `O molde "${molde.nome}" não está no bucket "${molde.bucket}". ` +
-        "Ele não viaja no código: alguém precisa subir o arquivo neste ambiente.",
+      erro: `O modelo "${molde.nome}" não está disponível neste ambiente.`,
     };
   }
 
@@ -356,9 +354,7 @@ export async function registrarApresentacao(args: {
 
   return {
     status: 409,
-    erro:
-      "Outra geração desta mesma apresentação estava em andamento e a versão não " +
-      "pôde ser reservada. Tente de novo.",
+    erro: "Outra geração desta apresentação estava em andamento. Tente de novo.",
     detalhes: descreve(ultimoErro),
   };
 }

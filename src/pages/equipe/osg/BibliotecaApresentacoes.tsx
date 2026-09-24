@@ -138,7 +138,7 @@ const BibliotecaApresentacoes = () => {
         }
         if (r.problemas.length) {
           avisos.push(
-            `Planejamento Tributário: ${r.problemas.length} ponto(s) para ajustar no PowerPoint.`,
+            `Planejamento Tributário: ${r.problemas.length} ponto${r.problemas.length === 1 ? '' : 's'} para ajustar no PowerPoint.`,
           );
         }
       } catch (e) {
@@ -152,7 +152,7 @@ const BibliotecaApresentacoes = () => {
     if (falhas.length === 0) {
       toast({
         title: gerados.length === 1 ? 'Apresentação gerada' : 'Apresentações geradas',
-        description: [`Baixou: ${gerados.join(', ')}.`, ...avisos].join(' '),
+        description: [`Baixados: ${gerados.join(', ')}.`, ...avisos].join(' '),
       });
       return;
     }
@@ -160,11 +160,11 @@ const BibliotecaApresentacoes = () => {
     toast({
       title:
         gerados.length === 0
-          ? 'Não consegui gerar as apresentações'
-          : `${quantos} apresentações foram geradas`,
+          ? 'Não foi possível gerar as apresentações'
+          : `${quantos} apresentações geradas`,
       description: [
-        ...(gerados.length ? [`Baixou: ${gerados.join(', ')}.`] : []),
-        `Não veio — ${falhas.join('; ')}.`,
+        ...(gerados.length ? [`Baixados: ${gerados.join(', ')}.`] : []),
+        `Não geradas: ${falhas.join('; ')}.`,
         ...avisos,
         'Entre em contato com o suporte da PSA Digital.',
       ].join(' '),
@@ -265,8 +265,9 @@ const BibliotecaApresentacoes = () => {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Cada peça marcada baixa o .pptx dela. O histórico dos arquivos do planejamento
-              tributário fica no Gerador de Slides, no Digital Dev.
+              Cada peça marcada baixa o .pptx dela, e a apresentação fica guardada com número de
+              versão. As versões do planejamento tributário se consultam no Gerador de Slides, no
+              Digital Dev.
             </p>
           </>
         )}
