@@ -666,16 +666,19 @@ export const SIGNIFICADO: Record<PapelDeStatus, Hsl> = {
  *   delas.
  * - `tax` — a cor do porquinho do `TaxLoader.tsx`, que já era a imagem que a
  *   área tinha de si mesma antes de existir tema.
- * - `auditoria` — o verde-mar de `--area-4`, a esmeralda da área.
+ * - `auditoria` — medida no documento de identidade da área. Há uma segunda cor
+ *   lá, mais clara, para preenchimento e gráfico; ela não entra aqui porque não
+ *   é a que puxa a saturação, e ainda não tem consumidor.
  * - `osg` — o verde musgo que já mora no `index.css` como primitiva.
- * - `juridico` — o vinho de `--area-8`.
+ * - `juridico` — o marinho do branding book do Prado Advogados. É a única acima
+ *   do teto de `PUXADA.tetoDoAlvo`, e a razão de o teto existir.
  */
 export const ANCORAS = {
   casa: { h: 175, s: 82, l: 29 },
   tax: { h: 192, s: 73, l: 20 },
-  auditoria: { h: 160, s: 44, l: 32 },
+  auditoria: { h: 191, s: 30, l: 36 },
   osg: { h: 149, s: 66, l: 22 },
-  juridico: { h: 330, s: 46, l: 40 },
+  juridico: { h: 218, s: 100, l: 15 },
 } as const satisfies Record<string, Hsl>;
 
 export type NomeDeArea = keyof typeof ANCORAS;

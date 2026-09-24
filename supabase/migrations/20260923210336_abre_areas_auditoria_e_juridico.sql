@@ -15,7 +15,7 @@ where not exists (
 insert into public.estrutura_areas (id, cluster_id, name, page_categories, color_index, is_active)
 select 'a2a59390-9ddf-41b4-8125-89faf3d3e144'::uuid,
        '39e30aff-fc2a-405a-b9d6-305497477da6'::uuid,
-       'Juridico', array['juridico']::text[], 8, true
+       'Juridico', array['juridico']::text[], 6, true
 where not exists (
   select 1 from public.estrutura_areas
   where cluster_id = '39e30aff-fc2a-405a-b9d6-305497477da6'::uuid and name = 'Juridico'

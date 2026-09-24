@@ -25,7 +25,7 @@ interface CartaoDeAmbiente {
 
 // O gradiente sai de `--primary`, que sob esta rota ja e a ancora da area.
 // Cor de estoque do Tailwind aqui quebra a catraca das familias cruas.
-const CAIXA_DO_SELO = 'bg-gradient-to-br from-[#953766] to-[#7b2d54] ring-1 ring-[#953766]/40';
+const CAIXA_DO_SELO = 'bg-gradient-to-br from-[#001c4d] to-[#00173f] ring-1 ring-[#001c4d]/40';
 
 const JuridicoAreaSelector = () => {
   const navigate = useNavigate();
