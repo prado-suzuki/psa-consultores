@@ -626,6 +626,11 @@ export function contarPorProduto(
   return contagem;
 }
 
+/** Remover um documento pede confirmação quando o cliente já vê a lista no portal. */
+export function removerPedeConfirmacao(status: SolicitacaoStatus | null): boolean {
+  return status === 'enviada' || status === 'em_checklist';
+}
+
 /** Campos que a auditoria compara em `solicitacao_item`. */
 export const CAMPOS_AUDITADOS_ITEM = [
   'documento',

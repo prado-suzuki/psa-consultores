@@ -15,6 +15,7 @@ import {
   MODULO_AVULSO,
   ordenarItens,
   paraGranularidade,
+  removerPedeConfirmacao,
   resolverItem,
   type CatalogoDocumento,
   type SolicitacaoItemRow,
@@ -384,5 +385,21 @@ describe('montarAtualizacaoItem', () => {
       grupo: 'outros',
       granularidade: 'cliente',
     })).toEqual({ grupo: 'outros', granularidade: 'cliente' });
+  });
+});
+
+describe('removerPedeConfirmacao', () => {
+  it('pede quando o cliente já vê a lista no portal', () => {
+    expect(removerPedeConfirmacao('enviada')).toBe(true);
+    expect(removerPedeConfirmacao('em_checklist')).toBe(true);
+  });
+
+  it('não pede em rascunho, que o cliente ainda não vê', () => {
+    expect(removerPedeConfirmacao('rascunho')).toBe(false);
+  });
+
+  it('não pede em encerrada nem sem solicitação, onde não há o que remover', () => {
+    expect(removerPedeConfirmacao('encerrada')).toBe(false);
+    expect(removerPedeConfirmacao(null)).toBe(false);
   });
 });
