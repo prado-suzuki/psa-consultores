@@ -54,12 +54,13 @@ import {
 } from "../_shared/ooxml/table.ts";
 import { nextCNvPrId } from "../_shared/ooxml/ids.ts";
 import {
-  carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
+  carregarForaDaEstrutura, carregarOutrosBens, carregarPatrimonial, carregarTotaisPorSociedade, carregarOrganograma,
   fmtBRL, fmtInt, fmtPct,
   type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
   type ProblemaDoDeck,
 } from "./data.ts";
 import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
+import type { TotalDaSociedade } from "../_shared/apresentacao-osg/conteudo.ts";
 /* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
    que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
 import {
@@ -152,6 +153,7 @@ function renderPatrimonialSlide(
   parts: PptxParts,
   slidePath: string,
   soc: SociedadePatrimonial,
+  total: TotalDaSociedade | null = null,
 ): void {
   const xml0 = readText(parts, slidePath);
   const doc = parseXml(xml0);
@@ -166,15 +168,25 @@ function renderPatrimonialSlide(
       for (const linha of soc.linhas) {
         const clone = cloneRow(template);
         applyTokensToNode(clone, {
+          MOM: linha.momento,
           PROP: linha.propriedade,
+          FATO: linha.deFato,
           REF: linha.referencia,
           MAT: linha.matriculaLabel,
           MUN: linha.municipioUf,
+          AREA: linha.area,
+          SIT: linha.situacao,
           VALOR: linha.valor,
         });
         insertRowBefore(clone, template);
       }
       removeRow(template);
+    }
+    /* O TOTAL e da sociedade inteira: so a ultima pagina dela o leva. Molde sem essa linha passa reto. */
+    const linhaDoTotal = listRows(gf).find((r) => rowContainsToken(r, "TOT_AREA"));
+    if (linhaDoTotal) {
+      if (total) applyTokensToNode(linhaDoTotal, { TOT_AREA: total.area, TOT_VALOR: total.valor });
+      else removeRow(linhaDoTotal);
     }
   }
 
@@ -200,7 +212,9 @@ async function gerarPatrimonial(
 ): Promise<DeckMontado> {
   const parts = unpackPptx(bytesDoMolde);
 
-  const sociedades = await carregarPatrimonial(admin, clienteId, probs);
+  const [sociedades, foraDaEstrutura, totais, outros] = await Promise.all([
+    carregarPatrimonial(admin, clienteId, probs),
+    carregarTotaisPorSociedade(admin, clienteId),
 
   const TEMPLATE = slideObrigatorio(parts, "PROP", "das sociedades");
   if (sociedades.length === 0) {

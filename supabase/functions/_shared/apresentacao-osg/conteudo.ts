@@ -46,10 +46,20 @@ export function fmtPct(n: number | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 export interface LinhaPatrimonial {
+  /** MOM. — o momento da integralizacao. Ver `momentoDoBem`. */
+  momento: string;
+  /** TITULAR NA MATRICULA — a propriedade de DIREITO. */
   propriedade: string;
+  /** DE FATO — quem explora ou se comporta como proprietario. */
+  deFato: string;
   referencia: string;
   matriculaLabel: string;
   municipioUf: string;
+  /** AREA (ha), sempre em hectares, venha o cadastro na unidade que vier. */
+  area: string;
+  /** SITUACAO — Regular · Pendente · Sem matricula. Ver `situacaoDaMatricula`. */
+  situacao: string;
+  /** VALOR: o CONTABIL declarado. */
   valor: string;
 }
 
@@ -63,31 +73,89 @@ export interface BemCru {
   denominacao?: string | null;
   vlr_contabil?: number | string | null;
   participa_estruturacao?: boolean | null;
+  status_integralizacao?: string | null;
   empresa_destino?: { denominacao?: string | null } | null;
-  titularidade?: Array<{ titular?: { denominacao?: string | null } | null }> | null;
+  titularidade?: Array<TitularidadeCrua> | null;
   matricula?: Array<{
     numero?: string | null;
     municipio_imovel?: string | null;
     uf_imovel?: string | null;
     vlr_contabil?: number | string | null;
-    titularidade?: Array<{ titular?: { denominacao?: string | null } | null }> | null;
+    area_documento?: number | string | null;
+    area_unidade?: string | null;
+    georref_prejudica_transferencia?: boolean | null;
+    impedimento?: Array<{ cancelado?: unknown; impede_transferencia?: unknown }> | null;
+    titularidade?: Array<TitularidadeCrua> | null;
   }> | null;
+}
+
+export interface TitularidadeCrua {
+  tipo?: string | null;
+  titular?: { denominacao?: string | null } | null;
 }
 
 export const SOCIEDADE_A_DEFINIR = "Sociedade a definir";
 export const MATRICULA_NAO_SE_APLICA = "Não se aplica";
 
-/** Nomes dos titulares, sem repetir e na ordem do cadastro. */
+/** Imovel e o que pode ter matricula (rural e urbano): a mesma fronteira de `matricula_tipo_bem_check`. */
+export function ehImovel(b: Pick<BemCru, "tipo_bem">): boolean {
+  return b.tipo_bem === "IR" || b.tipo_bem === "IB";
+
+/**
+ * Nomes dos titulares, sem repetir e na ordem do cadastro; `especie` filtra DIREITO ou FATO.
+ * Sem ninguem na especie, devolve vazio: o placeholder e de quem monta a linha.
+ */
 export function nomesTitulares(
-  titularidades: Array<{ titular?: { denominacao?: string | null } | null }> | null | undefined,
+  titularidades: Array<TitularidadeCrua> | null | undefined,
+  especie?: "DIREITO" | "FATO",
 ): string {
   if (!titularidades || titularidades.length === 0) return "";
   const nomes: string[] = [];
   for (const t of titularidades) {
+    if (especie && t?.tipo !== especie) continue;
     const n = t?.titular?.denominacao;
     if (n && !nomes.includes(n)) nomes.push(n);
   }
   return nomes.join(", ");
+}
+
+/** A propriedade de DIREITO; sem nenhuma, cai para o que houver. */
+const titularDeDireito = (ts: Array<TitularidadeCrua> | null | undefined): string =>
+  nomesTitulares(ts, "DIREITO") || nomesTitulares(ts);
+
+// ---------------------------------------------------------------------------
+// As tres colunas que o modelo da consultoria pede e o cadastro deriva
+// ---------------------------------------------------------------------------
+
+/** m² vira hectare; `ha` e `ha_m2` já são hectare (a segunda só muda a leitura). */
+export function emHectares(valor: number | string | null | undefined, unidade?: string | null): string {
+  if (valor == null || valor === "") return "—";
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return "—";
+  const ha = unidade === "m2" ? n / 10_000 : n;
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(ha);
+}
+
+/**
+ * A coluna MOM.: 1o momento o que ja foi a peca registrada, 2o o aprovado que ainda nao foi. Sai do
+ * status porque `movimentacao_quotas.ato_id` e `.sequencia` estao nulos em producao.
+ */
+export function momentoDoBem(status: string | null | undefined): string {
+  if (status === "Integralizado") return "1º";
+  if (status === "Aprovado" || status === "Aprovado para 2ª Instancia") return "2º";
+  return "—";
+}
+
+/** A coluna REGISTRO do modelo: Regular · Pendente · Sem matricula. */
+export function situacaoDaMatricula(m: {
+  numero?: string | null;
+  georref_prejudica_transferencia?: boolean | null;
+  impedimento?: Array<{ cancelado?: unknown; impede_transferencia?: unknown }> | null;
+} | null): string {
+  if (!m || !m.numero) return "Sem matrícula";
+  const travado = (m.impedimento ?? []).some((i) => i && i.cancelado !== true && i.impede_transferencia === true);
+  if (travado || m.georref_prejudica_transferencia === true) return "Pendente";
+  return "Regular";
 }
 
 /**
@@ -118,27 +186,41 @@ export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): So
     const refBem = b.denominacao ?? "";
     const titulBem = nomesTitulares(b.titularidade);
 
+    const momento = momentoDoBem(b.status_integralizacao);
+    const deFatoBem = nomesTitulares(b.titularidade, "FATO");
+
     const mats = b.matricula ?? [];
     if (mats.length === 0) {
       semMatricula++;
       linhas.push({
+        momento,
         propriedade: titulBem || "—",
+        deFato: deFatoBem || "—",
         referencia: refBem,
         matriculaLabel: MATRICULA_NAO_SE_APLICA,
         municipioUf: "—",
+        area: "—",
+        situacao: situacaoDaMatricula(null),
         valor: fmtBRL(b.vlr_contabil as number),
       });
       continue;
     }
     for (const m of mats) {
-      const titulMat = nomesTitulares(m.titularidade) || titulBem;
+      const titulMat = titularDeDireito(m.titularidade) || titulBem;
       const numero = m.numero ?? null;
       const mun = [m.municipio_imovel, m.uf_imovel].filter(Boolean).join("/") || "—";
+      const situacao = situacaoDaMatricula(m);
       linhas.push({
+        momento,
         propriedade: titulMat || "—",
+        /* A propriedade de fato mora na matricula; sem ela, herda a do bem, que e
+           onde ela vive para quota, moeda e o que nao tem registro. */
+        deFato: nomesTitulares(m.titularidade, "FATO") || deFatoBem || "—",
         referencia: refBem,
         matriculaLabel: numero ? `Mat. ${numero}` : MATRICULA_NAO_SE_APLICA,
         municipioUf: mun,
+        area: emHectares(m.area_documento, m.area_unidade),
+        situacao,
         valor: fmtBRL((m.vlr_contabil ?? b.vlr_contabil) as number),
       });
     }
@@ -156,6 +238,43 @@ export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): So
     .map(([nome, linhas]) => ({ nome, linhas }));
 }
 
+/** Os bens fora da estruturacao (`participa_estruturacao = false`), com o motivo. */
+export function montaForaDaEstrutura(bensCrus: readonly BemCru[], probs?: Probs): BemForaDaEstrutura[] {
+  const fora = bensCrus.filter((b) => b.participa_estruturacao === false);
+  const linhas: BemForaDaEstrutura[] = [];
+  let semMotivo = 0;
+
+  for (const b of fora) {
+    const refBem = b.denominacao ?? "—";
+    const motivo = (b.motivo_nao_integralizacao ?? "").trim();
+    if (!motivo) semMotivo++;
+    const mats = b.matricula ?? [];
+    const comum = {
+      referencia: refBem,
+      motivo: motivo || SEM_MOTIVO_DECLARADO,
+    };
+    if (mats.length === 0) {
+      linhas.push({
+        ...comum,
+        matriculaLabel: MATRICULA_NAO_SE_APLICA,
+        municipioUf: "—",
+        titular: titularDeDireito(b.titularidade) || "—",
+      });
+      continue;
+    }
+    for (const m of mats) {
+      linhas.push({
+        ...comum,
+        matriculaLabel: m.numero ? `Mat. ${m.numero}` : MATRICULA_NAO_SE_APLICA,
+        municipioUf: [m.municipio_imovel, m.uf_imovel].filter(Boolean).join("/") || "—",
+        titular: titularDeDireito(m.titularidade) || titularDeDireito(b.titularidade) || "—",
+      });
+    }
+  }
+
+  /* O motivo e a unica coluna sem substituto: sem ele a linha nao diz por que o bem ficou de fora. */
+  if (semMotivo > 0) {
+    anota(
 // ---------------------------------------------------------------------------
 // Quadro derivado dos bens (empresa a integralizar)
 // ---------------------------------------------------------------------------

@@ -11,10 +11,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   dedupTitulares,
+  emHectares,
+  ehImovel,
   fmtBRL,
   fmtPct,
   MATRICULA_NAO_SE_APLICA,
+  momentoDoBem,
   montaPatrimonial,
+  SEM_MOTIVO_DECLARADO,
+  situacaoDaMatricula,
   montaQuadroDerivado,
   nomesTitulares,
   rateioDaMatricula,
@@ -312,3 +317,171 @@ describe('montaQuadroDerivado', () => {
     expect(r.totalValor).toBe(250);
   });
 });
+
+// ---------------------------------------------------------------------------
+// As colunas que o modelo da consultoria pede
+// ---------------------------------------------------------------------------
+
+describe('emHectares', () => {
+  it('deixa hectare como esta, com duas casas', () => {
+    expect(emHectares(180, 'ha')).toBe('180,00');
+  });
+
+  it('converte m2 para hectare', () => {
+    expect(emHectares(25_000, 'm2')).toBe('2,50');
+  });
+
+  it('trata "ha e m2" como hectare: e a MESMA grandeza, so muda a leitura', () => {
+    // 123,1234 = 123 ha e 1.234 m², que sao 123,1234 ha. O fator e o mesmo.
+    expect(emHectares(123.1234, 'ha_m2')).toBe(emHectares(123.1234, 'ha'));
+  });
+
+  it('sem area, imprime travessao em vez de zero', () => {
+    expect(emHectares(null, 'ha')).toBe('—');
+    expect(emHectares('', 'ha')).toBe('—');
+  });
+});
+
+describe('momentoDoBem', () => {
+  it('o que ja foi a uma peca registrada e 1o momento', () => {
+    expect(momentoDoBem('Integralizado')).toBe('1º');
+  });
+
+  it('o aprovado que ainda nao foi e 2o momento, nas duas instancias', () => {
+    expect(momentoDoBem('Aprovado')).toBe('2º');
+    expect(momentoDoBem('Aprovado para 2ª Instancia')).toBe('2º');
+  });
+
+  it('o resto nao inventa momento', () => {
+    for (const s of ['Pendente', 'Em análise', 'Recusado', 'Não se aplica', null, undefined]) {
+      expect(momentoDoBem(s)).toBe('—');
+    }
+  });
+});
+
+describe('situacaoDaMatricula', () => {
+  const base = { numero: '1.234', georref_prejudica_transferencia: false, impedimento: [] };
+
+  it('matricula limpa e Regular', () => {
+    expect(situacaoDaMatricula(base)).toBe('Regular');
+  });
+
+  it('sem matricula nenhuma, diz isso — e nao "Regular"', () => {
+    expect(situacaoDaMatricula(null)).toBe('Sem matrícula');
+    expect(situacaoDaMatricula({ ...base, numero: null })).toBe('Sem matrícula');
+  });
+
+  it('impedimento que TRAVA a transferencia deixa Pendente', () => {
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: false, impede_transferencia: true }],
+    })).toBe('Pendente');
+  });
+
+  it('impedimento que NAO trava — servidao, APP — nao muda a situacao', () => {
+    // O gravame existe e importa, mas nao impede a transferencia: dizer "Pendente"
+    // aqui faria o consultor procurar um problema que nao existe.
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: false, impede_transferencia: false }],
+    })).toBe('Regular');
+  });
+
+  it('impedimento CANCELADO nao conta', () => {
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: true, impede_transferencia: true }],
+    })).toBe('Regular');
+  });
+
+  it('georreferenciamento que prejudica a transferencia tambem deixa Pendente', () => {
+    expect(situacaoDaMatricula({ ...base, georref_prejudica_transferencia: true })).toBe('Pendente');
+  });
+});
+
+describe('nomesTitulares por especie', () => {
+  const ts = [
+    { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+    { tipo: 'FATO', titular: { denominacao: 'Bruno' } },
+    { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+  ];
+
+  it('separa a propriedade de direito da de fato', () => {
+    expect(nomesTitulares(ts, 'DIREITO')).toBe('Ana');
+    expect(nomesTitulares(ts, 'FATO')).toBe('Bruno');
+  });
+
+  it('sem especie, soma as duas — que e o comportamento antigo', () => {
+    expect(nomesTitulares(ts)).toBe('Ana, Bruno');
+  });
+});
+
+describe('montaForaDaEstrutura', () => {
+  const bemFora = {
+    denominacao: 'Chácara da Sede',
+    participa_estruturacao: false,
+    motivo_nao_integralizacao: 'Uso da família',
+    matricula: [{
+      numero: '3.140', municipio_imovel: 'Sorriso', uf_imovel: 'MT',
+      titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Casal' } }],
+    }],
+  };
+
+  it('so entra quem esta fora: o recorte e o inverso do slide principal', () => {
+    const r = montaForaDaEstrutura([
+      bemFora,
+      { denominacao: 'Fazenda A', participa_estruturacao: true, matricula: [] },
+      { denominacao: 'Fazenda B', matricula: [] }, // nulo conta como DENTRO
+    ]);
+    expect(r).toHaveLength(1);
+    expect(r[0].referencia).toBe('Chácara da Sede');
+  });
+
+  it('traz as cinco colunas da tabela do modelo', () => {
+    const [linha] = montaForaDaEstrutura([bemFora]);
+    expect(linha).toEqual({
+      referencia: 'Chácara da Sede',
+      matriculaLabel: 'Mat. 3.140',
+      municipioUf: 'Sorriso/MT',
+      titular: 'Casal',
+      motivo: 'Uso da família',
+    });
+  });
+
+  it('bem sem matricula vira UMA linha, e nao some', () => {
+    const r = montaForaDaEstrutura([{
+      denominacao: 'Quotas da Alfa', participa_estruturacao: false,
+      motivo_nao_integralizacao: 'Negociação em curso',
+      titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }],
+    }]);
+    expect(r).toHaveLength(1);
+    expect(r[0].matriculaLabel).toBe(MATRICULA_NAO_SE_APLICA);
+    expect(r[0].titular).toBe('Ana');
+  });
+
+  it('motivo em branco vira texto declarado E aviso: a coluna nao pode sair vazia', () => {
+    const probs: Array<{ onde: string; detalhe: string }> = [];
+    const r = montaForaDaEstrutura([{ ...bemFora, motivo_nao_integralizacao: '  ' }], probs);
+    expect(r[0].motivo).toBe(SEM_MOTIVO_DECLARADO);
+    expect(probs).toHaveLength(1);
+    expect(probs[0].detalhe).toContain('sem motivo declarado');
+  });
+});
+
+describe('montaPatrimonial — as colunas novas', () => {
+  it('separa titular de direito de titular de fato na mesma matricula', () => {
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda X', vlr_contabil: 100, participa_estruturacao: true,
+      status_integralizacao: 'Aprovado',
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '1', municipio_imovel: 'Sorriso', uf_imovel: 'MT', vlr_contabil: 100,
+        area_documento: 500, area_unidade: 'ha', impedimento: [],
+        titularidade: [
+          { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+          { tipo: 'FATO', titular: { denominacao: 'Grupo' } },
+        ],
+      }],
+    }]);
+    expect(soc.linhas[0].propriedade).toBe('Ana');
+    expect(soc.linhas[0].deFato).toBe('Grupo');
+    expect(soc.linhas[0].area).toBe('500,00');
+    expect(soc.linhas[0].momento).toBe('2º');
+    expect(soc.linhas[0].situacao).toBe('Regular');

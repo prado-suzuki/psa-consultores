@@ -11,9 +11,9 @@ import {
   type Probs,
 } from "../_shared/apresentacao-osg/regras.ts";
 import {
-  montaPatrimonial, montaQuadroDerivado,
-  type BemCru, type BemParaQuadro, type QuadroLinha, type QuadroResult,
-  type SociedadePatrimonial, type SocioIdent,
+  exploracaoDoOrganograma, montaForaDaEstrutura, montaOutrosBens, montaPatrimonial, montaQuadroDerivado,
+  totaisPorSociedade,
+  type QuadroLinha, type QuadroResult, type SociedadePatrimonial, type SocioIdent, type TotalDaSociedade,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
 type SB = any;
@@ -30,22 +30,37 @@ type SB = any;
  */
 export { fmtBRL, fmtInt, fmtPct } from "../_shared/apresentacao-osg/conteudo.ts";
 export type {
-  LinhaPatrimonial, SociedadePatrimonial,
+  LinhaPatrimonial, SociedadePatrimonial, TotalDaSociedade,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
-export async function carregarPatrimonial(admin: SB, clienteId: string, probs?: Probs): Promise<SociedadePatrimonial[]> {
-  const sel = `
-    id,denominacao,vlr_contabil,participa_estruturacao,
-    empresa_destino_pessoa_id,
-    empresa_destino:empresa_destino_pessoa_id(denominacao),
-    titularidade(fracao,titular:titular_pessoa_id(denominacao)),
-    matricula(id,numero,matricula_anterior_texto,municipio_imovel,uf_imovel,vlr_contabil,
-      titularidade(fracao,titular:titular_pessoa_id(denominacao)))
-  `.replace(/\s+/g, "");
-  const { data, error } = await admin.from("bem").select(sel).eq("cliente_id", clienteId).order("denominacao");
-  if (error) throw new Error(`carregarPatrimonial: ${error.message}`);
+/* Um select para as duas tabelas do patrimonial (integralizados e fora da estruturacao), para que
+   as duas saiam do mesmo cadastro. */
+const SELECT_PATRIMONIAL = `
+   motivo_nao_integralizacao,empresa_destino_pessoa_id,
+  motivo_nao_integralizacao,empresa_destino_pessoa_id,
+  empresa_destino:empresa_destino_pessoa_id(denominacao),
+  titularidade(tipo,fracao,titular:titular_pessoa_id(denominacao)),
+  matricula(id,numero,matricula_anterior_texto,municipio_imovel,uf_imovel,vlr_contabil,
+    area_documento,area_unidade,georref_prejudica_transferencia,
+    impedimento(cancelado,impede_transferencia),
+    titularidade(tipo,fracao,titular:titular_pessoa_id(denominacao)))
+`.replace(/\s+/g, "");
 
-  return montaPatrimonial((data ?? []) as BemCru[], probs);
+async function lerBens(admin: SB, clienteId: string): Promise<BemCru[]> {
+  const { data, error } = await admin.from("bem").select(SELECT_PATRIMONIAL)
+    .eq("cliente_id", clienteId).order("denominacao");
+  if (error) throw new Error(`carregarPatrimonial: ${error.message}`);
+  return (data ?? []) as BemCru[];
+}
+
+export async function carregarPatrimonial(admin: SB, clienteId: string, probs?: Probs): Promise<SociedadePatrimonial[]> {
+  return montaPatrimonial(await lerBens(admin, clienteId), probs);
+}
+
+/** O TOTAL de cada sociedade pela mesma regra das linhas; a chave e o nome, como o `montaPatrimonial` agrupa. */
+export async function carregarTotaisPorSociedade(admin: SB, clienteId: string): Promise<Map<string, TotalDaSociedade>> {
+  return totaisPorSociedade(await lerBens(admin, clienteId));
+
 }
 
 // ---------- Organograma ----------
