@@ -268,6 +268,13 @@ Duas armadilhas que já morderam aqui:
 
 ## Como adicionar a paleta de uma área nova
 
+0. **Identifique a fonte oficial da âncora antes de qualquer outra coisa** — branding book,
+   logo, elemento visual institucional ou primitiva já declarada. Toda âncora de `ANCORAS`
+   tem fonte externa nomeável, e é isso que impede que a próxima pessoa ache o valor feio e
+   o "melhore". **Os `--area-*` não servem**: são a paleta dos pontinhos de lista, outra
+   coisa, e usá-los como âncora é o erro que `ancorasDeArea.test.ts` trava. Ver
+   [`duas-cores-de-area.md`](duas-cores-de-area.md). Registre a fonte em comentário ao lado
+   do valor — sem ela, o número lê como provisório.
 1. Copie o bloco `.tax-theme` inteiro do `index.css`, renomeie para `.<area>-theme`.
 2. **Gire o arco verde inteiro** (`fila`, `andamento`, `revisao`, `feito`) e `tag-a` para a
    matiz da área, preservando os espaçamentos entre eles — é o espaçamento, não o valor
