@@ -137,8 +137,8 @@ export function HistoricoDeSimulacoes({
                 <ComDica
                   dica={'Doação MAIS instituição de usufruto, quando o ato tiver as '
                     + 'duas. A reserva já está no valor da doação: ela muda a natureza '
-                    + 'e a base daquela guia, sem gerar uma própria. Abra a simulação '
-                    + 'para ver guia por guia.'}
+                    + 'e a base daquela guia, sem gerar uma própria. Aqui na base de '
+                    + '100%; abra a simulação para ver guia por guia, e em 70%.'}
                 >
                   Total do ato
                 </ComDica>
@@ -238,7 +238,7 @@ export function HistoricoDeSimulacoes({
                     key={c}
                     className="text-right font-mono text-xs font-semibold tabular-nums"
                   >
-                    {brlDeDecimal(s.totalPorCenario[c])}
+                    {brlDeDecimal(s.totalPorBase['100'][c])}
                   </TableCell>
                 ))}
                 <TableCell>

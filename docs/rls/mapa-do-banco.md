@@ -119,10 +119,10 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`improvement_team_members`](#improvementteammembers) | 7 | — | interno | process_improvements, job_roles, profiles |
 | [`inscricao_contribuinte`](#inscricaocontribuinte) | 7 | — | cluster-fiscal | contribuinte |
 | [`itcd_simulacao`](#itcdsimulacao) | 26 | — | interno | cliente, pessoa, itcd_simulacao |
-| [`itcd_simulacao_concessao`](#itcdsimulacaoconcessao) | 13 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_concessao`](#itcdsimulacaoconcessao) | 20 | — | interno | pessoa, itcd_simulacao |
 | [`itcd_simulacao_doador`](#itcdsimulacaodoador) | 11 | — | interno | pessoa, itcd_simulacao |
 | [`itcd_simulacao_donatario`](#itcdsimulacaodonatario) | 11 | — | interno | pessoa, itcd_simulacao |
-| [`itcd_simulacao_gia`](#itcdsimulacaogia) | 14 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_gia`](#itcdsimulacaogia) | 20 | — | interno | pessoa, itcd_simulacao |
 | [`itcd_simulacao_usufruto`](#itcdsimulacaousufruto) | 10 | — | interno | pessoa, itcd_simulacao |
 | [`itens_acao_1a1`](#itensacao1a1) | 8 | — | desempenho | reunioes_1a1 |
 | [`job_roles`](#jobroles) | 10 | — | catalogo | estrutura_clusters |
@@ -561,7 +561,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="itcdsimulacaoconcessao"></a>`itcd_simulacao_concessao`
 **Acesso:** interno
-`created_at` string · `de_pessoa_id` string · `id` string · `origem` Database["public"]["Enums"]["itcd_origem_usufruto"] · `para_pessoa_id` string · `quotas` number · `simulacao_id` string · `vlr_base_contabil` number? · `vlr_base_itr` number? · `vlr_base_mercado` number? · `vlr_imposto_contabil` number? · `vlr_imposto_itr` number? · `vlr_imposto_mercado` number?  ·  **FK:** `de_pessoa_id`→pessoa.id · `para_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+`created_at` string · `de_pessoa_id` string · `id` string · `origem` Database["public"]["Enums"]["itcd_origem_usufruto"] · `para_pessoa_id` string · `pct_base_alternativa` number? · `quotas` number · `simulacao_id` string · `vlr_base_alternativa_contabil` number? · `vlr_base_alternativa_itr` number? · `vlr_base_alternativa_mercado` number? · `vlr_base_contabil` number? · `vlr_base_itr` number? · `vlr_base_mercado` number? · `vlr_imposto_alternativo_contabil` number? · `vlr_imposto_alternativo_itr` number? · `vlr_imposto_alternativo_mercado` number? · `vlr_imposto_contabil` number? · `vlr_imposto_itr` number? · `vlr_imposto_mercado` number?  ·  **FK:** `de_pessoa_id`→pessoa.id · `para_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
 
 ### <a id="itcdsimulacaodoador"></a>`itcd_simulacao_doador`
 **Acesso:** interno
@@ -573,7 +573,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="itcdsimulacaogia"></a>`itcd_simulacao_gia`
 **Acesso:** interno
-`created_at` string · `doador_pessoa_id` string · `donatario_pessoa_id` string · `id` string · `pct_da_gia` number · `quotas_recebidas` number · `simulacao_id` string · `vlr_base_contabil` number · `vlr_base_itr` number · `vlr_base_mercado` number · `vlr_doacao_anterior` number? · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number  ·  **FK:** `doador_pessoa_id`→pessoa.id · `donatario_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+`created_at` string · `doador_pessoa_id` string · `donatario_pessoa_id` string · `id` string · `pct_base_alternativa` number? · `pct_da_gia` number · `quotas_recebidas` number · `simulacao_id` string · `vlr_base_alternativa_contabil` number? · `vlr_base_alternativa_itr` number? · `vlr_base_alternativa_mercado` number? · `vlr_base_contabil` number · `vlr_base_itr` number · `vlr_base_mercado` number · `vlr_imposto_alternativo_contabil` number? · `vlr_imposto_alternativo_itr` number? · `vlr_imposto_alternativo_mercado` number? · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number  ·  **FK:** `doador_pessoa_id`→pessoa.id · `donatario_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
 
 ### <a id="itcdsimulacaousufruto"></a>`itcd_simulacao_usufruto`
 **Acesso:** interno

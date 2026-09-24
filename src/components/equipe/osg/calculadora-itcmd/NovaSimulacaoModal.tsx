@@ -19,7 +19,6 @@ import {
   ComSinalDePorcento, Ctrl, DICA_DA_CONTA, DICA_NOME_CURTO, DicaDoControle,
   linhaCls, linhaDeTotalCls, molduraDaTabelaCls, Num, NumCampo, Q, Th, Txt,
 } from './itcmdKit';
-import { AvisoDeParcelaDiferida, CampoDaBase } from './SelecaoDaBase';
 import { Campo, fieldCls, switchBoxCls } from '@/components/equipe/osg/formKit';
 import {
   brlDeDecimal, pctDeDecimal, pctSemSinal, quotasDeBigint, TRACO,
@@ -29,19 +28,8 @@ import type { CalculadoraItcmd } from '@/hooks/useCalculadoraItcmdController';
 import type { LinhaDoQuadro } from '@/lib/osg/quadroSimulacaoItcmd';
 
 /**
- * Onde o analista monta a simulação.
- *
- * É UMA tabela com todos os sócios e todos os herdeiros, nesta ordem:
- * Sócio · Papel · Quotas · % · Legítima · Doação anterior · Disponível · Recebido ·
- * Participação final · %.
- *
- * O que mudou e por quê: antes isto eram quatro blocos (quem doa, quem recebe,
- * doações anteriores, parte disponível) e cada um repetia a lista de nomes. A OSG já
- * lê e preenche a apuração neste formato — não havia o que inventar. O PAPEL é a
- * única coluna que o formato original não tem, porque ali ele é implícito; em tela
- * precisa de um botão, e é só isso que se acrescenta.
- *
- * A UPF fica no FIM: ela não muda quem recebe o quê, só converte a base em imposto.
+ * Onde o analista monta a simulação: uma tabela com sócios e herdeiros (Pessoa · Papel · Emissão GIA ·
+ * Aporte · Quotas · Part. atual · Legítima · Disponível · Quotas final · Part. final), com a UPF no fim.
  */
 export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
   /**
@@ -338,36 +326,18 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                   <ComDica
                     dica={'A guia sai como DOAÇÃO COM RESERVA DE USUFRUTO. As quotas '
                       + 'doadas continuam as mesmas: o que muda é que o voto fica com '
-                      + 'quem doa, e a base do imposto pode ser reduzida. Sem reserva, '
-                      + 'quem recebe passa a votar.'}
+                      + 'quem doa, e a guia passa a ser apurada em 100% e em 70% — quem '
+                      + 'escolhe entre as duas é o cliente. Sem reserva, quem recebe '
+                      + 'passa a votar.'}
                   >
                     <span className="text-foreground">Com reserva de usufruto</span>
                   </ComDica>
                 </label>
 
-                <CampoDaBase
-                  rotulo="Base da doação"
-                  valor={calc.pctBaseDaDoacao}
-                  aoTrocar={calc.setPctBaseDaDoacao}
-                  ativo={calc.comReserva}
-                  // A guia da doação existe de todo jeito, e sem reserva a base dela é
-                  // integral: 100% é o que vai ser apurado, não um valor de espera.
-                  semAto="100%"
-                  porQueTravado={'Sem reserva, a doação é tributada integralmente: a '
-                    + 'redução a 70% do art. 11, §2º I é do usufruto, e aqui não há '
-                    + 'usufruto. Marque "com reserva de usufruto" para escolher.'}
-                />
-
                 <ContadorDeGias n={calc.numeroDeGias} />
               </div>
 
             </div>
-
-            {/* A consequência da base reduzida merece linha própria: ela cria uma
-                parcela devida ANOS depois, e ninguém lembra de um `title`. */}
-            {calc.comReserva && calc.pctBaseDaDoacao === '70' && (
-              <AvisoDeParcelaDiferida onde="reserva" />
-            )}
 
             {calc.linhasDoQuadro.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">

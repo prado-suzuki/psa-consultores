@@ -106,10 +106,65 @@ describe('SimulacaoAberta', () => {
     expect(screen.getAllByText('Base de cálculo')).toHaveLength(3);
     expect(screen.getByText('R$ 1.700.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 4.100.000,00')).toBeInTheDocument();
-    // E os impostos gravados, um por cenário — nada recalculado.
-    expect(screen.getByText('R$ 45.000,00')).toBeInTheDocument();
-    expect(screen.getByText('R$ 125.000,00')).toBeInTheDocument();
-    expect(screen.getByText('R$ 186.864,00')).toBeInTheDocument();
+    // Os impostos gravados, um por cenário, sem recálculo; no ITR a instituição é zero, e o total do ato
+    // repete o da doação.
+    expect(screen.getAllByText('R$ 45.000,00')).toHaveLength(3);
+    expect(screen.getAllByText('R$ 125.000,00')).toHaveLength(2);
+    // O total do ato: a doação mais a instituição, na base integral.
+    expect(screen.getByText('R$ 95.140,00')).toBeInTheDocument();
+  });
+
+  // As duas bases estão gravadas: a tela abre na integral e o seletor só troca a visualização. A troca não
+  // se testa aqui (o Select do Radix pede pointer events); está em `useSimulacoesItcmd`.
+  it('o CÁLCULO abre na base de 100%, com o seletor, e a de 70% não aparece', () => {
+    montar();
+    irPara('Cálculo do ITCMD');
+
+    expect(screen.getByText('Ver na base de')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Ver na base de' })).toHaveTextContent('100%');
+    expect(screen.getByText('R$ 1.700.000,00')).toBeInTheDocument();
+    expect(screen.queryByText('R$ 1.190.000,00')).not.toBeInTheDocument();
+    // Parcela diferida é da base de 70%: na integral não há o que avisar.
+    expect(screen.queryByText(/fica parcela devida na extinção/)).not.toBeInTheDocument();
+    // A guia não é escolhida contra outra: não há "para comparar".
+    expect(screen.queryByText(/para comparar/)).not.toBeInTheDocument();
+  });
+
+  it('SEM RESERVA E SEM INSTITUIÇÃO não há seletor: só existe a base integral', () => {
+    montar({
+      simulacao: simulacaoSalva({
+        comReserva: false,
+        concessoes: [],
+        gias: [{
+          doadorId: 'p1', doadorNome: 'Avelino', donatarioId: 'p2', donatarioNome: 'Cristina',
+          quotasRecebidas: '3295972', pctDaGia: '100.0000',
+          porBase: {
+            100: {
+              basePorCenario: { contabil: '3295972.00', itr: '1700000.00', mercado: '4100000.00' },
+              impostoPorCenario: { contabil: '93432.00', itr: '45000.00', mercado: '125000.00' },
+            },
+          },
+        }],
+      }),
+    });
+    irPara('Cálculo do ITCMD');
+    expect(screen.queryByText('Ver na base de')).not.toBeInTheDocument();
+    expect(screen.getByText('R$ 1.700.000,00')).toBeInTheDocument();
+  });
+
+  it('simulação gravada ANTES das duas bases mostra a que tem, e diz qual é', () => {
+    // Simulação antiga, com a instituição só em 70%: traço na visualização de 100% esconderia o número.
+    const fixture = simulacaoSalva();
+    montar({
+      simulacao: simulacaoSalva({
+        concessoes: fixture.concessoes.map((c) => (c.origem === 'instituicao'
+          ? { ...c, porBase: { 70: c.porBase[70]! } }
+          : c)),
+      }),
+    });
+    irPara('Cálculo do ITCMD');
+    expect(screen.getAllByText('gravada só em 70%')).toHaveLength(3);
+    expect(screen.getByText('R$ 1.168,00')).toBeInTheDocument();
   });
 
   it('COM DOIS DOADORES o cálculo sai POR GUIA, que é o que se preenche', () => {
@@ -129,16 +184,24 @@ describe('SimulacaoAberta', () => {
           {
             doadorId: 'pai', doadorNome: 'Cristiano',
             donatarioId: 'g', donatarioNome: 'Gabriel',
-            quotasRecebidas: '3043336', pctDaGia: '100.0000', doacaoAnterior: null,
-            basePorCenario: { contabil: '3043336.00', itr: null, mercado: null },
-            impostoPorCenario: { contabil: '164354.88', itr: null, mercado: null },
+            quotasRecebidas: '3043336', pctDaGia: '100.0000',
+            porBase: {
+              100: {
+                basePorCenario: { contabil: '3043336.00', itr: null, mercado: null },
+                impostoPorCenario: { contabil: '164354.88', itr: null, mercado: null },
+              },
+            },
           },
           {
             doadorId: 'mae', doadorNome: 'Fabiane',
             donatarioId: 'g', donatarioNome: 'Gabriel',
-            quotasRecebidas: '281364', pctDaGia: '100.0000', doacaoAnterior: null,
-            basePorCenario: { contabil: '281364.00', itr: null, mercado: null },
-            impostoPorCenario: { contabil: '3598.56', itr: null, mercado: null },
+            quotasRecebidas: '281364', pctDaGia: '100.0000',
+            porBase: {
+              100: {
+                basePorCenario: { contabil: '281364.00', itr: null, mercado: null },
+                impostoPorCenario: { contabil: '3598.56', itr: null, mercado: null },
+              },
+            },
           },
         ],
       }),
@@ -178,9 +241,11 @@ describe('SimulacaoAberta', () => {
     montar();
     irPara('Usufruto');
 
-    // O DESFECHO vem primeiro: é a pergunta de quem abre uma simulação antiga.
+    // O desfecho vem primeiro e diz em que bases o ato foi apurado, sem chamar uma de escolhida.
     expect(screen.getByText(/Reserva de usufruto na doação/)).toBeInTheDocument();
     expect(screen.getByText(/Instituição de usufruto/)).toBeInTheDocument();
+    expect(screen.getAllByText(/apurada em 100% e em 70%/)).toHaveLength(2);
+    expect(screen.queryByText(/base de 70%/)).not.toBeInTheDocument();
 
     // O quadro, com o papel em português e a nua propriedade somando as duas origens.
     expect(screen.getByText('Usufrutuário')).toBeInTheDocument();
@@ -221,11 +286,17 @@ describe('SimulacaoAberta', () => {
     // Ato 1: a doação entre os herdeiros. Ato 2: a do fundador, partindo dele.
     const ato1 = simulacaoSalva({
       id: 'S0', versao: 1, nome: 'Entre os herdeiros',
-      totalPorCenario: { contabil: '50000.00', itr: '20000.00', mercado: '60000.00' },
+      totalPorBase: {
+        100: { contabil: '50000.00', itr: '20000.00', mercado: '60000.00' },
+        70: { contabil: '35000.00', itr: '14000.00', mercado: '42000.00' },
+      },
     });
     const ato2 = simulacaoSalva({
       id: 'S1', versao: 2, nome: 'Do fundador', origemSimulacaoId: 'S0',
-      totalPorCenario: { contabil: '195000.00', itr: '93000.00', mercado: '258000.00' },
+      totalPorBase: {
+        100: { contabil: '195000.00', itr: '93000.00', mercado: '258000.00' },
+        70: { contabil: '136500.00', itr: '65100.00', mercado: '180600.00' },
+      },
     });
 
     montar({ simulacao: ato2, todas: [ato1, ato2] });
@@ -238,10 +309,23 @@ describe('SimulacaoAberta', () => {
     expect(screen.getAllByText('Do fundador')).toHaveLength(2);
     expect(screen.getByText('Total dos 2 atos')).toBeInTheDocument();
 
-    // E o consolidado: soma simples dos totais de cada ato.
+    // E o consolidado: soma simples dos totais de cada ato, cada um na base dele.
+    expect(screen.getByText(/na base escolhida para ele/)).toBeInTheDocument();
     expect(screen.getByText('R$ 245.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 113.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 318.000,00')).toBeInTheDocument();
+  });
+
+  it('na CADEIA cada ato tem a sua base: escolhe quem tem usufruto, e o resto é 100%', () => {
+    // A doação entre os herdeiros, sem reserva: a guia só existe em 100%, e a linha diz
+    // isso em vez de oferecer uma escolha que não existe.
+    const ato1 = simulacaoSalva({ id: 'S0', versao: 1, nome: 'Entre os herdeiros', comReserva: false, concessoes: [] });
+    const ato2 = simulacaoSalva({ id: 'S1', versao: 2, nome: 'Do fundador', origemSimulacaoId: 'S0' });
+    montar({ simulacao: ato2, todas: [ato1, ato2] });
+    irPara('Cálculo do ITCMD');
+
+    expect(screen.queryByRole('combobox', { name: 'Base de Entre os herdeiros' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Base de Do fundador' })).toHaveTextContent('100%');
   });
 
   it('LAÇO na cadeia não travа a tela: a leitura para ao repetir', () => {

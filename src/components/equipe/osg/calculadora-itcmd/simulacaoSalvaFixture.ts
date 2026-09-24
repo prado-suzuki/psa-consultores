@@ -20,12 +20,16 @@ export const simulacaoSalva = (
   observacao: null,
   origemSimulacaoId: null,
   acervoPorCenario: { contabil: '9557944.00', itr: '5000000.00', mercado: '12000000.00' },
-  impostoPorCenario: { contabil: '186864.00', itr: '90000.00', mercado: '250000.00' },
-  // O total do ato: a doação mais a guia de instituição de usufruto.
-  totalPorCenario: { contabil: '195000.00', itr: '93000.00', mercado: '258000.00' },
+  // As duas bases, como o hook soma do gravado: a doação é a guia abaixo, e o total soma a instituição.
+  doacaoPorBase: {
+    100: { contabil: '93432.00', itr: '45000.00', mercado: '125000.00' },
+    70: { contabil: '63788.60', itr: '30000.00', mercado: '83000.00' },
+  },
+  totalPorBase: {
+    100: { contabil: '95140.00', itr: '45000.00', mercado: '127809.29' },
+    70: { contabil: '64218.60', itr: '30000.00', mercado: '84168.00' },
+  },
   comReserva: true,
-  pctBaseReserva: '100.00',
-  pctBaseInstituicao: '70.00',
   usufruto: [
     {
       pessoaId: 'p1', nome: 'Avelino', papel: 'usufrui',
@@ -43,14 +47,22 @@ export const simulacaoSalva = (
     {
       deId: 'p2', deNome: 'Cristina', paraId: 'p1', paraNome: 'Avelino',
       origem: 'reserva', quotas: '3295972',
-      basePorCenario: { contabil: null, itr: null, mercado: null },
-      impostoPorCenario: { contabil: null, itr: null, mercado: null },
+      // A reserva não tem guia própria: ela muda a base da guia da doação.
+      porBase: {},
     },
     {
       deId: 'p2', deNome: 'Cristina', paraId: 'p1', paraNome: 'Avelino',
       origem: 'instituicao', quotas: '213000',
-      basePorCenario: { contabil: '149100.00', itr: '76000.00', mercado: '186000.00' },
-      impostoPorCenario: { contabil: '8136.00', itr: '3000.00', mercado: '8000.00' },
+      porBase: {
+        100: {
+          basePorCenario: { contabil: '213000.00', itr: '108571.43', mercado: '265714.29' },
+          impostoPorCenario: { contabil: '1708.00', itr: '0.00', mercado: '2809.29' },
+        },
+        70: {
+          basePorCenario: { contabil: '149100.00', itr: '76000.00', mercado: '186000.00' },
+          impostoPorCenario: { contabil: '430.00', itr: '0.00', mercado: '1168.00' },
+        },
+      },
     },
   ],
   doadores: [{
@@ -82,9 +94,18 @@ export const simulacaoSalva = (
   gias: [
     {
       doadorId: 'p1', doadorNome: 'Avelino', donatarioId: 'p2', donatarioNome: 'Cristina',
-      quotasRecebidas: '3295972', pctDaGia: '100.0000', doacaoAnterior: null,
-      basePorCenario: { contabil: '3295972.00', itr: '1700000.00', mercado: '4100000.00' },
-      impostoPorCenario: { contabil: '93432.00', itr: '45000.00', mercado: '125000.00' },
+      quotasRecebidas: '3295972', pctDaGia: '100.0000',
+      // Com reserva, a guia vai nas duas bases.
+      porBase: {
+        100: {
+          basePorCenario: { contabil: '3295972.00', itr: '1700000.00', mercado: '4100000.00' },
+          impostoPorCenario: { contabil: '93432.00', itr: '45000.00', mercado: '125000.00' },
+        },
+        70: {
+          basePorCenario: { contabil: '2307180.40', itr: '1190000.00', mercado: '2870000.00' },
+          impostoPorCenario: { contabil: '63788.60', itr: '30000.00', mercado: '83000.00' },
+        },
+      },
     },
   ],
   ...campos,

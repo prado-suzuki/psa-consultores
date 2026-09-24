@@ -9,7 +9,6 @@ import {
   Ctrl, DICA_NOME_CURTO, DicaDoControle, linhaCls, linhaDeTotalCls, molduraDaTabelaCls, Num, NumCampo, Q,
   Th, Txt,
 } from './itcmdKit';
-import { AvisoDeParcelaDiferida, CampoDaBase } from './SelecaoDaBase';
 import { fieldCls } from '@/components/equipe/osg/formKit';
 import { pctDeDecimal, pctSemSinal, quotasDeBigint, TRACO } from './itcmdFmt';
 import type { CalculadoraItcmd } from '@/hooks/useCalculadoraItcmdController';
@@ -41,18 +40,11 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
     );
   }
 
-  const temInstituicao = calc.totalInstituido > 0n;
-
   return (
     <ComoDicas>
       <div className="space-y-4">
-      {/* ── OS PARÂMETROS DESTE ATO ──────────────────────────────────────────
-          SÓ a base da INSTITUIÇÃO. A da reserva mora na aba da Doação, ao lado do
-          checkbox: são DUAS GUIAS, com DUAS naturezas de operação, e portanto duas
-          decisões independentes — cada uma na aba do ato cuja guia ela altera. Aqui
-          ficavam as duas, agrupadas pelo assunto em vez de pelo ato.
-
-          QUEM RECEBE não é campo: é o papel na linha. */}
+      {/* A barra do ato. A base da instituição não é campo: a calculadora grava 100% e 70%, e ver uma ou
+          outra é na aba de Cálculo da simulação aberta. Quem recebe é o papel na linha. */}
       <div className={barraDoAtoCls}>
         {/* ADICIONAR PRIMEIRO, na esquerda máxima, como na aba de doação. Conceder
             usufruto NÃO exige ter doado: um sócio que ficou fora da doação pode
@@ -69,31 +61,7 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
           onEscolher={calc.adicionarAoUsufruto}
         />
 
-        {/* SEMPRE na tela, travado enquanto nada foi instituído. Era condicional, e
-            então nascia no instante em que se digitava o percentual de voz e voto —
-            a barra crescia e a tabela toda descia, com o olho na tabela. */}
-        <CampoDaBase
-          rotulo="Base da instituição"
-          valor={calc.pctBaseDaInstituicao}
-          aoTrocar={calc.setPctBaseDaInstituicao}
-          ativo={temInstituicao}
-          // TRAÇO e não 100%: sem quota instituída não existe guia de instituição, e
-          // anunciar uma base seria afirmar algo sobre um documento que não sai. A
-          // reserva da doação NÃO conta aqui — ela não tem guia própria, ela muda a
-          // base da guia da doação, que se decide na outra aba.
-          semAto={TRACO}
-          porQueTravado={'Ninguém instituiu usufruto ainda, e sem guia não há base a '
-            + 'escolher. Digite na coluna "Concede usufruto de", ou então o percentual '
-            + 'de voz e voto do usufrutuário: a calculadora reparte a concessão.'}
-        />
-
       </div>
-
-      {/* A consequência da base reduzida é a única coisa que merece linha própria:
-          ela cria uma parcela devida ANOS depois, e ninguém lembra de um `title`. */}
-      {temInstituicao && calc.pctBaseDaInstituicao === '70' && (
-        <AvisoDeParcelaDiferida onde="instituição" />
-      )}
 
       {/* ── A TABELA ─────────────────────────────────────────────────────── */}
       <div className={molduraDaTabelaCls}>

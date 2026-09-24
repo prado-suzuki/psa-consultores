@@ -138,9 +138,11 @@ const CalculadoraItcmd = () => {
               <Dado rotulo="Doa" valor={naSessao.doadores.join(', ') || '—'} />
             </div>
             <CenariosEmColunas
-              saida={naSessao.saida}
-              instituicao={calc.saidaDaInstituicao}
-              total={calc.impostoTotalPorCenario}
+              porBase={calc.apuracaoPorBase}
+              comAlternativa={[
+                ...(calc.comReserva ? ['reserva'] : []),
+                ...(calc.totalInstituido > 0n ? ['instituição'] : []),
+              ]}
               falta={calc.faltaNoCenario}
             />
           </div>

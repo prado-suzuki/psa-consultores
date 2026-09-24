@@ -12,7 +12,7 @@ import {
   divisaoNoCampo, fatiaIgual, mascararPercentual, percentualEscalado,
 } from '@/lib/osg/percentualDigitado';
 import {
-  CENARIOS, simular, type Cenario, type SaidaSimulacao,
+  CENARIOS, simular, type Cenario, type EntradaSimulacao, type LinhaDaGia, type SaidaSimulacao,
 } from '@/lib/osg/itcmd/simulacao';
 import {
   derivarDoadoresFiscais, formaDoCadastro,
@@ -22,7 +22,7 @@ import { ratearAto, repartirProporcional } from '@/lib/osg/rateioDoAto';
 import {
   useAlterarStatusSimulacaoItcmd, useGravarSimulacaoItcmd,
   useRenomearSimulacaoItcmd, useSimulacoesItcmd, rotuloDaSimulacao,
-  type StatusDaSimulacao,
+  type BaseAlternativa, type BaseDeCalculo, type StatusDaSimulacao,
 } from '@/hooks/useSimulacoesItcmd';
 import {
   candidatosADoador,
@@ -222,13 +222,8 @@ export function useCalculadoraItcmdController() {
   // instituiu nada. Por isso o usufruto e da simulacao, nao do cliente.
   /** A doacao transmite a nua propriedade e o doador guarda o usufruto? */
   const [comReserva, setComReserva] = useState(false);
-  /**
-   * Percentual da base de calculo, em cada um dos dois atos. `100` encerra a
-   * tributacao (Decreto 2.125/03, art. 28, par. 3, III); `70` e a reducao automatica
-   * do art. 11, par. 2, I, que deixa parcela devida na extincao.
-   */
-  const [pctBaseDaDoacao, setPctBaseDaDoacao] = useState<'100' | '70'>('100');
-  const [pctBaseDaInstituicao, setPctBaseDaInstituicao] = useState<'100' | '70'>('70');
+  // A base de calculo nao e campo: a calculadora apura e grava as duas onde ha alternativa (a doacao com
+  // reserva e a instituicao), e a tela so alterna qual se ve.
   /** Quotas que cada pessoa CONCEDE em usufruto, digitadas. */
   const [institucoes, setInstitucoes] = useState<Record<string, string>>({});
   /**
@@ -1083,12 +1078,8 @@ export function useCalculadoraItcmdController() {
   // memo é a assinatura textual do que muda o resultado: quem recebe, quanto, e
   // quanto já recebeu antes.
   /**
-   * OS PARES DO ATO — uma linha de beneficiário cada. Fica fora do memo da simulação porque a tela
-   * precisa deles para pedir a doação anterior de cada par.
-   *
-   * O bloco que cada doador TRANSMITE é a fatia proporcional do que o ato
-   * movimenta, e não o patrimônio dele: com herdeiro fora do ato, a legítima de
-   * quem não recebe permanece com o doador.
+   * Os pares do ato, uma linha de beneficiário cada, fora do memo porque a tela também os usa. O bloco de
+   * cada doador é a fatia do que o ato movimenta: a legítima de quem não recebe fica com o doador.
    */
   const { paresDoAto, erroDoRateio } = ((): {
     paresDoAto: ParDoAto[]; erroDoRateio: string | null;
@@ -1294,52 +1285,53 @@ export function useCalculadoraItcmdController() {
     }));
   const totalInstituido = usufruto.linhas.reduce((a, l) => a + l.nuaDeInstituicao, 0n);
 
-  const { saida, erro } = useMemo<{ saida: SaidaSimulacao | null; erro: string | null }>(() => {
+  const { saida, saidaDaDoacaoEm70, erro } = useMemo<{
+    saida: SaidaSimulacao | null; saidaDaDoacaoEm70: SaidaSimulacao | null; erro: string | null;
+  }>(() => {
     if (!distribuicaoFecha || paresDoAto.length === 0 || totalDeQuotas <= 0n
         || !upfValida || !competenciaValida || !formaResolvida) {
-      return { saida: null, erro: null };
+      return { saida: null, saidaDaDoacaoEm70: null, erro: null };
     }
     try {
+      const entrada: EntradaSimulacao = {
+        competencia: competencia.trim(),
+        upf: upf.trim().replace(',', '.'),
+        totalDeQuotas: totalDeQuotas.toString(),
+        totaisDoAcervo: acervoComAporte,
+        doadores: doadoresFiscais.map((d) => ({
+          id: d.doadorId,
+          nome: nomeDoDoadorFiscal(d),
+        })),
+        donatarios: donatarios.map((d) => ({
+          id: d.pessoaId,
+          nome: d.denominacao,
+        })),
+        doacoes: paresDoAto.map((x) => ({
+          doadorId: x.doadorId,
+          donatarioId: x.donatarioId,
+          quotasRecebidas: x.quotas.toString(),
+          // A OSG não acompanha doação anterior: a SEFAZ acumula ao emitir a guia. O motor mantém a capacidade.
+          doacaoAnterior: null,
+        })),
+      };
       return {
-        saida: simular({
-          competencia: competencia.trim(),
-          upf: upf.trim().replace(',', '.'),
-          totalDeQuotas: totalDeQuotas.toString(),
-          totaisDoAcervo: acervoComAporte,
-          doadores: doadoresFiscais.map((d) => ({
-            id: d.doadorId,
-            nome: nomeDoDoadorFiscal(d),
-          })),
-          donatarios: donatarios.map((d) => ({
-            id: d.pessoaId,
-            nome: d.denominacao,
-          })),
-          doacoes: paresDoAto.map((x) => ({
-            doadorId: x.doadorId,
-            donatarioId: x.donatarioId,
-            quotasRecebidas: x.quotas.toString(),
-            // A OSG não acompanha doação anterior: o sistema da SEFAZ acumula sozinho
-            // ao emitir a guia, e declarar aqui era um dado que ninguém tinha. O motor
-            // mantém a capacidade (Lei 10.488/2016) sem produtor na tela.
-            doacaoAnterior: null,
-          })),
-          // Com reserva de usufruto, a base pode ser reduzida a 70% - e a escolha
-          // muda o imposto em 30%. Sem reserva o campo nao existe.
-          pctDaBase: comReserva ? pctBaseDaDoacao : undefined,
-        }),
+        // A BASE INTEGRAL, sempre: e a unica que existe sem reserva.
+        saida: simular(entrada),
+        // Com reserva, a mesma doacao em 70%, gravada ao lado da integral.
+        saidaDaDoacaoEm70: comReserva ? simular({ ...entrada, pctDaBase: '70' }) : null,
         erro: null,
       };
     } catch (e) {
       // Sem fallback silencioso: a mensagem sobe para a tela em vez de virar
       // um quadro de zeros.
-      return { saida: null, erro: e instanceof Error ? e.message : String(e) };
+      return { saida: null, saidaDaDoacaoEm70: null, erro: e instanceof Error ? e.message : String(e) };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     competencia, upf, upfValida, competenciaValida, distribuicaoFecha, totalDeQuotas,
     acervoComAporte.contabil, acervoComAporte.itr, acervoComAporte.mercado,
     assinaturaDosDonatarios, assinaturaDosDoadoresFiscais, assinaturaDosPares,
-    formaResolvida, comReserva, pctBaseDaDoacao,
+    formaResolvida, comReserva,
   ]);
 
   // ── Passo 7b: A APURACAO DA INSTITUICAO DE USUFRUTO ──────────────────────
@@ -1357,20 +1349,24 @@ export function useCalculadoraItcmdController() {
     .map((c) => `${c.deId}>${c.paraIds.join('+')}:${c.quotas}`)
     .join('|');
 
-  const { saidaDaInstituicao, erroDaInstituicao } = useMemo<{
-    saidaDaInstituicao: SaidaSimulacao | null; erroDaInstituicao: string | null;
-  }>(() => {
+  /**
+   * A mesma apuracao em qualquer base: a instituicao roda em 100% e em 70%, e as duas vao gravadas. A conta
+   * e feita aqui, na gravacao, para o numero aprovado nao mudar se o motor mudar.
+   */
+  const apurarInstituicao = (pctDaBase: '100' | '70'): {
+    saida: SaidaSimulacao | null; erro: string | null;
+  } => {
     const daInstituicao = concessoes.filter((c) => c.origem === 'instituicao');
     const recebemIds = [...new Set(daInstituicao.flatMap((c) => c.paraIds))];
     if (daInstituicao.length === 0 || recebemIds.length === 0 || totalDeQuotas <= 0n
         || !upfValida || !competenciaValida) {
-      return { saidaDaInstituicao: null, erroDaInstituicao: null };
+      return { saida: null, erro: null };
     }
     const nome = (id: string) => usufruto.linhas.find((l) => l.pessoaId === id)?.nome
       ?? nomeCurto(id);
     try {
       return {
-        saidaDaInstituicao: simular({
+        saida: simular({
           competencia: competencia.trim(),
           upf: upf.trim().replace(',', '.'),
           totalDeQuotas: totalDeQuotas.toString(),
@@ -1392,21 +1388,34 @@ export function useCalculadoraItcmdController() {
               }))
               .filter((x) => x.quotasRecebidas !== '0');
           }),
-          pctDaBase: pctBaseDaInstituicao,
+          pctDaBase,
         }),
-        erroDaInstituicao: null,
+        erro: null,
       };
     } catch (e) {
-      return {
-        saidaDaInstituicao: null,
-        erroDaInstituicao: e instanceof Error ? e.message : String(e),
-      };
+      return { saida: null, erro: e instanceof Error ? e.message : String(e) };
     }
+  };
+
+  const { saidaDaInstituicao, saidaDaInstituicaoEm70, erroDaInstituicao } = useMemo<{
+    saidaDaInstituicao: SaidaSimulacao | null;
+    saidaDaInstituicaoEm70: SaidaSimulacao | null;
+    erroDaInstituicao: string | null;
+  }>(() => {
+    const integral = apurarInstituicao('100');
+    const reduzida = apurarInstituicao('70');
+    return {
+      saidaDaInstituicao: integral.saida,
+      saidaDaInstituicaoEm70: reduzida.saida,
+      // As duas entram no retrato: se uma nao apura, a simulacao nao grava pela metade.
+      // As entradas sao as mesmas, entao na pratica os dois erros sao um.
+      erroDaInstituicao: integral.erro ?? reduzida.erro,
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     competencia, upf, upfValida, competenciaValida, totalDeQuotas,
     acervoComAporte.contabil, acervoComAporte.itr, acervoComAporte.mercado,
-    assinaturaDoUsufruto, pctBaseDaInstituicao,
+    assinaturaDoUsufruto,
   ]);
 
   /**
@@ -1419,17 +1428,37 @@ export function useCalculadoraItcmdController() {
    * `null` em qualquer das duas parcelas mantem o cenario indisponivel: somar com um
    * lado ausente afirmaria um total que ninguem apurou.
    */
-  const impostoTotalPorCenario = ((): Record<Cenario, string | null> => {
+  const totalDoAto = (
+    doacao: SaidaSimulacao | null,
+    instituicao: SaidaSimulacao | null,
+  ): Record<Cenario, string | null> => {
     const somar = (cenario: Cenario): string | null => {
-      const daDoacao = saida?.totaisPorCenario[cenario] ?? null;
-      const daInstituicao = saidaDaInstituicao?.totaisPorCenario[cenario] ?? null;
+      const daDoacao = doacao?.totaisPorCenario[cenario] ?? null;
+      const daInstituicao = instituicao?.totaisPorCenario[cenario] ?? null;
       if (daDoacao == null) return null;
       if (daInstituicao == null) return daDoacao;
       return formatMoney(quantizar2(parseMoney(daDoacao))
         + quantizar2(parseMoney(daInstituicao)));
     };
     return { contabil: somar('contabil'), itr: somar('itr'), mercado: somar('mercado') };
-  })();
+  };
+  /** O ato nas duas bases, para a tela que alterna; sem reserva a doacao e a mesma nas duas. */
+  const apuracaoPorBase: Record<BaseDeCalculo, {
+    doacao: SaidaSimulacao | null;
+    instituicao: SaidaSimulacao | null;
+    total: Record<Cenario, string | null>;
+  }> = {
+    '100': {
+      doacao: saida,
+      instituicao: saidaDaInstituicao,
+      total: totalDoAto(saida, saidaDaInstituicao),
+    },
+    '70': {
+      doacao: comReserva ? saidaDaDoacaoEm70 : saida,
+      instituicao: saidaDaInstituicaoEm70,
+      total: totalDoAto(comReserva ? saidaDaDoacaoEm70 : saida, saidaDaInstituicaoEm70),
+    },
+  };
 
   /**
    * ZERAR O ATO. Chamado ao GERAR: dali em diante o ato está fechado, e o modal tem de
@@ -1451,8 +1480,6 @@ export function useCalculadoraItcmdController() {
     setFormaDeclarada({});
     setAportes({});
     setComReserva(false);
-    setPctBaseDaDoacao('100');
-    setPctBaseDaInstituicao('70');
     setInstitucoes({});
     setPapeisDoUsufruto({});
     setForaDoUsufruto([]);
@@ -1728,11 +1755,6 @@ export function useCalculadoraItcmdController() {
      */
     comReserva,
     setComReserva,
-    /** `100` encerra a tributacao; `70` deixa parcela devida na extincao. */
-    pctBaseDaDoacao,
-    setPctBaseDaDoacao,
-    pctBaseDaInstituicao,
-    setPctBaseDaInstituicao,
     /**
      * PARA QUEM o usufruto pode ir, e o destino escolhido de cada concedente.
      *
@@ -1908,11 +1930,11 @@ export function useCalculadoraItcmdController() {
         [pessoaId]: digitos,
       }));
     },
-    /** A apuracao da INSTITUICAO - guia propria, imposto proprio. */
+    /** A apuracao da INSTITUICAO em 100% - guia propria, imposto proprio. */
     saidaDaInstituicao,
     erroDaInstituicao,
-    /** Doacao + instituicao, por cenario de valor. E o numero que decide. */
-    impostoTotalPorCenario,
+    /** O ato nas duas bases: doacao, instituicao e o total, que e o numero que decide. */
+    apuracaoPorBase,
 
     estado,
     setEstado,
@@ -2111,7 +2133,6 @@ export function useCalculadoraItcmdController() {
             donatarioPessoaId: g.donatarioId,
             quotasRecebidas: g.quotasRecebidas,
             pctDaGia: g.percentualDaGia,
-            doacaoAnterior: g.doacaoAnterior,
             basePorCenario: {
               contabil: g.porCenario.contabil?.base ?? null,
               itr: g.porCenario.itr?.base ?? null,
@@ -2122,13 +2143,20 @@ export function useCalculadoraItcmdController() {
               itr: g.porCenario.itr?.imposto ?? null,
               mercado: g.porCenario.mercado?.imposto ?? null,
             },
+            // COM RESERVA, A MESMA GUIA EM 70%. O par e o mesmo nas duas bases (a
+            // reparticao nao depende da base), entao acha-se pelo par.
+            baseAlternativa: comReserva
+              ? alternativaDaGuia(saidaDaDoacaoEm70, g, 'doação')
+              : null,
           };
         }),
 
         // ── O USUFRUTO ────────────────────────────────────────────────────────
         comReserva,
-        pctBaseReserva: pctBaseDaDoacao,
-        pctBaseInstituicao: pctBaseDaInstituicao,
+        // As colunas de sempre guardam a integral e a reduzida vai nas `_alternativa`; os percentuais dizem
+        // em que base estao as colunas das simulacoes antigas.
+        pctBaseReserva: '100',
+        pctBaseInstituicao: '100',
         // O QUADRO VAI SEMPRE, inclusive quando nao ha ato: sem reserva e sem
         // instituicao ele diz que cada um vota o que tem e que nada foi recolhido.
         // Isso e uma afirmacao, e e diferente de nao haver registro.
@@ -2174,6 +2202,8 @@ export function useCalculadoraItcmdController() {
               itr: g.porCenario.itr?.imposto ?? null,
               mercado: g.porCenario.mercado?.imposto ?? null,
             },
+            // A MESMA GUIA EM 70%, que o capitulo 04 poe ao lado da integral.
+            baseAlternativa: alternativaDaGuia(saidaDaInstituicaoEm70, g, 'instituição'),
           })),
         ],
       }, {
@@ -2186,6 +2216,39 @@ export function useCalculadoraItcmdController() {
         // aqui não muda o que foi enviado — muda apenas quando a tela esquece.
         onSuccess: () => zerarOAto(),
       });
+    },
+  };
+}
+
+/**
+ * A guia em 70%, no formato da gravacao, achada pelo par doador -> beneficiario (a reparticao nao depende da
+ * base). Nao achar e defeito, e lanca em vez de gravar a guia com uma base so.
+ */
+function alternativaDaGuia(
+  reduzida: SaidaSimulacao | null,
+  guia: LinhaDaGia,
+  ato: 'doação' | 'instituição',
+): BaseAlternativa {
+  const g = reduzida?.gias.find(
+    (x) => x.doadorId === guia.doadorId && x.donatarioId === guia.donatarioId,
+  );
+  if (g == null) {
+    throw new Error(
+      `A guia de ${ato} ${guia.doadorNome} → ${guia.donatarioNome} não foi apurada na base `
+      + 'de 70%. A simulação não foi gravada.',
+    );
+  }
+  return {
+    pctBase: '70.00',
+    basePorCenario: {
+      contabil: g.porCenario.contabil?.base ?? null,
+      itr: g.porCenario.itr?.base ?? null,
+      mercado: g.porCenario.mercado?.base ?? null,
+    },
+    impostoPorCenario: {
+      contabil: g.porCenario.contabil?.imposto ?? null,
+      itr: g.porCenario.itr?.imposto ?? null,
+      mercado: g.porCenario.mercado?.imposto ?? null,
     },
   };
 }

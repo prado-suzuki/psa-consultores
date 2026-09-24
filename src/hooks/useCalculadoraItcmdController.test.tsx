@@ -809,9 +809,9 @@ describe('controlador da calculadora — o fio inteiro', () => {
       competencia: '2026-08', upf: '263.78', totalDeQuotas: '6649400',
       criadaEm: '2026-08-28T12:00:00Z', observacao: null, origemSimulacaoId: null,
       acervoPorCenario: { contabil: '6649400.00', itr: null, mercado: null },
-      impostoPorCenario: { contabil: '100.00', itr: null, mercado: null },
-      totalPorCenario: { contabil: '100.00', itr: null, mercado: null },
-      comReserva: false, pctBaseReserva: '100.00', pctBaseInstituicao: '70.00',
+      doacaoPorBase: { 100: { contabil: '100.00', itr: null, mercado: null }, 70: { contabil: '100.00', itr: null, mercado: null } },
+      totalPorBase: { 100: { contabil: '100.00', itr: null, mercado: null }, 70: { contabil: '100.00', itr: null, mercado: null } },
+      comReserva: false,
       usufruto: [], concessoes: [], gias: [], doadores: [], donatarios: [],
     }];
 
@@ -852,9 +852,9 @@ describe('controlador da calculadora — o fio inteiro', () => {
       competencia: '2026-08', upf: '263.78', totalDeQuotas: '9000000',
       criadaEm: '2026-08-28T12:00:00Z', observacao: null, origemSimulacaoId: null,
       acervoPorCenario: { contabil: '9000000.00', itr: null, mercado: null },
-      impostoPorCenario: { contabil: '100.00', itr: null, mercado: null },
-      totalPorCenario: { contabil: '100.00', itr: null, mercado: null },
-      comReserva: false, pctBaseReserva: '100.00', pctBaseInstituicao: '70.00',
+      doacaoPorBase: { 100: { contabil: '100.00', itr: null, mercado: null }, 70: { contabil: '100.00', itr: null, mercado: null } },
+      totalPorBase: { 100: { contabil: '100.00', itr: null, mercado: null }, 70: { contabil: '100.00', itr: null, mercado: null } },
+      comReserva: false,
       usufruto: [], concessoes: [], gias: [],
       doadores: [{
         pessoaId: 'Cristiano', nome: 'Cristiano', quotas: '9000000',
@@ -892,11 +892,15 @@ describe('controlador da calculadora — o fio inteiro', () => {
       observacao: null,
       origemSimulacaoId: null,
       acervoPorCenario: { contabil: '6649400.00', itr: null, mercado: null },
-      impostoPorCenario: { contabil: '100000.00', itr: null, mercado: null },
-      totalPorCenario: { contabil: '100000.00', itr: null, mercado: null },
+      doacaoPorBase: {
+        100: { contabil: '100000.00', itr: null, mercado: null },
+        70: { contabil: '100000.00', itr: null, mercado: null },
+      },
+      totalPorBase: {
+        100: { contabil: '100000.00', itr: null, mercado: null },
+        70: { contabil: '100000.00', itr: null, mercado: null },
+      },
       comReserva: false,
-      pctBaseReserva: '100.00',
-      pctBaseInstituicao: '70.00',
       usufruto: [],
       concessoes: [],
       doadores: [{
@@ -951,9 +955,9 @@ describe('controlador da calculadora — o fio inteiro', () => {
       upf: '255.20', totalDeQuotas: '9000000', criadaEm: '2026-02-10T12:00:00Z',
       observacao: null, origemSimulacaoId: null,
       acervoPorCenario: { contabil: '9000000.00', itr: null, mercado: null },
-      impostoPorCenario: { contabil: '0.00', itr: null, mercado: null },
-      totalPorCenario: { contabil: '0.00', itr: null, mercado: null },
-      comReserva: false, pctBaseReserva: '100.00', pctBaseInstituicao: '70.00',
+      doacaoPorBase: { 100: { contabil: '0.00', itr: null, mercado: null }, 70: { contabil: '0.00', itr: null, mercado: null } },
+      totalPorBase: { 100: { contabil: '0.00', itr: null, mercado: null }, 70: { contabil: '0.00', itr: null, mercado: null } },
+      comReserva: false,
       usufruto: [], concessoes: [],
       doadores: [{
         pessoaId: 'Cristiano', nome: 'Cristiano',
@@ -1170,9 +1174,10 @@ describe('controlador da calculadora — o fio inteiro', () => {
     act(() => calc().setComReserva(true));
     act(() => calc().setVozEVoto('Cristiano', '100'));
 
-    // Um usufrutuario: uma guia, uma isencao de 500 UPF.
-    expect(calc().saidaDaInstituicao!.gias).toHaveLength(1);
-    expect(calc().saidaDaInstituicao!.totaisPorCenario.contabil).toBe('8100.38');
+    // Um usufrutuario: uma guia, uma isencao de 500 UPF, na base de 70%.
+    const em70 = () => calc().apuracaoPorBase['70'].instituicao!;
+    expect(em70().gias).toHaveLength(1);
+    expect(em70().totaisPorCenario.contabil).toBe('8100.38');
 
     // O Gabriel nao doou nem recebeu, e entra no quadro do usufruto para tambem
     // receber. Isso NAO e um campo de destino: e o papel dele na linha.
@@ -1181,7 +1186,7 @@ describe('controlador da calculadora — o fio inteiro', () => {
 
     // DOIS beneficiarios: a base se reparte e cada um recomeca nas faixas de baixo,
     // com a propria isencao. E a alavanca medida no Agro Alianca.
-    const inst = calc().saidaDaInstituicao!;
+    const inst = em70();
     expect(inst.gias).toHaveLength(2);
     expect(inst.gias.map((g) => g.donatarioNome).sort()).toEqual(['Cristiano', 'Gabriel']);
     // 562.728,00 x 0,70 = 393.909,60, repartido em 196.954,80 para cada um: 771,8
@@ -1265,19 +1270,68 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(calc().linhasDoUsufruto[1].concedePara).toEqual(['Cristiano']);
     expect(calc().linhasDoUsufruto[0].pctVozEVoto).toBe('100.0000');
 
-    // O IMPOSTO DA INSTITUICAO, com a base reduzida a 70% (o padrao do campo):
-    // 562.728,00 x 0,70 = 393.909,60 -> faixa de 4%, deducao de 30 UPF a 255,20.
+    // O imposto da instituicao nas duas bases. Na integral, 562.728,00 na faixa de 4%, deducao de 30 UPF
+    // a 255,20: 22.509,12 - 7.656,00.
     const inst = calc().saidaDaInstituicao!;
     expect(inst.gias).toHaveLength(1);
     expect(inst.gias[0].doadorNome).toBe('Fabiane');
     expect(inst.gias[0].donatarioNome).toBe('Cristiano');
-    expect(inst.gias[0].porCenario.contabil?.base).toBe('393909.60');
-    expect(inst.totaisPorCenario.contabil).toBe('8100.38');
+    expect(inst.gias[0].porCenario.contabil?.base).toBe('562728.00');
+    expect(inst.totaisPorCenario.contabil).toBe('14853.12');
+    // Na reduzida, 562.728,00 x 0,70 = 393.909,60, na mesma faixa de 4%.
+    const em70 = calc().apuracaoPorBase['70'].instituicao!;
+    expect(em70.gias[0].porCenario.contabil?.base).toBe('393909.60');
+    expect(em70.totaisPorCenario.contabil).toBe('8100.38');
 
-    // E o total do ato soma os dois: doacao + instituicao.
-    const daDoacao = Number(calc().saida!.totaisPorCenario.contabil);
-    expect(Number(calc().impostoTotalPorCenario.contabil))
-      .toBeCloseTo(daDoacao + 8100.38, 2);
+    // E o total do ato soma os dois, em cada base: doacao + instituicao.
+    const noAto = (base: '100' | '70') => calc().apuracaoPorBase[base];
+    expect(Number(noAto('100').total.contabil))
+      .toBeCloseTo(Number(noAto('100').doacao!.totaisPorCenario.contabil) + 14853.12, 2);
+    expect(Number(noAto('70').total.contabil))
+      .toBeCloseTo(Number(noAto('70').doacao!.totaisPorCenario.contabil) + 8100.38, 2);
+    // Com reserva, a doacao em 70% e outra conta, e custa menos que a integral.
+    expect(Number(noAto('70').doacao!.totaisPorCenario.contabil))
+      .toBeLessThan(Number(noAto('100').doacao!.totaisPorCenario.contabil));
+  });
+
+  it('grava AS DUAS BASES da doacao com reserva e da instituicao; a reserva vai sem nenhuma', () => {
+    // Os tres cenarios com valor: sem eles a simulacao nao vai ao banco.
+    mocks.bens = [imovel('IR-01', 4_000_000, 5_000_000, 3_000_000),
+                  imovel('IR-02', 2_649_400, 3_000_000, 1_800_000)];
+    mocks.gravarSpy.mockClear();
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+
+    act(() => calc().adicionarDoador('Cristiano'));
+    act(() => calc().adicionarDonatario('Fabiane'));
+    act(() => calc().setComReserva(true));
+    act(() => calc().setVozEVoto('Cristiano', '100'));
+    act(() => calc().gerar());
+
+    expect(mocks.gravarSpy).toHaveBeenCalledTimes(1);
+    const gravado = mocks.gravarSpy.mock.calls[0][0];
+    const instituicoes = gravado.concessoes.filter(
+      (c: { origem: string }) => c.origem === 'instituicao',
+    );
+    expect(instituicoes).toHaveLength(1);
+    // A GUIA DE INSTITUICAO, na integral nas colunas de sempre: a mesma do teste acima.
+    expect(instituicoes[0].basePorCenario.contabil).toBe('562728.00');
+    expect(instituicoes[0].impostoPorCenario.contabil).toBe('14853.12');
+    // E A MESMA GUIA EM 70%, ao lado.
+    expect(instituicoes[0].baseAlternativa).toMatchObject({ pctBase: '70.00' });
+    expect(instituicoes[0].baseAlternativa.basePorCenario.contabil).toBe('393909.60');
+    expect(instituicoes[0].baseAlternativa.impostoPorCenario.contabil).toBe('8100.38');
+    // A GUIA DA DOACAO COM RESERVA tambem vai nas duas.
+    expect(gravado.gias.every(
+      (g: { baseAlternativa: { pctBase: string } | null }) => g.baseAlternativa?.pctBase === '70.00',
+    )).toBe(true);
+    // As colunas de sempre guardam a integral, e os percentuais dizem isso.
+    expect(gravado.pctBaseReserva).toBe('100');
+    expect(gravado.pctBaseInstituicao).toBe('100');
+    // A reserva nao tem guia, e portanto nao tem base nenhuma.
+    const reservas = gravado.concessoes.filter((c: { origem: string }) => c.origem === 'reserva');
+    expect(reservas.every((c: { baseAlternativa?: unknown }) => c.baseAlternativa === undefined))
+      .toBe(true);
   });
 
   it('o ESTADO do ato é campo, e vem com MT', () => {

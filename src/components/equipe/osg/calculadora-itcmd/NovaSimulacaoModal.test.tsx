@@ -239,60 +239,23 @@ describe('o modal não tem coluna torta', () => {
 });
 
 describe('nada nasce nem morre na barra do ato', () => {
-  it('a base da doação: sem reserva é TEXTO dizendo 100%, com reserva é escolha', () => {
+  // A base não é pergunta da montagem: a calculadora grava as duas, e ver uma ou outra é na simulação aberta.
+  it('a MONTAGEM não pergunta base: nem com reserva, nem com instituição', () => {
     const c = comAto();
-    const rotulo = () => screen.getByText('Base da doação');
-    const campo = () => screen.queryByRole('combobox', { name: 'Base da doação' });
-
-    // O LUGAR está sempre lá — é o desmonte que fazia a barra crescer e encolher.
-    expect(rotulo()).toBeInTheDocument();
-    // Mas não como controle travado: sem reserva não há escolha a fazer, e a base da
-    // guia da doação É integral. `w-28` é a medida do seletor, para a barra não mudar
-    // de largura quando a escolha passar a existir.
-    expect(campo()).not.toBeInTheDocument();
-    expect(screen.getByText('100%').className).toContain('w-28');
+    const semCampo = (rotulo: string) => {
+      expect(screen.queryByText(rotulo)).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: rotulo })).not.toBeInTheDocument();
+    };
 
     act(() => c().setComReserva(true));
-    expect(campo()).toBeEnabled();
-    expect(rotulo()).toBeInTheDocument();
+    semCampo('Base da doação');
+    semCampo('Ver na base de');
 
-    act(() => c().setComReserva(false));
-    expect(campo()).not.toBeInTheDocument();
-    expect(rotulo()).toBeInTheDocument();
-  });
-
-  it('a base da instituição mostra TRAÇO enquanto não há instituição', () => {
-    const c = comAto();
     irPara('Usufruto');
-    const rotulo = () => screen.getByText('Base da instituição');
-    const campo = () => screen.queryByRole('combobox', { name: 'Base da instituição' });
-
-    // Sem quota instituída não existe guia de instituição, e anunciar "100%" seria
-    // afirmar uma base para um documento que não vai ser emitido. Foi o que a primeira
-    // versão fez, e um seletor cinza travado em 100% lê como defeito.
-    expect(rotulo()).toBeInTheDocument();
-    expect(campo()).not.toBeInTheDocument();
-    expect(screen.getAllByText('—').some((n) => n.className.includes('w-28')))
-      .toBe(true);
-
-    // Conceder usufruto é o que cria a guia. Em Gabriel porque o palpite de papel vem
-    // da doação: QUEM DOOU USUFRUI (é a mecânica da reserva), então é o donatário que
-    // tem quota plena para conceder.
     act(() => c().setInstituicao('Gabriel', '1.000.000'));
-    expect(campo()).toBeEnabled();
-  });
-
-  it('digitar o percentual de voz e voto também destrava a base da instituição', () => {
-    // É o outro caminho, e o que a própria dica promete: o alvo de % reparte a
-    // concessão entre os nu-proprietários, e concessão é instituição - logo, guia.
-    const c = comAto();
-    irPara('Usufruto');
-    expect(screen.queryByRole('combobox', { name: 'Base da instituição' }))
-      .not.toBeInTheDocument();
-
-    act(() => c().setVozEVoto('Cristiano', '40'));
     expect(c().totalInstituido).toBeGreaterThan(0n);
-    expect(screen.getByRole('combobox', { name: 'Base da instituição' })).toBeEnabled();
+    semCampo('Base da instituição');
+    semCampo('Ver na base de');
   });
 
   it('o contador de GIAs fica na tela mesmo em zero', () => {
