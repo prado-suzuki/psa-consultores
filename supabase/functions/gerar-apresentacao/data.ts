@@ -91,7 +91,7 @@ export interface OrganogramaBands {
 interface EmpresaPJ { id: string; denominacao: string; tipo_empresa: string | null }
 
 
-async function listarEmpresasPJ(admin: SB, clienteId: string, probs?: Probs): Promise<EmpresaPJ[]> {
+async function listarEmpresasPJ(admin: SB, clienteId: string): Promise<EmpresaPJ[]> {
   const { data, error } = await admin
     .from("pessoa")
     .select("id,denominacao,tipo_pessoa,tipo_empresa")
@@ -99,7 +99,8 @@ async function listarEmpresasPJ(admin: SB, clienteId: string, probs?: Probs): Pr
     .eq("tipo_pessoa", "PJ");
   if (error) throw new Error(`listarEmpresasPJ: ${error.message}`);
 
-    anota(probs, ONDE.quadro, `${plural(semNome, "empresa foi ignorada", "empresas foram ignoradas")}: sem denominação no cadastro.`);
+  /* `pessoa.denominacao` e NOT NULL: toda empresa tem nome. */
+  return ((data ?? []) as any[]).map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
 }
 
 // Quadro GRAVADO, igual para CN e PR: o acumulado dos movimentos de quota, lido
@@ -136,7 +137,8 @@ async function quadroGravado(
   if (viewRes.error) throw new Error(`quadroGravado(${empresaId}): ${viewRes.error.message}`);
   if (movRes.error) throw new Error(`quadroGravado.movimentos(${empresaId}): ${movRes.error.message}`);
 
-    anota(probs, ONDE.quadro, `${plural(semPessoa, "linha do quadro de", "linhas do quadro de")} "${denominacao}" não aponta para uma pessoa e ficou de fora.`);
+  /* A view so devolve linha com pessoa. */
+  const rows = (viewRes.data ?? []) as any[];
 
   const houveMovimento = ((movRes.data ?? []) as any[]).length > 0;
   if (rows.length === 0) return { resultado: null, houveMovimento };
@@ -275,9 +277,7 @@ async function lerExploracoesRurais(admin: SB, clienteId: string): Promise<Explo
 }
 
 export async function carregarOrganograma(admin: SB, clienteId: string, probs?: Probs): Promise<OrganogramaBands> {
-  /* Sem `probs` no `listarEmpresasPJ`: quem relata empresa sem denominacao e o
-     `carregarQuadro`, que chama a mesma funcao. Passar nos dois duplicaria. */
-  const [empresas, explRes] = await Promise.all([
+  const [empresas, exploracoes] = await Promise.all([
     listarEmpresasPJ(admin, clienteId),
     lerExploracoesRurais(admin, clienteId),
   ]);
@@ -295,6 +295,14 @@ export async function carregarOrganograma(admin: SB, clienteId: string, probs?: 
       const motivo = motivoForaDoOrganograma(e.denominacao, tipo);
       if (motivo) anota(probs, ONDE.organograma, motivo);
     }
+  }
+  /* A faixa de controladoras vazia sai desenhada sem ninguem, com aviso, como a rural. */
+  if (controladoras.length === 0) {
+    anota(
+      probs,
+      ONDE.organograma,
+      "A faixa de controladoras do organograma saiu vazia: nenhuma empresa marcada como Controladora (CN) no cadastro.",
+    );
   }
 
   // Sócios: uniao dos socios de cada empresa (CN manual / PR derivado),
@@ -337,7 +345,7 @@ export type { QuadroLinha } from "../_shared/apresentacao-osg/conteudo.ts";
 export interface QuadroEmpresa { empresa: string; linhas: QuadroLinha[]; totalQuotas: number; totalValor: number }
 
 export async function carregarQuadro(admin: SB, clienteId: string, probs?: Probs): Promise<QuadroEmpresa[]> {
-  const empresas = await listarEmpresasPJ(admin, clienteId, probs);
+  const empresas = await listarEmpresasPJ(admin, clienteId);
   const out: QuadroEmpresa[] = [];
   for (const e of empresas) {
     const { resultado, temQuadroGravado, houveMovimento } = await quadroDaEmpresa(admin, e, probs);

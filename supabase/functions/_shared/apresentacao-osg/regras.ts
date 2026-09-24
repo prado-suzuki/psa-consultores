@@ -53,14 +53,12 @@ export const plural = (n: number, um: string, varios: string): string =>
 // Empresa no quadro societario
 // ---------------------------------------------------------------------------
 
-export type TipoDeEmpresa = "CN" | "PR" | "SC" | "OUTRO" | "AUSENTE";
+export type TipoDeEmpresa = "CN" | "PR" | "SC" | "AUSENTE";
 
-/** Normaliza o campo livre `pessoa.tipo_empresa`, que aceita nulo e caixa mista. */
+/** Normaliza `pessoa.tipo_empresa`; o banco so aceita PR, CN, SC ou vazio (`pessoa_tipo_empresa_check`). */
 export function lerTipoDeEmpresa(bruto: string | null | undefined): TipoDeEmpresa {
   const t = String(bruto ?? "").trim().toUpperCase();
-  if (t === "") return "AUSENTE";
-  if (t === "CN" || t === "PR" || t === "SC") return t;
-  return "OUTRO";
+  return t === "CN" || t === "PR" || t === "SC" ? t : "AUSENTE";
 }
 
 /**

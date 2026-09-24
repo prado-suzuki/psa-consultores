@@ -29,11 +29,10 @@ describe('lerTipoDeEmpresa', () => {
     expect(lerTipoDeEmpresa(' Pr ')).toBe('PR');
   });
 
-  it('separa ausente de desconhecido, porque o conserto e diferente', () => {
+  it('vazio e ausente — o banco não aceita outro valor além de PR, CN e SC', () => {
     expect(lerTipoDeEmpresa(null)).toBe('AUSENTE');
     expect(lerTipoDeEmpresa('')).toBe('AUSENTE');
     expect(lerTipoDeEmpresa('   ')).toBe('AUSENTE');
-    expect(lerTipoDeEmpresa('HOLDING')).toBe('OUTRO');
   });
 });
 
