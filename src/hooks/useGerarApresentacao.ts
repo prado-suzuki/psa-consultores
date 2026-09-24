@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 
-/** Os decks que a `gerar-apresentacao` monta. */
-export type DeckDaApresentacao = 'patrimonial' | 'societaria';
+/** Os decks que a `gerar-apresentacao` monta: capítulos 01, 02 e 04. O 03, tributário, sai por outra função. */
+export type DeckDaApresentacao = 'patrimonial' | 'societaria' | 'sucessoria';
 
 /**
  * Um deck que o servidor gerou, gravou e devolveu por URL assinada.
@@ -24,7 +24,8 @@ export interface ArquivoGerado {
   versao: number;
 }
 
-// Contrato com a `gerar-apresentacao`: body { clienteId, tipos } → { arquivos, erros?, problemas? }.
+// Contrato com a `gerar-apresentacao`: body { clienteId, tipos, simulacaoIds? } → { arquivos, erros?,
+// problemas? }; 500 { error, detalhes: ErroDeDeck[] } quando nenhum deck saiu.
 const EDGE_FN = 'gerar-apresentacao';
 
 /**
@@ -69,6 +70,24 @@ const statusDoErro = (erro: unknown): number | undefined =>
   (erro as { context?: { status?: number } } | null)?.context?.status;
 
 /**
+ * O motivo de cada deck quando todos falharam: a função manda `detalhes` no 500, e o `supabase-js` descarta
+ * o corpo e fica com "Edge Function returned a non-2xx status code".
+ */
+async function errosDoCorpo(erro: unknown): Promise<ErroDeDeck[]> {
+  const contexto = (erro as { context?: unknown } | null)?.context;
+  if (!(contexto instanceof Response)) return [];
+  try {
+    const corpo = await contexto.clone().json();
+    return Array.isArray(corpo?.detalhes)
+      ? corpo.detalhes.filter((d: unknown): d is ErroDeDeck =>
+        typeof (d as ErroDeDeck)?.tipo === 'string' && typeof (d as ErroDeDeck)?.message === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Dispara a geração dos decks .pptx no servidor e baixa o resultado.
  *
  * NÃO AVISA NADA SOZINHA, e isso mudou em 18/09/2026. A função dava o próprio
@@ -100,7 +119,8 @@ const statusDoErro = (erro: unknown): number | undefined =>
  * Por isso o resultado sai sempre preenchido e o `erro` é o campo que responde;
  * é o `conferirDecksGerados` que confronta o pedido com o que voltou.
  */
-export function useGerarApresentacao(clienteId: string | null) {
+/** `simulacaoIds` é do capítulo 04 (o último ato de cada cenário) e só vai quando o `sucessoria` foi pedido. */
+export function useGerarApresentacao(clienteId: string | null, simulacaoIds: readonly string[] = []) {
   const { logAction } = useAuditLog();
 
   const mutation = useMutation({
@@ -111,7 +131,9 @@ export function useGerarApresentacao(clienteId: string | null) {
         arquivos: ArquivoGerado[];
         erros?: ErroDeDeck[];
         problemas?: ProblemaDoDeck[];
-      }>(EDGE_FN, { body: { clienteId, tipos } });
+      }>(EDGE_FN, {
+        body: tipos.includes('sucessoria') ? { clienteId, tipos, simulacaoIds } : { clienteId, tipos },
+      });
       if (error) {
         return {
           arquivos: [],
@@ -119,6 +141,7 @@ export function useGerarApresentacao(clienteId: string | null) {
             statusDoErro(error) === 404
               ? 'a geração ainda não está publicada no servidor'
               : error.message || 'a geração falhou no servidor',
+          errosPorDeck: await errosDoCorpo(error),
         };
       }
       const arquivos = data?.arquivos ?? [];

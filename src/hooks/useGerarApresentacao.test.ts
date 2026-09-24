@@ -29,15 +29,15 @@ import { useGerarApresentacao } from '@/hooks/useGerarApresentacao';
 
 const CLIENTE = 'cli-1';
 
-function montar(clienteId: string | null = CLIENTE) {
+function montar(clienteId: string | null = CLIENTE, simulacaoIds?: string[]) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
-  return renderHook(() => useGerarApresentacao(clienteId), { wrapper });
+  return renderHook(() => useGerarApresentacao(clienteId, simulacaoIds), { wrapper });
 }
 
 /** Um deck como a Edge Function devolve: gravado, versionado e com URL assinada. */
-const deck = (tipo: 'patrimonial' | 'societaria', versao = 1) => ({
+const deck = (tipo: 'patrimonial' | 'societaria' | 'sucessoria', versao = 1) => ({
   tipo,
   nome: `PSA_${tipo}_v${versao}.pptx`,
   url: `https://storage.exemplo/${tipo}?assinada`,
@@ -190,6 +190,54 @@ describe('useGerarApresentacao', () => {
     expect(r.erro).toBe('a geração ainda não está publicada no servidor');
     expect(r.arquivos).toEqual([]);
     expect(logAction).not.toHaveBeenCalled();
+  });
+
+  /* As simulações escolhidas só vão no corpo quando o capítulo 04 está entre os pedidos. */
+  it('com o capítulo 04 pedido, as simulações vão no corpo, na ordem dos cenários', async () => {
+    invoke.mockResolvedValue({ data: { arquivos: [deck('sucessoria')] }, error: null });
+    const { result } = montar(CLIENTE, ['V2', 'V4', 'V6']);
+    await result.current.mutateAsync(['patrimonial', 'sucessoria']);
+
+    expect(invoke).toHaveBeenCalledWith('gerar-apresentacao', {
+      body: { clienteId: CLIENTE, tipos: ['patrimonial', 'sucessoria'], simulacaoIds: ['V2', 'V4', 'V6'] },
+    });
+  });
+
+  it('sem o capítulo 04 pedido, o corpo continua o de antes', async () => {
+    invoke.mockResolvedValue({ data: { arquivos: [deck('patrimonial')] }, error: null });
+    const { result } = montar(CLIENTE, ['V2']);
+    await result.current.mutateAsync(['patrimonial']);
+
+    expect(invoke).toHaveBeenCalledWith('gerar-apresentacao', {
+      body: { clienteId: CLIENTE, tipos: ['patrimonial'] },
+    });
+  });
+
+  // O `supabase-js` troca o 500 por "Edge Function returned a non-2xx status code"; o motivo vem no
+  // corpo, e é ele que a tela mostra.
+  it('quando nenhum deck saiu, o motivo de cada um vem do corpo do 500', async () => {
+    const corpo = { error: 'Falha ao gerar', detalhes: [{ tipo: 'sucessoria', message: '"Cenário III" não está aprovada.' }] };
+    invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'Edge Function returned a non-2xx status code', context: new Response(JSON.stringify(corpo), { status: 500 }) },
+    });
+    const { result } = montar(CLIENTE, ['V6']);
+    const r = await result.current.mutateAsync(['sucessoria']);
+
+    expect(r.arquivos).toEqual([]);
+    expect(r.errosPorDeck).toEqual([{ tipo: 'sucessoria', message: '"Cenário III" não está aprovada.' }]);
+  });
+
+  it('corpo do 500 que não é JSON não derruba: fica o erro genérico', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'Edge Function returned a non-2xx status code', context: new Response('<html>', { status: 502 }) },
+    });
+    const { result } = montar();
+    const r = await result.current.mutateAsync(['patrimonial']);
+
+    expect(r.erro).toBe('Edge Function returned a non-2xx status code');
+    expect(r.errosPorDeck).toEqual([]);
   });
 
   it('resposta vazia é erro, e não sucesso silencioso', async () => {

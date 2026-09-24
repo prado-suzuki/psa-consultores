@@ -13,6 +13,8 @@ import {
 } from '@/components/equipe/osg/relatorios/useContagemDeSlides';
 import { EscolhaDaRevisao } from '@/components/equipe/osg/relatorios/EscolhaDaRevisao';
 import { useRevisaoParaSlides } from '@/components/equipe/osg/relatorios/useRevisaoParaSlides';
+import { EscolhaDosCenarios } from '@/components/equipe/osg/relatorios/EscolhaDosCenarios';
+import { useCenariosParaSlides } from '@/components/equipe/osg/relatorios/useCenariosParaSlides';
 import { useGerarApresentacaoTributaria } from '@/hooks/useDomainPapelDeTrabalho';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
@@ -38,7 +40,9 @@ import { PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBib
  */
 const BibliotecaApresentacoes = () => {
   const { clienteId } = useOsgWork();
-  const gerarDecks = useGerarApresentacao(clienteId ?? null);
+  const cenarios = useCenariosParaSlides(clienteId || null);
+  /* As simulações escolhidas vão junto: o capítulo 04 é deck desta mesma função. */
+  const gerarDecks = useGerarApresentacao(clienteId ?? null, cenarios.simulacaoIds);
   const contagem = useContagemDeSlides(clienteId || null);
   const revisao = useRevisaoParaSlides(clienteId || null);
   const gerarTributaria = useGerarApresentacaoTributaria();
@@ -50,11 +54,18 @@ const BibliotecaApresentacoes = () => {
         ? contagem.societaria
         : id === 'papeis' && revisao.revisaoId
           ? SLIDES_DO_TRIBUTARIO
-          : 0;
+          : id === 'sucessoria'
+            ? cenarios.slides
+            : 0;
 
-  /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão. */
+  /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão;
+      o sucessório, pelas simulações aprovadas marcadas. */
   const temConteudo = (id: string): boolean =>
-    id === 'papeis' ? revisao.revisaoId !== null : slidesDaPeca(id) > 0;
+    id === 'papeis'
+      ? revisao.revisaoId !== null
+      : id === 'sucessoria'
+        ? cenarios.simulacaoIds.length > 0
+        : slidesDaPeca(id) > 0;
 
   // Começa com tudo marcado: gerar a apresentação inteira é o caso comum.
   const [marcados, setMarcados] = useState<string[]>(PECAS_DE_SLIDE.map((p) => p.id));
@@ -62,8 +73,11 @@ const BibliotecaApresentacoes = () => {
   const alternar = (id: string) =>
     setMarcados((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]));
 
+  /** Por que a peça tem conteúdo e mesmo assim não gera: hoje só o sucessório com UPFs diferentes. */
+  const bloqueio = (id: string): string | null => (id === 'sucessoria' ? cenarios.conflitoDeUpf : null);
+
   // Peça sem conteúdo não se marca: geraria um .pptx com o molde vazio.
-  const geraveis = PECAS_DE_SLIDE.filter((p) => temConteudo(p.id));
+  const geraveis = PECAS_DE_SLIDE.filter((p) => temConteudo(p.id) && !bloqueio(p.id));
   const marcadosValidos = geraveis.filter((p) => marcados.includes(p.id));
   const todos = geraveis.length > 0 && marcadosValidos.length === geraveis.length;
   const totalDeSlides = marcadosValidos.reduce((s, p) => s + slidesDaPeca(p.id), 0);
@@ -208,13 +222,15 @@ const BibliotecaApresentacoes = () => {
 
               {PECAS_DE_SLIDE.map((peca) => {
                 const tributaria = peca.id === 'papeis';
+                const sucessoria = peca.id === 'sucessoria';
                 const vazio = !temConteudo(peca.id);
+                const recusa = bloqueio(peca.id);
 
                 return (
                   <div key={peca.id} className="flex items-center gap-3 border-b border-osg-100 px-4 py-2.5">
                     <Checkbox
-                      checked={marcados.includes(peca.id) && !vazio}
-                      disabled={vazio || ocupado}
+                      checked={marcados.includes(peca.id) && !vazio && !recusa}
+                      disabled={vazio || !!recusa || ocupado}
                       onCheckedChange={() => alternar(peca.id)}
                       aria-label={peca.nome}
                     />
@@ -230,10 +246,12 @@ const BibliotecaApresentacoes = () => {
                           revisão vai, que é a escolha que só ela tem. */}
                       <span className="block truncate text-[11px] text-muted-foreground">{peca.origem}</span>
                       {tributaria && <EscolhaDaRevisao estado={revisao} />}
+                      {sucessoria && <EscolhaDosCenarios estado={cenarios} />}
+                      {recusa && <span role="alert" className="mt-0.5 block text-[11px] text-destructive">{recusa}</span>}
                     </span>
 
                     <span className={cn('shrink-0 text-sm tabular-nums', vazio ? 'text-muted-foreground' : 'font-semibold text-osg-700')}>
-                      {(tributaria ? revisao.carregando : contagem.carregando)
+                      {(tributaria ? revisao.carregando : sucessoria ? cenarios.carregando : contagem.carregando)
                         ? '…'
                         : vazio
                           ? 'sem dados'

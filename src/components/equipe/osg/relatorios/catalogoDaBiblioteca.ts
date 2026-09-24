@@ -79,6 +79,13 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
     deck: null,
     geraSlides: true,
   },
+  {
+    // Capítulo 04: deck da `gerar-apresentacao`, com a escolha das simulações aprovadas na própria linha.
+    id: 'sucessoria',
+    nome: 'Organização Sucessória',
+    origem: 'Legítima e disponível, tributação do ITCMD e as simulações aprovadas da Calculadora de ITCMD.',
+    deck: 'sucessoria',
+  },
   // AS DUAS ERAM UMA: a "Abertura de Demanda" trazia o diagrama e a tabela
   // grudados, e saíam sempre juntos. Separadas, cada uma se marca, se vê e se
   // imprime por si. O que as unia era o DESTINATÁRIO — as duas vão no mesmo
