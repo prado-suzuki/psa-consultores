@@ -208,8 +208,8 @@ export function montaPptxDaSucessoria(
     if (!achado) throw new Error(`O modelo em uso não tem a página ${pag.nome} (falta o campo {{${pag.token}}}).`);
     const n = contaTokens(readText(parts, achado));
     if (n !== pag.tokens) {
-      avisos.push(`O modelo do capítulo 04 no sistema está desatualizado: a página ${pag.nome} tem ${n} campo(s), `
-        + `e a certa tem ${pag.tokens}. Avise o suporte da PSA Digital.`);
+      avisos.push(`O modelo da Organização Sucessória está desatualizado: a página ${pag.nome} tem ${n} ${n === 1 ? "campo" : "campos"}, `
+        + `e a certa tem ${pag.tokens}. Entre em contato com o suporte da PSA Digital.`);
     }
     caminho[chave] = achado;
   }

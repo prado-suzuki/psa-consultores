@@ -39,7 +39,7 @@ export function PontosParaConferir({ pontos }: { pontos: readonly PontoParaConfe
           </h2>
           <p className="text-[12px] text-muted-foreground">
             Da última geração. Cadastro e planilha se corrigem na origem, antes de gerar de novo;
-            PowerPoint, no arquivo baixado. Sistema é falha nossa: avise o suporte da PSA Digital.
+            PowerPoint, no arquivo baixado. Sistema: entre em contato com o suporte da PSA Digital.
           </p>
         </div>
         {agruparPorParte(pontos).map((g) => (

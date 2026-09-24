@@ -674,7 +674,7 @@ function paginaDaInstituicao(
   if (!colunas.I || !colunas.R) {
     avisa(`A guia ${p.nome(c.deId)} → ${p.nome(c.paraId)} foi gravada só em ${gravada}% (a simulação é `
       + `anterior a 24/09/2026). A coluna de ${gravada === '100' ? '70' : '100'}% saiu com "—": gere a `
-      + 'simulação de novo na calculadora e aprove.');
+      + 'simulação de novo na Calculadora de ITCMD e aprove.');
   }
 
   const tokens: Tokens = {
@@ -704,7 +704,7 @@ function paginaDaInstituicao(
       if (!abertura.fecha) {
         avisa(`Na guia ${p.nome(c.deId)} → ${p.nome(c.paraId)}, o imposto gravado em ${r === 'contabil' ? 'valor contábil' : r === 'itr' ? 'ITR' : 'valor de mercado'} `
           + 'não é o que a tabela da lei dá para a base gravada: as faixas saíram pela lei e o total pelo gravado. '
-          + 'É falha do gerador: avise o suporte da PSA Digital.', 'sistema');
+          + 'Entre em contato com o suporte da PSA Digital.', 'sistema');
       }
       tokens[`TI_${b}_${lado}_BASE`] = fmtReais(base);
       abertura.faixas.forEach((v, k) => { tokens[`TI_${b}_${lado}_F${k + 1}`] = reaisOuTraco(v); });
@@ -762,14 +762,14 @@ export function montaCapitulo(entrada: EntradaDoCapitulo): CapituloSucessorio {
         anota(problemas, `${ONDE.resumoDosTributos} – "${nome}"`,
           `A doação de "${a.nome ?? `Versão ${a.versao}`}" foi gravada só em 70% (a simulação é anterior `
           + 'a 24/09/2026): o Resumo dos tributos saiu em 70%, sem a nota de 100%. Gere a simulação de novo '
-          + 'na calculadora e aprove.');
+          + 'na Calculadora de ITCMD e aprove.');
       }
     }
     const ultimo = atos[atos.length - 1];
     if (instituicoesDe(ultimo).some((c) => !c.porBase[BASE_DA_INSTITUICAO_NO_TOTAL])) {
       anota(problemas, ONDE.resumoDosCenarios,
         `O total de "${nome}" soma a instituição em 100%, porque a de 70% não foi gravada `
-        + '(a simulação é anterior a 24/09/2026). Gere a simulação de novo na calculadora e aprove.');
+        + '(a simulação é anterior a 24/09/2026). Gere a simulação de novo na Calculadora de ITCMD e aprove.');
     }
   });
 

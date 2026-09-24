@@ -335,7 +335,7 @@ async function gerarPatrimonial(
   if (!SLIDE_OUTROS) {
     if (outros.linhas.length > 0) {
       anota(probs, ONDE.patrimonial,
-        `${outros.linhas.length === 1 ? "O bem que não é imóvel não saiu" : `Os ${outros.linhas.length} bens que não são imóvel não saíram`} (moeda, quotas, arrendamento, outros): o modelo do capítulo 01 no sistema está desatualizado e não tem a página deles. Avise o suporte da PSA Digital.`,
+        `${outros.linhas.length === 1 ? "O bem que não é imóvel não saiu" : `Os ${outros.linhas.length} bens que não são imóvel não saíram`} (moeda, quotas, arrendamento, outros): o modelo do Diagnóstico Patrimonial está desatualizado e não tem a página deles. Entre em contato com o suporte da PSA Digital.`,
         "sistema");
     }
   } else if (outros.linhas.length === 0) {
@@ -358,7 +358,7 @@ async function gerarPatrimonial(
     /* Molde sem esta pagina: o codigo aceita o antigo, porque a funcao e publicada antes do molde. */
     if (foraDaEstrutura.length > 0) {
       anota(probs, ONDE.patrimonial,
-        `${foraDaEstrutura.length === 1 ? "O imóvel fora da estruturação não saiu" : `Os ${foraDaEstrutura.length} imóveis fora da estruturação não saíram`}: o modelo do capítulo 01 no sistema está desatualizado e não tem a página deles. Avise o suporte da PSA Digital.`,
+        `${foraDaEstrutura.length === 1 ? "O imóvel fora da estruturação não saiu" : `Os ${foraDaEstrutura.length} imóveis fora da estruturação não saíram`}: o modelo do Diagnóstico Patrimonial está desatualizado e não tem a página deles. Entre em contato com o suporte da PSA Digital.`,
         "sistema");
     }
   } else if (foraDaEstrutura.length === 0) {
@@ -763,7 +763,7 @@ async function gerarSocietaria(
       anota(
         probs,
         ONDE.quadro,
-        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societário e ficaram fora do arquivo. É falha do gerador: avise o suporte da PSA Digital.`,
+        `${restantes.length === 1 ? "1 empresa não coube" : `${restantes.length} empresas não couberam`} no quadro societário e ficaram fora do arquivo. Entre em contato com o suporte da PSA Digital.`,
         "sistema",
       );
     }

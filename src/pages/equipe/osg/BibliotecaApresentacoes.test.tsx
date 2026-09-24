@@ -200,7 +200,7 @@ describe('o motivo que chega ao usuário', () => {
   it('falha nossa sai como Sistema, que manda avisar o suporte', async () => {
     osg.gerar.mockResolvedValue({
       ...doisDecks,
-      problemas: [{ tipo: 'sistema', onde: 'Diagnóstico Patrimonial', detalhe: 'O modelo está desatualizado. Avise o suporte da PSA Digital.' }],
+      problemas: [{ tipo: 'sistema', onde: 'Diagnóstico Patrimonial', detalhe: 'O modelo está desatualizado. Entre em contato com o suporte da PSA Digital.' }],
     });
     await gerar();
 
