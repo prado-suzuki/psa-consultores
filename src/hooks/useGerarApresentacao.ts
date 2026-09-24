@@ -57,6 +57,8 @@ export interface ResultadoDosDecks {
 export interface ProblemaDoDeck {
   /** `sistema` é falha nossa: o analista só avisa o suporte da PSA Digital. */
   tipo: 'origem' | 'formatacao' | 'sistema';
+  /** A parte do arquivo ("Organograma", "Quadro Societário"), pela qual a tela agrupa. */
+  onde: string;
   detalhe: string;
 }
 

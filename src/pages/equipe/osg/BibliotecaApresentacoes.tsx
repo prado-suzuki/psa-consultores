@@ -20,6 +20,15 @@ import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
 import { toast } from '@/hooks/use-toast';
 import { PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+import {
+  PontosParaConferir,
+  type OndeCorrige,
+  type PontoParaConferir,
+} from '@/components/equipe/osg/relatorios/PontosParaConferir';
+
+/** Onde cada aviso se corrige. A `origem` muda de lugar: cadastro na OSG, planilha no tributário. */
+const ondeCorrige = (tipo: string, origem: 'Cadastro' | 'Planilha'): OndeCorrige =>
+  tipo === 'formatacao' ? 'PowerPoint' : tipo === 'sistema' ? 'Sistema' : origem;
 
 /**
  * Apresentações: escolher e gerar, em segundos.
@@ -67,6 +76,10 @@ const BibliotecaApresentacoes = () => {
         ? cenarios.simulacaoIds.length > 0
         : slidesDaPeca(id) > 0;
 
+  /* Os pontos da última geração, presos ao cliente em que ela rodou: trocar de
+     cliente tira o quadro, e gerar de novo o substitui. */
+  const [ultimaGeracao, setUltimaGeracao] = useState<{ clienteId: string; pontos: PontoParaConferir[] } | null>(null);
+
   // Começa com tudo marcado: gerar a apresentação inteira é o caso comum.
   const [marcados, setMarcados] = useState<string[]>(PECAS_DE_SLIDE.map((p) => p.id));
 
@@ -105,7 +118,8 @@ const BibliotecaApresentacoes = () => {
 
     const gerados: string[] = [];
     const falhas: string[] = [];
-    const avisos: string[] = [];
+    const pontos: PontoParaConferir[] = [];
+    setUltimaGeracao(null);
 
     if (decks.length > 0) {
       // A lista do que foi marcado: com três decks, um `tipo` só mandaria um.
@@ -119,23 +133,10 @@ const BibliotecaApresentacoes = () => {
       gerados.push(...resultado.gerados);
       falhas.push(...resultado.falhas);
 
-      /*
-        O QUE FALTOU NO CADASTRO, e não no PowerPoint.
-
-        A peça tributária avisa "ponto(s) para ajustar no PowerPoint", porque lá o
-        que sobra é diagramação. Aqui o arquivo saiu faltando DADO — empresa fora
-        do quadro, bem sem sociedade de destino —, e o conserto é no cadastro,
-        antes de gerar de novo. Por isso o texto diz onde ir, e os dois primeiros
-        pontos vêm escritos: "3 pontos" sem dizer quais não conserta nada.
-      */
-      const p = r.problemas ?? [];
-      if (p.length) {
-        const primeiros = p.slice(0, 2).map((x) => x.detalhe).join(' ');
-        avisos.push(
-          p.length <= 2
-            ? `Confira no cadastro: ${primeiros}`
-            : `Confira no cadastro: ${primeiros} (+${p.length - 2} ponto${p.length - 2 === 1 ? '' : 's'}).`,
-        );
+      /* O que faltou vai para o quadro "Pontos para conferir": nos decks da OSG, `origem` é dado que falta no
+         cadastro e `formatacao` é o que não coube. */
+      for (const x of r.problemas ?? []) {
+        pontos.push({ parte: x.onde, detalhe: x.detalhe, corrige: ondeCorrige(x.tipo, 'Cadastro') });
       }
     }
 
@@ -148,10 +149,13 @@ const BibliotecaApresentacoes = () => {
           await baixarArquivoPorUrl(r.url, r.nomeArquivo);
           gerados.push(r.nomeArquivo);
         }
-        if (r.problemas.length) {
-          avisos.push(
-            `Planejamento Tributário: ${r.problemas.length} ponto${r.problemas.length === 1 ? '' : 's'} para ajustar no PowerPoint.`,
-          );
+        /* No tributário, a origem é a planilha do papel de trabalho, não o cadastro. */
+        for (const x of r.problemas) {
+          pontos.push({
+            parte: `Planejamento Tributário · ${x.onde}`,
+            detalhe: x.detalhe,
+            corrige: ondeCorrige(x.tipo, 'Planilha'),
+          });
         }
       } catch (e) {
         falhas.push(
@@ -159,6 +163,12 @@ const BibliotecaApresentacoes = () => {
         );
       }
     }
+
+    if (pontos.length > 0 && clienteId) setUltimaGeracao({ clienteId, pontos });
+    /* O toast só conta e aponta para o quadro: a lista inteira fica na tela. */
+    const avisos = pontos.length === 0
+      ? []
+      : [`${pontos.length === 1 ? 'Um ponto para conferir, listado' : `${pontos.length} pontos para conferir, listados`} abaixo da tabela.`];
 
     const quantos = `${gerados.length} de ${marcadosValidos.length}`;
     if (falhas.length === 0) {
@@ -279,6 +289,8 @@ const BibliotecaApresentacoes = () => {
                 </Button>
               </div>
             </div>
+
+            {ultimaGeracao?.clienteId === clienteId && <PontosParaConferir pontos={ultimaGeracao.pontos} />}
 
             <p className="text-xs text-muted-foreground">
               Cada peça marcada baixa o .pptx dela, e a apresentação fica guardada com número de

@@ -1,38 +1,5 @@
-// Edge Function: gerar-apresentacao (v2 — Patrimonial + Organograma + Quadro)
-//
-// Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
-//   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
-// Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-//
-// Saida: PERSISTE, desde 21/09/2026. Cada deck vira um arquivo em
-//   `osg-apresentacoes` e uma linha em `osg_apresentacao`, com versao, checksum do
-//   arquivo, checksum do molde, versao do gerador, os problemas congelados e o
-//   SNAPSHOT do conteudo. O front recebe URL assinada, nao mais bytes em base64.
-//
-//   Antes disto a geracao nao deixava rastro: baixava e pronto. Nao havia como
-//   dizer o que foi entregue a um cliente, nem quando, nem de qual molde — e
-//   regerar depois dava outro arquivo, porque o cadastro anda.
-//
-//   Continua NAO mexendo em `documento_gerado`/`documento_arquivo`: aquelas tem
-//   `checklist_item_id` e `triado_em`, e a apresentacao apareceria no checklist do
-//   cliente como documento que ele deve entregar. A fronteira e antiga e vale.
-//
-// A sequencia de gravar (validar → versionar → subir → registrar → assinar) NAO
-//   mora aqui: e a casca `_shared/apresentacao/registrar.ts`, compartilhada com o
-//   `gerar-slides-tributarios`. O que e da OSG entra por parametro — a ancora
-//   `cliente_id` + `tipo`, o bucket, o nome do arquivo e o snapshot.
-//
-// Contrato:
-//   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, url, apresentacaoId, versao }],
-//       erros?: [...], problemas?: [...] }
-//
-// `erros` e `problemas` NAO sao a mesma coisa:
-//   erros    — excecao num deck (template ausente, PPTX invalido, erro de query).
-//              Custa o arquivo inteiro; aquele deck nao vem.
-//   problemas — buraco de cadastro. O .pptx SAI, e sai faltando coisa: empresa fora
-//              do quadro, bem sem sociedade de destino, titular em placeholder.
-//              Ate 09/2026 isso ia calado, e quem apresentava descobria na reuniao.
+// Edge Function gerar-apresentacao: os capitulos 01, 02 e 04 da apresentacao da OSG, gravados pela
+// casca `_shared/apresentacao/registrar.ts`. Contrato e regras: docs/osg/apresentacao-da-osg.md.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

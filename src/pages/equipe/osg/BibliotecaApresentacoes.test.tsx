@@ -145,9 +145,8 @@ describe('o motivo que chega ao usuário', () => {
     expect(ditoAoUsuario()).not.toContain('não devolveu o arquivo');
   });
 
-  // O conserto da OSG é no cadastro; o do tributário é no PowerPoint. Textos
-  // diferentes de propósito — um manda ao lugar errado se copiar o outro.
-  it('problema de cadastro manda ao cadastro, e cita os pontos', async () => {
+  /* Todos os pontos vão para o quadro; o toast só conta. */
+  it('os pontos vão para o quadro, pela parte do arquivo e dizendo onde se corrigem', async () => {
     osg.gerar.mockResolvedValue({
       ...doisDecks,
       problemas: [
@@ -157,11 +156,15 @@ describe('o motivo que chega ao usuário', () => {
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('Confira no cadastro');
-    expect(ditoAoUsuario()).toContain('Sinop Sementes');
+    const quadro = await screen.findByRole('region', { name: '2 pontos para conferir' });
+    expect(quadro).toHaveTextContent('Quadro Societário');
+    expect(quadro).toHaveTextContent('Cadastro:"Sinop Sementes" ficou fora.');
+    expect(quadro).toHaveTextContent('Organograma');
+    expect(ditoAoUsuario()).toContain('2 pontos para conferir, listados abaixo da tabela.');
+    expect(ditoAoUsuario()).not.toContain('Sinop Sementes');
   });
 
-  it('acima de dois pontos, resume o resto em vez de despejar', async () => {
+  it('o quadro lista todos, sem resumir, e o toast só conta', async () => {
     osg.gerar.mockResolvedValue({
       ...doisDecks,
       problemas: [1, 2, 3, 4, 5].map((n) => ({
@@ -170,13 +173,45 @@ describe('o motivo que chega ao usuário', () => {
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('ponto 1');
-    expect(ditoAoUsuario()).toContain('+3 pontos');
-    expect(ditoAoUsuario()).not.toContain('ponto 5');
+    const quadro = await screen.findByRole('region', { name: '5 pontos para conferir' });
+    expect(quadro).toHaveTextContent('ponto 1.');
+    expect(quadro).toHaveTextContent('ponto 5.');
+    expect(ditoAoUsuario()).toContain('5 pontos para conferir');
+    expect(ditoAoUsuario()).not.toContain('ponto 1');
   });
 
-  it('sem problema nenhum, nada de "confira no cadastro"', async () => {
+  // O conserto da OSG é no cadastro; o do tributário é na planilha ou no PowerPoint.
+  it('o ponto do tributário diz a parte dele e se corrige na planilha ou no PowerPoint', async () => {
+    osg.tributaria.mockResolvedValue({
+      url: 'https://x/deck.pptx', nomeArquivo: 'PT.pptx', versao: 1,
+      problemas: [
+        { tipo: 'formatacao', onde: '3.1 Premissas', detalhe: 'A DRE não coube.' },
+        { tipo: 'origem', onde: 'caixa de IRPF', detalhe: 'Célula sem valor.' },
+      ],
+    });
     await gerar();
+
+    const quadro = await screen.findByRole('region', { name: '2 pontos para conferir' });
+    expect(quadro).toHaveTextContent('Planejamento Tributário · 3.1 Premissas');
+    expect(quadro).toHaveTextContent('PowerPoint:A DRE não coube.');
+    expect(quadro).toHaveTextContent('Planilha:Célula sem valor.');
+  });
+
+  it('falha nossa sai como Sistema, que manda avisar o suporte', async () => {
+    osg.gerar.mockResolvedValue({
+      ...doisDecks,
+      problemas: [{ tipo: 'sistema', onde: 'Diagnóstico Patrimonial', detalhe: 'O modelo está desatualizado. Avise o suporte da PSA Digital.' }],
+    });
+    await gerar();
+
+    const quadro = await screen.findByRole('region', { name: 'Um ponto para conferir' });
+    expect(quadro).toHaveTextContent('Sistema:O modelo está desatualizado.');
+  });
+
+  it('sem ponto nenhum, nem quadro nem menção no toast', async () => {
+    await gerar();
+    expect(screen.queryByRole('region', { name: /para conferir/ })).toBeNull();
+    expect(ditoAoUsuario()).not.toContain('para conferir');
   });
 });
 

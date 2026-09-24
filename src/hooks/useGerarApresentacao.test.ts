@@ -156,7 +156,7 @@ describe('useGerarApresentacao', () => {
         arquivos: [deck('patrimonial')],
         erros: [{ tipo: 'societaria', message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' }],
         problemas: [
-          { tipo: 'origem', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
+          { tipo: 'origem', onde: 'Quadro Societário', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
         ],
       },
       error: null,
@@ -166,7 +166,7 @@ describe('useGerarApresentacao', () => {
 
     expect(r.erro).toBeNull();
     expect(r.problemas).toEqual([
-      { tipo: 'origem', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
+      { tipo: 'origem', onde: 'Quadro Societário', detalhe: '"Fazenda X" ficou fora do quadro societario.' },
     ]);
     expect(r.errosPorDeck).toEqual([
       { tipo: 'societaria', message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' },
