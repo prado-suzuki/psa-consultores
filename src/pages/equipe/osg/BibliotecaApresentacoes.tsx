@@ -293,9 +293,9 @@ const BibliotecaApresentacoes = () => {
             {ultimaGeracao?.clienteId === clienteId && <PontosParaConferir pontos={ultimaGeracao.pontos} />}
 
             <p className="text-xs text-muted-foreground">
-              Cada peça marcada baixa o .pptx dela, e a apresentação fica guardada com número de
-              versão. As versões do planejamento tributário se consultam no Gerador de Slides, no
-              Digital Dev.
+              Cada apresentação marcada é baixada num arquivo próprio e fica guardada
+              com número de versão. As versões do planejamento tributário ficam no
+              Gerador de Slides, no Tax Work.
             </p>
           </>
         )}

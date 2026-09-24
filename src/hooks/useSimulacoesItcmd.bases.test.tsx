@@ -137,7 +137,7 @@ describe('as duas bases, lidas do que foi gravado', () => {
     await expect(ler()).rejects.toThrow(/fora de 100% e 70%/);
   });
 
-  it('a cadeia soma cada ato na base escolhida para ele', async () => {
+  it('a cadeia soma cada ato na base em que está sendo vista', async () => {
     const s = await ler();
     const outro: SimulacaoSalva = { ...s, id: 'S0' };
     expect(totalDaCadeia([outro, s], 'contabil', () => '100')).toBe('22.00');

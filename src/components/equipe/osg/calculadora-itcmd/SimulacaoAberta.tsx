@@ -401,8 +401,8 @@ function QuadroDaDoacao({ simulacao, nome }: {
             </Th>
             <Th
               alinhar="esquerda"
-              dica={'Em quantas guias o doador emitiu, e no nome de quem. Cônjuge em '
-                + 'conjunto é doador fiscal próprio, pela meação.'}
+              dica={'Individual ou em conjunto com o cônjuge. Em conjunto, o casal '
+                + 'foi um doador só, numa GIA.'}
             >
               Emissão GIA
             </Th>
@@ -809,7 +809,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome, base }: {
             cada donatário sai da tabela progressiva, e a faixa diz de onde vem. */}
         <LinhaDeValor rotulo="Alíquota" valor="2% a 8%" />
 
-        <Secao>{porGuia ? 'Base de cálculo, por guia' : 'Base de cálculo'}</Secao>
+        <Secao>{porGuia ? 'Base de cálculo, por doador e donatário' : 'Base de cálculo'}</Secao>
         {simulacao.gias.map((g) => (
           <LinhaDeValor
             key={`base-${g.doadorId}>${g.donatarioId}`}
@@ -822,7 +822,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome, base }: {
         ))}
 
         <Secao>
-          {porGuia ? 'Simulação do ITCMD, por guia' : 'Simulação do valor de ITCMD'}
+          {porGuia ? 'Simulação do ITCMD, por doador e donatário' : 'Simulação do valor de ITCMD'}
         </Secao>
         {simulacao.gias.map((g) => (
           <LinhaDeValor
@@ -901,7 +901,7 @@ function ACadeia({ simulacao, todas, base, aoTrocarBase }: {
   return (
     <Quadro
       titulo="Cadeia de atos"
-      legenda="Cada linha é um ato, na base escolhida para ele; a última é a soma"
+      legenda="Cada linha é um ato, na base em que está sendo vista; a última é a soma"
     >
       <table className="w-full text-sm">
         <thead className={cabecalhoDaTabelaCls}>
@@ -914,8 +914,8 @@ function ACadeia({ simulacao, todas, base, aoTrocarBase }: {
             </Th>
             <Th
               alinhar="esquerda"
-              dica={'A base de cada ato: a do aberto é a do seletor de cima. Só escolhe quem tem '
-                + 'reserva ou instituição de usufruto; sem os dois, a guia só existe em 100%.'}
+              dica={'A base em que o ato aparece aqui. Só quem tem reserva ou instituição '
+                + 'de usufruto tem as duas; sem elas, a guia só existe em 100%.'}
             >
               Base
             </Th>

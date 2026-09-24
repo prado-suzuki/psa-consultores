@@ -363,9 +363,8 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                       </Th>
                       <Th
                         alinhar="esquerda"
-                        dica={'Em quantas guias este doador emite, e no nome de quem. '
-                          + 'Cônjuge que doa em conjunto é doador fiscal próprio, pela '
-                          + 'meação, e cada guia tem a sua isenção de 500 UPF.'}
+                        dica={'Em conjunto, o casal é um doador só e emite uma GIA. '
+                          + 'O número de guias de cada forma aparece na lista.'}
                       >
                         Emissão GIA
                       </Th>
@@ -780,10 +779,8 @@ function ContadorDeGias({ n }: { n: number }) {
   return (
     <div className="flex h-9 items-center">
       <ComDica
-        dica={'Uma GIA por par doador × donatário, que é a unidade de apuração. '
-          + 'Dividir a doação entre dois doadores muda o imposto: cada par tem a '
-          + 'própria isenção de 500 UPF e a própria faixa de alíquota. Cônjuge que doa '
-          + 'em conjunto conta como doador próprio, pela meação.'}
+        dica={'Uma GIA por doador. Cada par doador × donatário tem isenção de 500 '
+          + 'UPF e faixa próprias: dividir entre dois doadores muda o imposto.'}
       >
         <span className="text-xs tabular-nums text-muted-foreground">
           {n === 0

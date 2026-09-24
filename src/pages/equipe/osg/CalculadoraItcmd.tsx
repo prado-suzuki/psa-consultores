@@ -110,7 +110,7 @@ const CalculadoraItcmd = () => {
                 Apurando e gravando a simulação…
               </p>
               <p className="text-xs text-muted-foreground">
-                Três cenários de avaliação, uma guia por par doador × donatário.
+                Três valores de avaliação, uma GIA por doador.
               </p>
             </div>
           </div>

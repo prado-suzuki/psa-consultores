@@ -210,8 +210,8 @@ describe('SimulacaoAberta', () => {
 
     // A seção muda de nome: o leitor precisa saber que a régua virou a guia. Três
     // cabeçalhos, um por cenário.
-    expect(screen.getAllByText('Base de cálculo, por guia')).toHaveLength(3);
-    expect(screen.getAllByText('Simulação do ITCMD, por guia')).toHaveLength(3);
+    expect(screen.getAllByText('Base de cálculo, por doador e donatário')).toHaveLength(3);
+    expect(screen.getAllByText('Simulação do ITCMD, por doador e donatário')).toHaveLength(3);
 
     // Cada guia com o par na frente: 3 cenários × 2 seções (base e imposto).
     expect(screen.getAllByText('Cristiano → Gabriel')).toHaveLength(6);
@@ -230,7 +230,7 @@ describe('SimulacaoAberta', () => {
     montar();
     irPara('Cálculo do ITCMD');
     expect(screen.getAllByText('Base de cálculo')).toHaveLength(3);
-    expect(screen.queryByText('Base de cálculo, por guia')).not.toBeInTheDocument();
+    expect(screen.queryByText('Base de cálculo, por doador e donatário')).not.toBeInTheDocument();
     // O par não aparece: com um doador, dizer "Avelino → Cristina" em toda linha é
     // repetir o mesmo nome à esquerda de tudo.
     expect(screen.queryByText('Avelino → Cristina')).not.toBeInTheDocument();
@@ -310,7 +310,7 @@ describe('SimulacaoAberta', () => {
     expect(screen.getByText('Total dos 2 atos')).toBeInTheDocument();
 
     // E o consolidado: soma simples dos totais de cada ato, cada um na base dele.
-    expect(screen.getByText(/na base escolhida para ele/)).toBeInTheDocument();
+    expect(screen.getByText(/na base em que está sendo vista/)).toBeInTheDocument();
     expect(screen.getByText('R$ 245.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 113.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 318.000,00')).toBeInTheDocument();
