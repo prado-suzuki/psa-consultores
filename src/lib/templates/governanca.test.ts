@@ -30,9 +30,9 @@ const MODELO_GOVERNANCA = [
   'CLÁUSULA OITAVA: Compete ao {{ conselhoAdministracao.nome }}:',
   '{{#competencias}}{{ competencia.alinea }}) {{ competencia.atividade }};{{/competencias}}',
   '',
-  'CLÁUSULA DÉCIMA QUARTA: Compete aos diretores, isoladamente, a representação',
-  'da sociedade para atos cujo valor não exceda {{ diretoria.representaSozinhoAte }}',
-  '({{ diretoria.representaSozinhoAteExtenso }}).',
+  'CLÁUSULA DÉCIMA QUARTA: A {{ diretoria.nome }} terá mandato de',
+  '{{ diretoria.mandatoAnosNumeral }} ({{ diretoria.mandatoAnosExtenso }}) anos,',
+  'sendo {{ diretoria.cargos }}.',
   '',
   '{{#quotistasSignatarios sep="; " fim="; e "}}{{ quotista.nome }}{{/quotistasSignatarios}}.',
 ].join('\n');
@@ -58,6 +58,15 @@ describe('MOT-01 · placeholders de governança não caem em desconhecidos', () 
   it('papel que não existe CONTINUA caindo em desconhecidos', () => {
     const deteccao = detectarBindingsDeConteudo('{{ orgaoQueNinguemDeclarou.nome }}');
     expect(deteccao.desconhecidos).toContain('orgaoQueNinguemDeclarou.nome');
+  });
+
+  // O papel pode existir e o campo não: `{{ diretoria.campoQueNaoExiste }}` sai vazio sem aviso.
+  it('todo campo de órgão do modelo existe no vocabulário', () => {
+    const conhecidos = new Set(camposDaEntidade('orgaoGovernanca').map((c) => c.id));
+    const usados = [...MODELO_GOVERNANCA.matchAll(/\{\{\s*(?:conselhoAdministracao|diretoria)\.(\w+)/g)]
+      .map((m) => m[1]);
+    expect(usados.length).toBeGreaterThan(0);
+    expect(usados.filter((c) => !conhecidos.has(c))).toEqual([]);
   });
 
   it('as listas de governança são reconhecidas como lista', () => {
