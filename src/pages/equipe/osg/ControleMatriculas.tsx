@@ -3,6 +3,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ import {
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
-import { Plus, Pencil, Trash2, Search, FileText, Link2, Unlink, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Search, FileText, Link2, Unlink, AlertCircle, Loader2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
@@ -39,7 +40,7 @@ type FiltroVinculo = '__todas__' | 'orfas' | 'vinculadas';
 
 const ControleMatriculas = () => {
   const { clienteId } = useOsgWork();
-  const { data: matriculas = [], isLoading } = useAllMatriculas();
+  const { data: matriculas = [], isLoading, error, refetch } = useAllMatriculas();
   const { data: pessoasCliente = [] } = usePessoasByCliente(clienteId || null);
   const deleteMatricula = useDeleteMatricula();
   const setMatriculaBem = useSetMatriculaBem();
@@ -157,6 +158,8 @@ const ControleMatriculas = () => {
           <CardContent>
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Carregando...</p>
+            ) : error ? (
+              <EstadoDeFalha oQue="as matrículas" erro={error} aoTentarDeNovo={() => refetch()} />
             ) : matriculasFiltradas.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
                 {buscaAtiva
@@ -215,13 +218,6 @@ const ControleMatriculas = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button
-                                size="icon" variant="ghost" className="h-7 w-7"
-                                title="Editar"
-                                onClick={() => setModal({ open: true, matricula: m })}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
                               {orfa ? (
                                 <Button
                                   size="icon" variant="ghost" className="h-7 w-7"

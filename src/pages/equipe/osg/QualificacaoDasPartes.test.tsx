@@ -1,9 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   pessoas: [] as Record<string, unknown>[],
   parentescos: [] as Record<string, unknown>[],
+  erroPessoas: null as unknown,
+  recarregar: vi.fn(),
 }));
 
 vi.mock('@/contexts/OsgWorkContext', () => ({
@@ -16,7 +19,9 @@ vi.mock('@/components/equipe/osg/qualificacao-das-partes/PessoaModal', () => ({
   PessoaModal: () => null,
 }));
 vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
-  usePessoasByCliente: () => ({ data: mocks.pessoas, isLoading: false }),
+  usePessoasByCliente: () => ({
+    data: mocks.pessoas, isLoading: false, error: mocks.erroPessoas, refetch: mocks.recarregar,
+  }),
   useParentescosByCliente: () => ({ data: mocks.parentescos, isLoading: false }),
   useDeletePessoa: () => ({ mutate: vi.fn(), isPending: false }),
 }));
@@ -42,6 +47,7 @@ function linhaDe(nome: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.erroPessoas = null;
   mocks.pessoas = [helena, marta, solteira];
   mocks.parentescos = [
     vinculo('V-PAI', 'PF-HELENA', 'Joaquim Pai', 'Pai/Mãe'),
@@ -72,5 +78,30 @@ describe('QualificacaoDasPartes - coluna Filiação', () => {
     const linha = linhaDe('Marta Mãe');
     expect(within(linha).getByText('Fundador')).toBeInTheDocument();
     expect(within(linha).getByText('Irmão(ã): Irene Irmã')).toBeInTheDocument();
+  });
+});
+
+describe('QualificacaoDasPartes - falha de consulta', () => {
+  /*
+   * Falha e lista vazia diziam a mesma frase, e a frase afirma um fato de
+   * negócio: quem lia concluía que o cliente não tem sócio nenhum.
+   */
+  it('consulta que falha não vira "nenhuma pessoa cadastrada"', () => {
+    mocks.erroPessoas = new Error('PGRST200: embed ambíguo');
+    mocks.pessoas = [];
+    render(<QualificacaoDasPartes />);
+
+    expect(screen.getByText(/Não foi possível carregar as pessoas deste cliente/)).toBeInTheDocument();
+    expect(screen.getByText(/PGRST200/)).toBeInTheDocument();
+    expect(screen.queryByText(/cadastrada para este cliente/)).not.toBeInTheDocument();
+  });
+
+  it('o botão de tentar de novo refaz a consulta', async () => {
+    mocks.erroPessoas = new Error('falhou');
+    mocks.pessoas = [];
+    render(<QualificacaoDasPartes />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Tentar de novo/i }));
+    expect(mocks.recarregar).toHaveBeenCalledTimes(1);
   });
 });

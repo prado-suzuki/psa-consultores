@@ -3,6 +3,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Users, Search, Building2, User as UserIcon } from 'lucide-react';
+import { Plus, Trash2, Users, Search, Building2, User as UserIcon } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import {
@@ -141,14 +142,6 @@ const PessoasTable = ({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => onEditar(p)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
@@ -190,7 +183,8 @@ const QualificacaoDasPartes = () => {
   const { clienteId } = useOsgWork();
   const [busca, setBusca] = useState('');
 
-  const { data: pessoas = [], isLoading: loadingPessoas } = usePessoasByCliente(clienteId || null);
+  const { data: pessoas = [], isLoading: loadingPessoas, error: erroPessoas,
+          refetch: recarregarPessoas } = usePessoasByCliente(clienteId || null);
   const { data: parentescos = [] } = useParentescosByCliente(clienteId || null);
 
   // Todos os vínculos de parentesco de cada pessoa, ex.: ["Pai de João",
@@ -263,6 +257,9 @@ const QualificacaoDasPartes = () => {
               <p className="text-sm">Carregando...</p>
             </CardContent>
           </Card>
+        ) : erroPessoas ? (
+          <EstadoDeFalha oQue="as pessoas deste cliente" erro={erroPessoas}
+                         aoTentarDeNovo={() => recarregarPessoas()} />
         ) : (
           <>
             <Card>

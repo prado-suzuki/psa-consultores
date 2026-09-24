@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
-import { AlertTriangle, Loader2, Pencil, Plus, Search, Sprout, Trash2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus, Search, Sprout, Trash2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import {
@@ -230,15 +230,6 @@ const ExploracaoRural = () => {
                                 {/* Ações reveladas no hover, como o resto da OSG.
                                     `focus-within` mantém a linha operável por teclado. */}
                                 <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7"
-                                    onClick={() => setModal({ open: true, exploracao: row })}
-                                    aria-label="Editar exploração rural"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
                                   <Button
                                     size="icon"
                                     variant="ghost"

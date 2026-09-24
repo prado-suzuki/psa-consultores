@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
+import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { Card, CardContent } from '@/components/ui/card';
 import { Building2, PieChart } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -61,7 +62,7 @@ const QuadroSocietario = () => {
   const navigate = useNavigate();
   const [empresaSel, setEmpresaSel] = useState<string | null>(null);
 
-  const { data: pessoas = [], isLoading } = usePessoasByCliente(clienteId || null);
+  const { data: pessoas = [], isLoading, error, refetch } = usePessoasByCliente(clienteId || null);
 
   // Controladoras primeiro, depois Proprietárias; ordem alfabética dentro do tipo.
   const empresas = useMemo(
@@ -102,6 +103,9 @@ const QuadroSocietario = () => {
           <CardDeEspera icone={<Building2 className="h-7 w-7 animate-pulse" />}>
             <p className="text-sm">Carregando as empresas deste cliente...</p>
           </CardDeEspera>
+        ) : error ? (
+          <EstadoDeFalha oQue="as empresas deste cliente" erro={error}
+                         aoTentarDeNovo={() => refetch()} />
         ) : empresas.length === 0 ? (
           <CardDeEspera icone={<Building2 className="h-7 w-7" />}>
             <p className="mb-4 max-w-md text-sm">

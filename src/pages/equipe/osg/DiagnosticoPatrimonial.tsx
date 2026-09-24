@@ -3,6 +3,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +14,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
-import { Plus, Pencil, Trash2, Search, Landmark, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Search, Landmark, Loader2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
@@ -49,7 +50,8 @@ const DiagnosticoPatrimonial = () => {
    */
   const [filtroEstruturacao, setFiltroEstruturacao] = useState<'__todos__' | 'dentro' | 'fora'>('__todos__');
 
-  const { data: bens = [], isLoading: loadingBens } = useBensByCliente(clienteId || null);
+  const { data: bens = [], isLoading: loadingBens, error: erroBens, refetch: recarregarBens } =
+    useBensByCliente(clienteId || null);
   const { data: pessoasCliente = [] } = usePessoasByCliente(clienteId || null);
 
   const deleteBem = useDeleteBem();
@@ -175,7 +177,10 @@ const DiagnosticoPatrimonial = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                {bensFiltrados.length === 0 ? (
+                {erroBens ? (
+                  <EstadoDeFalha oQue="os bens deste cliente" erro={erroBens}
+                                 aoTentarDeNovo={() => recarregarBens()} />
+                ) : bensFiltrados.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-6 text-center">
                     {buscaAtiva
                       ? 'Nenhum bem encontrado com os filtros aplicados.'
@@ -233,14 +238,6 @@ const DiagnosticoPatrimonial = () => {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7"
-                                    onClick={() => setBemModal({ open: true, bem: b })}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
                                   <Button
                                     size="icon"
                                     variant="ghost"
