@@ -68,7 +68,6 @@ import { ButtonTooltip } from '@/components/ui/button-tooltip';
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
   const { data: clientes = [], isLoading } = useClientesLista();
-  const clienteSelecionado = clientes.find((c) => c.id === clienteId);
   const semCliente = !clienteId;
 
   return (
@@ -105,14 +104,10 @@ const OsgWorkClienteBar = () => {
             )}
           />
         </div>
-        {semCliente ? (
+        {semCliente && (
           <div className="flex items-center gap-1.5 text-xs font-medium text-osg-700">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>Selecione um cliente para usar as ferramentas</span>
-          </div>
-        ) : (
-          <div className="text-xs text-muted-foreground truncate">
-            Trabalhando em: <span className="font-semibold">{clienteSelecionado?.nome}</span>
           </div>
         )}
       </div>
