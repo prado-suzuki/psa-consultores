@@ -4,6 +4,12 @@ import { SimulacaoAberta } from './SimulacaoAberta';
 import { colunasSemDica } from './alinhamentoDeTabela';
 import { simulacaoSalva } from './simulacaoSalvaFixture';
 
+// O seletor de status lê o papel no AuthContext; o teste monta o componente solto,
+// sem provedor — e o padrão da casa aqui é mockar o contexto, não subi-lo. O papel
+// fica mutável para o teste da trava de aprovação trocá-lo entre os casos.
+const papel = vi.hoisted(() => ({ isAdmin: true, isLider: false, isSublider: false }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => papel }));
+
 // O que esta tela prende: as três abas mostram o retrato GRAVADO e o nome se edita.
 // As abas são acionadas de verdade — diferente do `Select` do Radix, que em jsdom
 // depende de pointer events e quebra por motivo de biblioteca. O status, por isso,
@@ -36,6 +42,28 @@ describe('SimulacaoAberta', () => {
   it('sem simulação, não abre nada', () => {
     montar({ simulacao: null });
     expect(screen.queryByText('Versão 1')).not.toBeInTheDocument();
+  });
+
+  it('ABAIXO DE SUBLÍDER o seletor diz quem aprova, e a regra do destino está na tela', () => {
+    // O aceite do CI-E01: membro da equipe vê a razão ao lado; e o CI-T01 põe a
+    // regra do destino sem hover. O `Select` do Radix não abre em jsdom, então a
+    // opção desabilitada não se verifica aqui — a frase é o que se prende.
+    papel.isAdmin = false;
+    try {
+      montar();
+      expect(screen.getByText(/papel de Sublíder ou superior/)).toBeInTheDocument();
+      expect(screen.getByText(/Só a simulação aprovada entra na apresentação/))
+        .toBeInTheDocument();
+    } finally {
+      papel.isAdmin = true;
+    }
+  });
+
+  it('SENDO ADMIN a razão de papel some, e a regra do destino fica', () => {
+    montar();
+    expect(screen.queryByText(/papel de Sublíder ou superior/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Só a simulação aprovada entra na apresentação/))
+      .toBeInTheDocument();
   });
 
   it('abre na DOAÇÃO, com o quadro congelado', () => {

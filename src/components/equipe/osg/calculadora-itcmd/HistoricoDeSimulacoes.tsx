@@ -97,7 +97,8 @@ export function HistoricoDeSimulacoes({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas</SelectItem>
-              {STATUS_DA_SIMULACAO.map((s) => (
+              {/* O "Rascunho" saiu das opções com o status (o enum do banco fica). */}
+              {STATUS_DA_SIMULACAO.filter((s) => s !== 'rascunho').map((s) => (
                 <SelectItem key={s} value={s}>{ROTULO_DO_STATUS[s]}</SelectItem>
               ))}
             </SelectContent>
@@ -191,7 +192,7 @@ export function HistoricoDeSimulacoes({
                 </TableHead>
               ))}
               <TableHead className={rotuloDeColunaCls}>
-                <ComDica dica="O que vale, o que é ensaio e o que saiu do caminho. Quem troca é a simulação aberta.">
+                <ComDica dica="O que vale, o que espera decisão e o que saiu do caminho. Quem troca é a simulação aberta.">
                   Status
                 </ComDica>
               </TableHead>

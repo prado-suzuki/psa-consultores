@@ -26,6 +26,8 @@ import {
   rotuloDaSimulacao, temDuasBases, totalDaCadeia,
   type BaseDeCalculo, type SimulacaoSalva, type StatusDaSimulacao,
 } from '@/hooks/useSimulacoesItcmd';
+import { useAuth } from '@/contexts/AuthContext';
+import { frasePapelNecessario } from '@/lib/rlsMessages';
 
 /**
  * UMA SIMULAÇÃO ABERTA — o registro de execução de um cenário.
@@ -129,6 +131,13 @@ function Corpo({
   /* Só visualização: a simulação guarda as duas bases. Começa na integral, a única de toda guia. */
   const [base, setBase] = useState<BaseDeCalculo>('100');
   const instituicao = simulacao.concessoes.some((c) => c.origem === 'instituicao');
+  /* A APROVAÇÃO é decisão de sublíder ou superior (policy da migration
+     20260831210500): quem não tem o papel vê a opção desabilitada — e, na
+     simulação já aprovada, o seletor inteiro, porque voltar o status é
+     desaprovar, que exige o papel do mesmo jeito. */
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const podeAprovar = isAdmin || isLider || isSublider;
+  const travadoPeloPapel = !podeAprovar && simulacao.status === 'aprovada';
 
   return (
     <ComoDicas>
@@ -183,7 +192,7 @@ function Corpo({
           <div className="ml-auto space-y-1 rounded-lg border border-border bg-osg-50/40 px-3 py-2">
             <span className={rotuloCls}>
               <ComDica
-                dica={'Rascunho, gerada, aprovada ou substituída. Trocar o status não '
+                dica={'Gerada, aprovada ou substituída. Trocar o status não '
                   + 'recalcula nada: os números continuam sendo os do momento em que a '
                   + 'simulação foi gravada.'}
               >
@@ -192,7 +201,7 @@ function Corpo({
             </span>
             <Select
               value={simulacao.status}
-              disabled={alterando}
+              disabled={alterando || travadoPeloPapel}
               onValueChange={(v) => aoAlterarStatus(simulacao.id, v as StatusDaSimulacao)}
             >
               <SelectTrigger
@@ -202,11 +211,34 @@ function Corpo({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_DA_SIMULACAO.map((s) => (
-                  <SelectItem key={s} value={s}>{ROTULO_DO_STATUS[s]}</SelectItem>
+                {/* O "Rascunho" saiu das opções (o enum do banco fica). Se uma
+                    simulação antiga ainda estiver nele, o valor atual aparece,
+                    desabilitado, para o seletor não mentir o que ela é. */}
+                {simulacao.status === 'rascunho' && (
+                  <SelectItem value="rascunho" disabled>
+                    {ROTULO_DO_STATUS.rascunho}
+                  </SelectItem>
+                )}
+                {STATUS_DA_SIMULACAO.filter((s) => s !== 'rascunho').map((s) => (
+                  <SelectItem
+                    key={s}
+                    value={s}
+                    disabled={s === 'aprovada' && !podeAprovar}
+                  >
+                    {ROTULO_DO_STATUS[s]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {!podeAprovar && (
+              <p className="max-w-[170px] text-[11px] leading-snug text-muted-foreground">
+                {frasePapelNecessario('sublider')}
+              </p>
+            )}
+            {/* A regra que decide o destino da simulação, visível sem hover. */}
+            <p className="max-w-[170px] text-[11px] leading-snug text-muted-foreground">
+              Só a simulação aprovada entra na apresentação de Organização Sucessória.
+            </p>
           </div>
         </div>
       </div>
