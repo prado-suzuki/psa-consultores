@@ -35,21 +35,17 @@ export function VerNaBase({ valor, aoTrocar }: {
   return (
     <div className="flex h-9 items-center gap-2">
       <ComDica
-        dica={(
-          <>
-            <strong className="font-semibold">100%</strong>
-            {': base integral, com encerramento da tributação. Nada mais é devido na '}
-            {'renúncia nem na extinção do usufruto (art. 28, §3º, III). '}
-            <strong className="font-semibold">70%</strong>
-            {': redução automática, e fica parcela devida na extinção '}
-            {'(art. 11, §2º, I). Pagar 70% é adiar, não economizar. '}
-            {'A simulação guarda as duas: quem escolhe é o cliente.'}
-          </>
-        )}
+        dica={'Decreto 2.125/03: art. 28, §3º, III (100%) e art. 11, §2º, I (70%). '
+          + 'A simulação guarda as duas: quem escolhe é o cliente.'}
       >
         <span className={rotuloCls}>Ver na base de</span>
       </ComDica>
       <SelecaoDaBase valor={valor} aoTrocar={aoTrocar} rotulo="Ver na base de" />
+      {/* O QUE CADA BASE SIGNIFICA fica VISÍVEL (CI-T21): interpretar o número em
+          70% não pode depender de hover. */}
+      <span className="text-[11px] text-muted-foreground">
+        100% encerra a tributação; 70% deixa parcela devida na extinção do usufruto.
+      </span>
     </div>
   );
 }

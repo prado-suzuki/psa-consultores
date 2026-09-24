@@ -153,7 +153,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 <Campo
                   className="ml-auto w-24"
                   rotulo={(
-                    <ComDica dica="O estado decide a lei: faixa, dedução e a própria UPF são de Mato Grosso. Um item na lista é honesto, só o ITCMD de MT tem motor aqui.">
+                    <ComDica dica="O estado decide a lei: faixa, dedução e UPF. Por enquanto, só Mato Grosso.">
                       Estado
                     </ComDica>
                   )}
@@ -190,8 +190,8 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 <Campo
                   className="w-40"
                   rotulo={(
-                    <ComDica dica="A competência do ato, que é o que decide qual UPF vale. Trocar o mês troca a UPF sugerida.">
-                      Mês de referência
+                    <ComDica dica="O mês da UPF que vale para o ato. Trocar a competência troca a UPF sugerida.">
+                      Competência
                     </ComDica>
                   )}
                 >
@@ -232,7 +232,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 {calc.upf.trim() !== '' && !calc.upfValida
                   ? 'Informe a UPF em reais, com até duas casas.'
                   : calc.upfVeioDaSerie
-                    ? 'UPF conhecida deste mês. Confira no DOE.'
+                    ? 'UPF conhecida deste mês. Confira no Diário Oficial do Estado.'
                     : 'Informe a UPF publicada pela SEFAZ/MT. O sistema não consulta.'}
               </p>
             </div>
@@ -324,11 +324,8 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                     aria-label="Doação com reserva de usufruto"
                   />
                   <ComDica
-                    dica={'A guia sai como DOAÇÃO COM RESERVA DE USUFRUTO. As quotas '
-                      + 'doadas continuam as mesmas: o que muda é que o voto fica com '
-                      + 'quem doa, e a guia passa a ser apurada em 100% e em 70% — quem '
-                      + 'escolhe entre as duas é o cliente. Sem reserva, quem recebe '
-                      + 'passa a votar.'}
+                    dica={'Não muda as quotas doadas: o voto fica com quem doa, e a guia sai '
+                      + 'em 100% e em 70%, para o cliente escolher.'}
                   >
                     <span className="text-foreground">Com reserva de usufruto</span>
                   </ComDica>
@@ -469,13 +466,23 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
               Continuar
             </Button>
           ) : (
-            <Button
-              onClick={calc.gerar}
-              disabled={!calc.podeGerar}
-              className="bg-osg-moss text-white hover:bg-osg-moss/90"
-            >
-              Gerar simulação
-            </Button>
+            <span className="flex items-center gap-3">
+              {/* O MOTIVO OUTRA ABA (CI-E02): `podeGerar` olha também o quadro da
+                  doação, cujos avisos só existem na outra aba. Sem isto, o botão
+                  trava calado para quem está no Usufruto. */}
+              {aba === 'usufruto' && !calc.podeGerar && calc.problemasDoQuadro.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Resolva a pendência da aba Doação para gerar.
+                </span>
+              )}
+              <Button
+                onClick={calc.gerar}
+                disabled={!calc.podeGerar}
+                className="bg-osg-moss text-white hover:bg-osg-moss/90"
+              >
+                Gerar simulação
+              </Button>
+            </span>
           )}
         </DialogFooter>
         </ComoDicas>

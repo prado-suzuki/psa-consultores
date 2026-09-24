@@ -86,13 +86,15 @@ describe('CenariosEmColunas', () => {
     expect(screen.getAllByText(/Cadastro incompleto neste valor/)).toHaveLength(2);
   });
 
-  it('doação anterior declarada aparece ao lado do imposto', () => {
+  it('doação anterior NÃO aparece: o campo saiu do banco e o ramo é morto (CI-E05)', () => {
+    // A doação anterior saiu do banco na s01 da SUC-02 — as duas chamadas do motor
+    // passam `doacaoAnterior: null`. Se um dia voltar, este teste reabre.
     const comAnterior: SaidaSimulacao = {
       ...saida,
       linhas: [{ ...saida.linhas[0], doacaoAnterior: '831175.00' }],
     };
     render(<CenariosEmColunas porBase={nasDuas(comAnterior)} comAlternativa={[]} />);
-    expect(screen.getByText(/já recebeu R\$ 831\.175,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/já recebeu/)).not.toBeInTheDocument();
   });
 
   it('SEM USUFRUTO não há seletor: a doação só existe na base integral', () => {

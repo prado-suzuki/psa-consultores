@@ -88,6 +88,17 @@ const BibliotecaApresentacoes = () => {
     else contagem.tentarDeNovo();
   };
 
+  /* AP-E02: HÁ DADO e FALTA A ESCOLHA são estados diferentes. Com simulações
+     aprovadas e nenhuma marcada, a linha não some nem lê "sem dados": o nome
+     fica em cor de texto, a coluna diz "0" e a caixa trava com o motivo já
+     escrito ("Nenhuma simulação marcada."). "sem dados" só sem aprovação nenhuma. */
+  const semDadoNaLinha = (id: string): boolean =>
+    id === 'sucessoria'
+      ? cenarios.opcoes.length === 0
+      : !temConteudo(id);
+  const semEscolhaDoCenario = (id: string): boolean =>
+    id === 'sucessoria' && cenarios.opcoes.length > 0 && cenarios.simulacaoIds.length === 0;
+
   /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão;
       o sucessório, pelas simulações aprovadas marcadas. */
   const temConteudo = (id: string): boolean =>
@@ -255,7 +266,8 @@ const BibliotecaApresentacoes = () => {
               {PECAS_DE_SLIDE.map((peca) => {
                 const tributaria = peca.id === 'papeis';
                 const sucessoria = peca.id === 'sucessoria';
-                const vazio = !temConteudo(peca.id);
+                const vazio = semDadoNaLinha(peca.id);
+                const semEscolha = semEscolhaDoCenario(peca.id);
                 const recusa = bloqueio(peca.id);
                 const falha = falhaDeCarga(peca.id);
 
@@ -263,7 +275,7 @@ const BibliotecaApresentacoes = () => {
                   <div key={peca.id} className="flex items-center gap-3 border-b border-osg-100 px-4 py-2.5">
                     <Checkbox
                       checked={marcados.includes(peca.id) && !vazio && !recusa && !falha}
-                      disabled={vazio || !!recusa || !!falha || ocupado}
+                      disabled={vazio || semEscolha || !!recusa || !!falha || ocupado}
                       onCheckedChange={() => alternar(peca.id)}
                       aria-label={peca.nome}
                     />
@@ -316,7 +328,7 @@ const BibliotecaApresentacoes = () => {
                 <span className="text-xs text-muted-foreground">
                   {marcadosValidos.length === 0
                     ? 'Nada marcado.'
-                    : `${marcadosValidos.length} de ${geraveis.length} · ${totalDeSlides} slide${totalDeSlides === 1 ? '' : 's'}`}
+                    : `${marcadosValidos.length} marcada${marcadosValidos.length === 1 ? '' : 's'} · ${totalDeSlides} slide${totalDeSlides === 1 ? '' : 's'}`}
                 </span>
                 <Button size="sm" onClick={() => void disparar()} disabled={marcadosValidos.length === 0 || ocupado}>
                   {ocupado ? (

@@ -1,7 +1,9 @@
 import { Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { rotuloDaSimulacao } from '@/hooks/useSimulacoesItcmd';
 import type { useCenariosParaSlides } from '@/components/equipe/osg/relatorios/useCenariosParaSlides';
 
@@ -10,11 +12,24 @@ import type { useCenariosParaSlides } from '@/components/equipe/osg/relatorios/u
  * Só a ponta de cada cadeia é opção, e a cadeia vem escrita pelos nomes embaixo dela.
  */
 export function EscolhaDosCenarios({ estado }: { estado: ReturnType<typeof useCenariosParaSlides> }) {
-  const { descricao, opcoes, escolhidas, alternar, bloqueio } = estado;
+  const { descricao, opcoes, escolhidas, alternar, bloqueio, erro, carregando } = estado;
+  const navigate = useNavigate();
 
   return (
     <span className="flex min-w-0 items-center gap-1.5">
       <span className="truncate text-[11px] text-muted-foreground">{descricao}</span>
+
+      {/* SEM SIMULAÇÃO APROVADA a frase manda à Calculadora e LEVA (AP-E03): não
+          carregando e sem falha — nesses dois casos a linha já diz o que acontece. */}
+      {opcoes.length === 0 && !erro && !carregando && (
+        <button
+          type="button"
+          onClick={() => navigate(TELAS_OSG_WORK.calculadoraItcmd.path)}
+          className="shrink-0 text-[11px] font-medium text-osg-700 underline-offset-2 hover:underline"
+        >
+          Abrir a Calculadora de ITCMD
+        </button>
+      )}
 
       {opcoes.length > 0 && (
         <Popover>

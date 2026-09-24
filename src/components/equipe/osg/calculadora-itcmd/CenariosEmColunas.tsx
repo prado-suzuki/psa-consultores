@@ -130,9 +130,6 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
             <LinhaDeValor
               key={`imposto-${l.donatarioId}`}
               rotulo={l.nome}
-              detalhe={l.doacaoAnterior
-                ? `já recebeu ${brlDeDecimal(l.doacaoAnterior)}`
-                : undefined}
               valor={brlDeDecimal(l.porCenario[cenario]?.imposto)}
             />
           ))}

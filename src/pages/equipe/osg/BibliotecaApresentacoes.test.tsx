@@ -17,11 +17,11 @@ const osg = vi.hoisted(() => ({
 }));
 /* Os cenários do capítulo 04, vazios por padrão: só entram nos casos que marcam a peça. */
 const cenarios = vi.hoisted(() => ({
-  valor: { simulacaoIds: [] as string[], slides: 0, carregando: false, conflitoDeUpf: null as string | null },
+  valor: { simulacaoIds: [] as string[], slides: 0, carregando: false, conflitoDeUpf: null as string | null, erro: false, tentarDeNovo: () => {}, opcoes: [] as unknown[] },
 }));
 /* A contagem por peça: cada caso parte daqui e muda o que precisar. */
 const contagem = vi.hoisted(() => ({
-  valor: { patrimonial: 3, societaria: 2, carregando: false },
+  valor: { patrimonial: 3, societaria: 2, carregando: false, erro: false, tentarDeNovo: () => {} },
 }));
 
 vi.mock('@/hooks/use-toast', () => ({ toast: avisos.toast }));
@@ -37,7 +37,7 @@ vi.mock('@/components/equipe/osg/relatorios/useContagemDeSlides', () => ({
   SLIDES_DO_TRIBUTARIO: 5,
 }));
 vi.mock('@/components/equipe/osg/relatorios/useRevisaoParaSlides', () => ({
-  useRevisaoParaSlides: () => ({ revisaoId: 'rev-1', carregando: false }),
+  useRevisaoParaSlides: () => ({ revisaoId: 'rev-1', carregando: false, erro: false, tentarDeNovo: () => {} }),
 }));
 vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
   useGerarApresentacaoTributaria: () => ({ mutateAsync: osg.tributaria, isPending: false }),
@@ -88,7 +88,7 @@ async function gerar() {
 beforeEach(() => {
   vi.clearAllMocks();
   contagem.valor = { patrimonial: 3, societaria: 2, carregando: false };
-  cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null };
+  cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [] as unknown[] };
   osg.simulacaoIds = [];
   osg.gerar.mockResolvedValue(doisDecks);
   osg.tributaria.mockResolvedValue({
@@ -242,8 +242,20 @@ describe('o capítulo 04 — Organização Sucessória', () => {
     expect(screen.getAllByText('sem dados')).toHaveLength(1);
   });
 
+  it('COM APROVADAS e nenhuma marcada, a linha fica de pé: "0" na coluna, caixa travada (AP-E02)', () => {
+    // "sem dados" é para quando não há simulação aprovada nenhuma. Aqui há dado —
+    // falta a escolha —, e a linha diz "0" com a caixa travada até alguém marcar.
+    cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
+    render(<BibliotecaApresentacoes />);
+
+    expect(screen.queryByText('sem dados')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Organização Sucessória' })).toBeDisabled();
+    const colunaDaLinha = screen.getAllByText('0').length;
+    expect(colunaDaLinha).toBeGreaterThanOrEqual(1);
+  });
+
   it('com cenários, vai na mesma chamada dos outros decks, com os ids na ordem dos cenários', async () => {
-    cenarios.valor = { simulacaoIds: ['V2', 'V4', 'V6'], slides: 19, carregando: false, conflitoDeUpf: null };
+    cenarios.valor = { simulacaoIds: ['V2', 'V4', 'V6'], slides: 19, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
     osg.gerar.mockResolvedValue(tresDecks);
     await gerar();
 
@@ -257,7 +269,7 @@ describe('o capítulo 04 — Organização Sucessória', () => {
   });
 
   it('o motivo do servidor para o capítulo chega ao usuário, e o resto sai', async () => {
-    cenarios.valor = { simulacaoIds: ['V6'], slides: 12, carregando: false, conflitoDeUpf: null };
+    cenarios.valor = { simulacaoIds: ['V6'], slides: 12, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
     osg.gerar.mockResolvedValue({
       ...doisDecks,
       errosPorDeck: [{ tipo: 'sucessoria' as const, message: '"Cenário III" não está aprovada.' }],
@@ -288,6 +300,7 @@ describe('o capítulo 04 com UPFs diferentes', () => {
     cenarios.valor = {
       simulacaoIds: ['V2', 'V6'], slides: 20, carregando: false,
       conflitoDeUpf: 'As simulações marcadas usam UPFs diferentes. Gere uma nova simulação na Calculadora de ITCMD com a mesma UPF das outras e aprove-a.',
+      erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[],
     };
     osg.gerar.mockResolvedValue(doisDecks);
     render(<BibliotecaApresentacoes />);

@@ -877,7 +877,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome, base }: {
             {daInstituicao.map((g) => (
               <LinhaDeValor
                 key={`inst-${g.deId}>${g.paraId}`}
-                rotulo={`${g.deNome} → ${g.paraNome}`}
+                rotulo={`${nome(g.deId, g.deNome)} → ${nome(g.paraId, g.paraNome)}`}
                 detalhe={soEm(na(g.porBase)?.base)}
                 valor={brlDeDecimal(na(g.porBase)?.apuracao.impostoPorCenario[cenario])}
               />
