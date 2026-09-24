@@ -101,7 +101,8 @@ export function classesItemDaBarra({
         // Sem `gap` também: com o rótulo fora ele vira recuo morto de 10px e
         // empurra o ícone para fora do centro (o erro que o cartão já teve).
         'h-10 w-10 mx-auto justify-center p-0'
-      : 'w-full gap-2.5 px-2.5 py-2',
+      : // `justify-start` porque o `Button` do shadcn centraliza por padrão.
+        'w-full justify-start gap-2.5 px-2.5 py-2',
     ativo
       ? 'bg-primary text-primary-foreground font-semibold'
       : ancestral
