@@ -127,3 +127,39 @@ export function slideDoToken(parts: PptxParts, token: string): string | null {
   }
   return null;
 }
+
+/** Id do relacionamento → caminho do slide (`ppt/slides/slideN.xml`), do `presentation.xml.rels`. */
+function slidesPorRelacao(parts: PptxParts): Map<string, string> {
+  const rels = readText(parts, "ppt/_rels/presentation.xml.rels");
+  const alvo = new Map<string, string>();
+  for (const m of rels.matchAll(/<Relationship\s[^>]*>/g)) {
+    const id = m[0].match(/Id="([^"]+)"/)?.[1];
+    const t = m[0].match(/Target="([^"]+)"/)?.[1];
+    if (id && t && /slides\/slide\d+\.xml$/.test(t)) alvo.set(id, `ppt/${t.replace(/^\/?ppt\//, "")}`);
+  }
+  return alvo;
+}
+
+/** Os slides na ordem da apresentação (a `sldIdLst`). */
+export function ordemDosSlides(parts: PptxParts): string[] {
+  const alvo = slidesPorRelacao(parts);
+  const pres = readText(parts, "ppt/presentation.xml");
+  return [...pres.matchAll(/<p:sldId\b[^>]*r:id="([^"]+)"[^>]*\/>/g)]
+    .map((m) => alvo.get(m[1]))
+    .filter((p): p is string => !!p);
+}
+
+/** Reescreve a `sldIdLst` na ordem dada, para o gerador que monta a ordem propria de uma vez. */
+export function reordenarSlides(parts: PptxParts, ordem: string[]): void {
+  const ridDe = new Map([...slidesPorRelacao(parts)].map(([rid, p]) => [p, rid]));
+  const pres = readText(parts, "ppt/presentation.xml");
+  const elementos = new Map<string, string>();
+  for (const m of pres.matchAll(/<p:sldId\b[^>]*r:id="([^"]+)"[^>]*\/>/g)) elementos.set(m[1], m[0]);
+  const lista = ordem.map((p) => {
+    const el = elementos.get(ridDe.get(p) ?? "");
+    if (!el) throw new Error(`O slide ${p} não está registrado na apresentação.`);
+    return el;
+  });
+  writeText(parts, "ppt/presentation.xml",
+    pres.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, `<p:sldIdLst>${lista.join("")}</p:sldIdLst>`));
+}

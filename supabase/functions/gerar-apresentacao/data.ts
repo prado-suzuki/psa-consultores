@@ -17,6 +17,12 @@ import {
   type QuadroLinha, type QuadroResult, type SociedadePatrimonial, type SocioIdent, type TotalDaSociedade,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
+import type {
+  AtoDoCapitulo, BaseDoAto, EntradaDoCapitulo, ParentescoDoCapitulo, PessoaDoCapitulo, PorBaseDoAto,
+  PorRegua,
+} from "../_shared/apresentacao-osg/sucessoria.ts";
+import { MAXIMO_DE_CENARIOS } from "../_shared/apresentacao-osg/paginacao.ts";
+
 type SB = any;
 
 /*
@@ -384,4 +390,202 @@ export async function resolverTitular(admin: SB, clienteId: string, probs?: Prob
   // chance de alguem trocar antes de a apresentacao chegar ao cliente.
   anota(probs, ONDE.organograma, "O titular sai como \"[titular a definir]\" — não há composse com compossuidor no cadastro de Exploração Rural.");
   return "[titular a definir]";
+}
+
+
+// ============================================================================
+// CAPITULO 04 — Organizacao sucessoria: as simulacoes aprovadas da Calculadora
+// ============================================================================
+// Le com o token de quem pediu: a RLS das tabelas `itcd_*` diz o que a pessoa ve. Do navegador vem
+// so os ids.
+
+/** A mesma leitura da calculadora (`useSimulacoesItcmd`), com o conjuge e as bases comparadas. */
+/** A mesma guia na base de 70%, ao lado da integral. */
+const COLUNAS_DA_ALTERNATIVA = `pct_base_alternativa,
+    vlr_base_alternativa_contabil, vlr_base_alternativa_itr, vlr_base_alternativa_mercado,
+    vlr_imposto_alternativo_contabil, vlr_imposto_alternativo_itr, vlr_imposto_alternativo_mercado`;
+
+const SELECT_SIMULACAO = `
+  id, versao, nome, status, empresa_pessoa_id, competencia, vlr_upf, quotas_total,
+  vlr_acervo_contabil, vlr_acervo_itr, vlr_acervo_mercado,
+  vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado,
+  com_reserva, pct_base_reserva, pct_base_instituicao, origem_simulacao_id,
+  itcd_simulacao_doador ( doador_pessoa_id, quotas, quotas_transmitidas, quotas_final,
+    emissao_conjunta, conjuge_pessoa_id, vlr_aporte_moeda ),
+  itcd_simulacao_donatario ( donatario_pessoa_id, quotas_atuais, quotas_legitima,
+    quotas_disponivel, quotas_final, vlr_aporte_moeda ),
+  itcd_simulacao_gia ( doador_pessoa_id, donatario_pessoa_id,
+    vlr_base_contabil, vlr_base_itr, vlr_base_mercado,
+    vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado, ${COLUNAS_DA_ALTERNATIVA} ),
+  itcd_simulacao_usufruto ( pessoa_id, papel, quotas, quotas_plena, quotas_nua_reserva,
+    quotas_nua_instituicao, quotas_usufruto ),
+  itcd_simulacao_concessao ( de_pessoa_id, para_pessoa_id, origem, quotas,
+    vlr_base_contabil, vlr_base_itr, vlr_base_mercado,
+    vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado, ${COLUNAS_DA_ALTERNATIVA} )
+`;
+
+/** `numeric` chega como numero ou texto do PostgREST; texto e a forma do motor. */
+const txt = (v: unknown): string => (v == null ? "0" : String(v));
+const porRegua = (l: any, prefixo: "vlr_base" | "vlr_imposto" | "vlr_acervo"): PorRegua<string> => ({
+  contabil: txt(l[`${prefixo}_contabil`]),
+  itr: txt(l[`${prefixo}_itr`]),
+  mercado: txt(l[`${prefixo}_mercado`]),
+});
+
+/** "100.00" → '100', "70.00" → '70'. Outro percentual e erro: poria o numero na coluna errada. */
+const baseDe = (pct: unknown): BaseDoAto => {
+  const t = String(pct ?? "").replace(/\.0+$/, "");
+  if (t === "100" || t === "70") return t;
+  throw new Error(`Base de cálculo gravada fora de 100% e 70%: ${String(pct)}.`);
+};
+
+/** As duas bases de uma linha de guia; `principal` diz em que base estao as colunas de sempre. */
+const porBaseDe = (x: any, principal: BaseDoAto): PorBaseDoAto => ({
+  [principal]: { base: porRegua(x, "vlr_base"), imposto: porRegua(x, "vlr_imposto") },
+  ...(x.pct_base_alternativa != null
+    ? {
+      [baseDe(x.pct_base_alternativa)]: {
+        base: {
+          contabil: txt(x.vlr_base_alternativa_contabil),
+          itr: txt(x.vlr_base_alternativa_itr),
+          mercado: txt(x.vlr_base_alternativa_mercado),
+        },
+        imposto: {
+          contabil: txt(x.vlr_imposto_alternativo_contabil),
+          itr: txt(x.vlr_imposto_alternativo_itr),
+          mercado: txt(x.vlr_imposto_alternativo_mercado),
+        },
+      },
+    }
+    : {}),
+});
+
+export function atoDaLinha(l: any): AtoDoCapitulo {
+  const comReserva = l.com_reserva === true;
+  // Sem reserva a guia da doação só existe na base integral.
+  const baseDaDoacao: BaseDoAto = comReserva ? baseDe(l.pct_base_reserva) : "100";
+  return {
+    id: l.id,
+    versao: l.versao,
+    nome: l.nome ?? null,
+    status: l.status,
+    competencia: l.competencia,
+    upf: txt(l.vlr_upf),
+    totalDeQuotas: txt(l.quotas_total),
+    acervo: porRegua(l, "vlr_acervo"),
+    comReserva,
+    origemId: l.origem_simulacao_id ?? null,
+    doadores: (l.itcd_simulacao_doador ?? []).map((d: any) => ({
+      pessoaId: d.doador_pessoa_id,
+      quotas: txt(d.quotas),
+      quotasTransmitidas: txt(d.quotas_transmitidas),
+      quotasFinal: txt(d.quotas_final),
+      emissaoConjunta: d.emissao_conjunta === true,
+      conjugeId: d.conjuge_pessoa_id ?? null,
+      aporte: txt(d.vlr_aporte_moeda),
+    })),
+    donatarios: (l.itcd_simulacao_donatario ?? []).map((d: any) => ({
+      pessoaId: d.donatario_pessoa_id,
+      quotasAtuais: txt(d.quotas_atuais),
+      legitima: txt(d.quotas_legitima),
+      disponivel: txt(d.quotas_disponivel),
+      quotasFinal: txt(d.quotas_final),
+      aporte: txt(d.vlr_aporte_moeda),
+    })),
+    gias: (l.itcd_simulacao_gia ?? []).map((g: any) => ({
+      doadorId: g.doador_pessoa_id,
+      donatarioId: g.donatario_pessoa_id,
+      porBase: porBaseDe(g, baseDaDoacao),
+    })),
+    usufruto: (l.itcd_simulacao_usufruto ?? []).map((u: any) => ({
+      pessoaId: u.pessoa_id,
+      papel: u.papel,
+      quotas: txt(u.quotas),
+      plena: txt(u.quotas_plena),
+      nuaReserva: txt(u.quotas_nua_reserva),
+      nuaInstituicao: txt(u.quotas_nua_instituicao),
+      usufruto: txt(u.quotas_usufruto),
+    })),
+    concessoes: (l.itcd_simulacao_concessao ?? []).map((c: any) => ({
+      deId: c.de_pessoa_id,
+      paraId: c.para_pessoa_id,
+      origem: c.origem,
+      quotas: txt(c.quotas),
+      porBase: c.origem === "instituicao" ? porBaseDe(c, baseDe(l.pct_base_instituicao)) : {},
+    })),
+  };
+}
+
+/** A cadeia de um ato: ele e os anteriores, do mais antigo ao mais novo. Para em ciclo. */
+function cadeiaDoAto(id: string, porId: Map<string, AtoDoCapitulo>): AtoDoCapitulo[] {
+  const cadeia: AtoDoCapitulo[] = [];
+  const vistos = new Set<string>();
+  let atual = porId.get(id);
+  while (atual && !vistos.has(atual.id)) {
+    vistos.add(atual.id);
+    cadeia.unshift(atual);
+    atual = atual.origemId ? porId.get(atual.origemId) : undefined;
+  }
+  return cadeia;
+}
+
+/**
+ * As cadeias dos cenarios escolhidos (`simulacaoIds` e o ultimo ato de cada um) e as pessoas do cliente.
+ * Repete as travas da tela; a falha vira o erro deste deck, e os outros saem.
+ */
+export async function carregarSucessoria(
+  db: SB, clienteId: string, simulacaoIds: string[],
+): Promise<{ entrada: EntradaDoCapitulo; empresaPessoaId: string }> {
+  if (simulacaoIds.length === 0) throw new Error("Escolha ao menos uma simulação aprovada.");
+  if (simulacaoIds.length > MAXIMO_DE_CENARIOS) {
+    throw new Error(`O capítulo compara até ${MAXIMO_DE_CENARIOS} cenários.`);
+  }
+
+  const { data: linhas, error } = await db.from("itcd_simulacao").select(SELECT_SIMULACAO).eq("cliente_id", clienteId);
+  if (error) throw error;
+  const brutas = new Map<string, any>((linhas ?? []).map((l: any) => [l.id, l]));
+  const porId = new Map<string, AtoDoCapitulo>([...brutas].map(([id, l]) => [id, atoDaLinha(l)]));
+
+  const empresas = new Set<string>();
+  const cenarios = simulacaoIds.map((id) => {
+    if (!porId.has(id)) throw new Error("Uma das simulações não existe, ou você não tem acesso a ela.");
+    const cadeia = cadeiaDoAto(id, porId);
+    for (const a of cadeia) {
+      if (a.status !== "aprovada") {
+        const rotulo = a.nome?.trim() || `Versão ${a.versao}`;
+        throw new Error(`"${rotulo}" não está aprovada. Só simulação aprovada entra na apresentação.`);
+      }
+      empresas.add(brutas.get(a.id).empresa_pessoa_id);
+    }
+    return cadeia;
+  });
+  if (empresas.size > 1) {
+    throw new Error("As simulações escolhidas são de sociedades diferentes: o capítulo é de uma sociedade só.");
+  }
+
+  const { data: pessoasBrutas, error: erroPessoas } = await db
+    .from("pessoa")
+    .select("id, denominacao, genero, is_fundador, filiacao_pai_pessoa_id, filiacao_mae_pessoa_id")
+    .eq("cliente_id", clienteId);
+  if (erroPessoas) throw erroPessoas;
+  const pessoas: PessoaDoCapitulo[] = (pessoasBrutas ?? []).map((p: any) => ({
+    id: p.id,
+    nome: p.denominacao ?? p.id,
+    genero: p.genero === "M" || p.genero === "F" ? p.genero : null,
+    fundador: p.is_fundador === true,
+    filiacaoPaiId: p.filiacao_pai_pessoa_id ?? null,
+    filiacaoMaeId: p.filiacao_mae_pessoa_id ?? null,
+  }));
+
+  let parentescos: ParentescoDoCapitulo[] = [];
+  if (pessoas.length > 0) {
+    const { data: rel, error: erroRel } = await db
+      .from("parentesco")
+      .select("pessoa_id, parente_pessoa_id, tipo")
+      .in("pessoa_id", pessoas.map((p) => p.id));
+    if (erroRel) throw erroRel;
+    parentescos = (rel ?? []).map((r: any) => ({ pessoaId: r.pessoa_id, parenteId: r.parente_pessoa_id, tipo: r.tipo ?? "" }));
+  }
+
+  return { entrada: { cenarios, pessoas, parentescos }, empresaPessoaId: [...empresas][0] };
 }

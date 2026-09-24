@@ -61,6 +61,7 @@ import {
   type ProblemaDoDeck,
 } from "./data.ts";
 import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
+import { gerarSucessoria } from "./sucessoria.ts";
 import type { TotalDaSociedade } from "../_shared/apresentacao-osg/conteudo.ts";
 /* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
    que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
@@ -69,7 +70,7 @@ import {
   QUADRO_PAD_H, QUADRO_ROW_H, QUADRO_TOP_0, QUADRO_TOP_MAX,
 } from "../_shared/apresentacao-osg/paginacao.ts";
 
-type DeckTipo = "patrimonial" | "societaria";
+type DeckTipo = "patrimonial" | "societaria" | "sucessoria";
 
 /**
  * O que um gerador devolve: os bytes, as contagens e o SNAPSHOT.
@@ -94,12 +95,15 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
      antiga do outro ambiente leria o desenho novo. */
   patrimonial: "TEMPLATE_CAP01_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_CAP02_SOCIETARIA.pptx",
+  /* Molde montado por docs/OSG modelo/ferramenta/montar-cap04.ts. */
+  sucessoria: "TEMPLATE_CAP04_SUCESSORIA.pptx",
 };
 
 /* O nome que entra no arquivo gravado: `PSA_<rotulo>_<cliente>_v<n>.pptx`. */
 const ROTULO_DO_ARQUIVO: Record<DeckTipo, string> = {
   patrimonial: "Patrimonial",
   societaria: "Societaria",
+  sucessoria: "Sucessoria",
 };
 
 const TIPOS = Object.keys(TEMPLATE_PATHS) as DeckTipo[];
@@ -856,6 +860,10 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const clienteId = String(body?.clienteId ?? "");
     const decks = decksPedidos(body);
+    /* So o capitulo 04 le isto: o ultimo ato de cada cenario escolhido na tela. */
+    const simulacaoIds: string[] = Array.isArray(body?.simulacaoIds)
+      ? body.simulacaoIds.filter((x: unknown): x is string => typeof x === "string" && x.length > 0)
+      : [];
     if (!clienteId || !decks) {
       return json({ error: `clienteId e tipos obrigatorios (tipos ⊂ ${TIPOS.join("|")}; ou tipo = ambas)` }, 400);
     }
@@ -929,9 +937,13 @@ serve(async (req) => {
               `PSA_${ROTULO_DO_ARQUIVO[tipo]}_${slugify(cli.nome)}_v${versao}.pptx`,
           },
           montar: async (bytesDoMolde) => {
+            /* O capitulo 04 LE COM O TOKEN DO USUARIO, e nao com o `admin`: a RLS das
+               tabelas `itcd_*` (a da calculadora) e o que diz quais simulacoes ele ve. */
             const montado = tipo === "patrimonial"
               ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
-              : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
+              : tipo === "societaria"
+                ? await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas)
+                : await gerarSucessoria(userClient, bytesDoMolde, clienteId, simulacaoIds, problemas);
             /* Os avisos ficam vazios de proposito: o que esta geracao tem a dizer
                ja entrou no `problemas`, com `onde` e causa, pelas regras puras. */
             return { bytes: montado.bytes, avisos: [], snapshot: montado.snapshot };
