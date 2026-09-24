@@ -71,7 +71,7 @@ células numéricas são índice de texto. Os limites em R$ aparecem só nos exe
 |---|---|---|---|---|
 | 1 | Atividade | enum (catálogo de ~20) | `cadastro-novo` | Matriz |
 | 2 | Órgão deliberativo | enum | `cadastro-novo`, derivado da estrutura do cliente | Matriz, Protocolo, Acordo, Regimento |
-| 3 | Papel na decisão | enum (14 valores) | `manual-projeto` | Matriz |
+| 3 | Papel na decisão | catálogo aberto (`papel_governanca`) | `manual-projeto` | Matriz |
 | 4 | Limite em R$ da alçada | moeda, opcional | `manual-projeto` | Matriz, Protocolo |
 | 5 | Data de referência da matriz | data | `manual-projeto` | Matriz |
 
@@ -83,9 +83,11 @@ variável (bônus e PPR); prestadores; operações de crédito; aquisição de i
 investimento fixo; orçamento; eleger administradores em controladas; planejamento estratégico;
 políticas e normas; representação legal; procuração; plano safra.
 
-**Vocabulário fechado do papel na decisão, 14 valores:** delibera · aprova · autoriza ·
-submete à aprovação · sugere · indica · propõe · analisa · consolida · executa · implementa ·
-garante · fornece informações · não participa.
+**Papel na decisão é catálogo, não vocabulário fechado.** O levantamento original listou 14
+valores; o produto entregou a tabela `papel_governanca`, no mesmo molde dos órgãos: `cliente_id`
+nulo é padrão da OSG, preenchido é papel do cliente. Em 24/09/2026 produção tinha 32 papéis
+padrão e nenhum de cliente. "Não participa" saiu do catálogo e virou marca da célula
+(`20260910122226_gov02_nao_participa_sai_do_catalogo_de_papeis.sql`).
 
 **Órgãos no modelo VF:** Reunião de Sócios · Conselho de Administração · Diretor Executivo ·
 Gerentes corporativos. **O conjunto não é arbitrário nem livre:** as regras de redação do

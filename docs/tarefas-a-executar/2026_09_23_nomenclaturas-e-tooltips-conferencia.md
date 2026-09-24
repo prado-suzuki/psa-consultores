@@ -288,6 +288,7 @@ Origem:        tela
 | E-10 | reticências `...` e travessão `--` | trocar pelo caractere; a catraca de placeholder fora do cânone está congelada em 215 | 2 |
 | E-11 | a catraca não enxerga `title=` dentro de `<Button>` fora dos 7 arquivos da TIP-02 | ampliar o recorte — acende 5 arquivos fora do módulo | 3 |
 | E-12 | grupo de menu com um item só; rota × rótulo | **escrito** | 1 |
+| E-13 | o nome da quarta tela de Governança | ✅ **decidido em 24/09: "Protocolo de Remuneração"**, que é o nome do código inteiro (navegação, títulos, avisos, arquivo gerado). "Protocolo Familiar" não existe no repositório e sai da lista de trabalho e da conversa | — |
 
 **Eduardo: 20 h.** O E-10 e o E-11 não são de tela: são catraca e substituição de caractere,
 e podem sair antes de qualquer decisão sua.

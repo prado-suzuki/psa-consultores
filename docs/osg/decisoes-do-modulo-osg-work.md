@@ -37,6 +37,11 @@ solicitação enviada, e Gerar Documento exige modelo com blocos.
 ⚠️ **Antes de montar, a ordem canônica precisa ser escrita.** Ela está nas dependências de
 dados e em documento nenhum. Sem isso a trilha não sai.
 
+**A Governança ficou fora das 75 análises**, e a varredura dela (24/09/2026, artefato
+"Governança do OSG Work") mediu esta dependência: a Matriz sem órgão já diz o que falta e
+leva a Órgãos de Governança (`MatrizDeAlcadas.tsx`, estado vazio). É a única dependência da
+lista que a tela já resolve; a trilha só precisa exibi-la.
+
 ### 2. O modelo "Teste V1" é desativado
 
 Ele está **ativo em produção**, no seletor de Gerar Documento, ao lado do Contrato Social e
