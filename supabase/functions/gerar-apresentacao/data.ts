@@ -538,7 +538,7 @@ export async function carregarSucessoria(
 ): Promise<{ entrada: EntradaDoCapitulo; empresaPessoaId: string }> {
   if (simulacaoIds.length === 0) throw new Error("Escolha ao menos uma simulação aprovada.");
   if (simulacaoIds.length > MAXIMO_DE_CENARIOS) {
-    throw new Error(`O capítulo compara até ${MAXIMO_DE_CENARIOS} cenários.`);
+    throw new Error(`A Organização Sucessória compara até ${MAXIMO_DE_CENARIOS} cenários.`);
   }
 
   const { data: linhas, error } = await db.from("itcd_simulacao").select(SELECT_SIMULACAO).eq("cliente_id", clienteId);
@@ -560,7 +560,7 @@ export async function carregarSucessoria(
     return cadeia;
   });
   if (empresas.size > 1) {
-    throw new Error("As simulações escolhidas são de sociedades diferentes: o capítulo é de uma sociedade só.");
+    throw new Error("As simulações escolhidas são de sociedades diferentes: a Organização Sucessória é de uma sociedade só.");
   }
 
   const { data: pessoasBrutas, error: erroPessoas } = await db

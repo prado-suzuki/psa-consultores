@@ -27,7 +27,7 @@ export function opcoesDeCenario(todas: readonly SimulacaoSalva[]): OpcaoDeCenari
       const cadeia = cadeiaDe(s, [...todas]);
       const pendente = cadeia.find((a) => a.status !== 'aprovada');
       const motivoDeFora = !s.nome?.trim()
-        ? 'Dê um nome a esta simulação na Calculadora: ele vira o nome do cenário no slide.'
+        ? 'Dê um nome a esta simulação na Calculadora de ITCMD: ele vira o nome do cenário na apresentação.'
         : pendente
           ? `A cadeia inclui "${rotuloDaSimulacao(pendente)}", que não está aprovada.`
           : null;
@@ -48,9 +48,9 @@ export function bloqueioDe(
   if (opcao.motivoDeFora) return opcao.motivoDeFora;
   const marcadas = opcoes.filter((o) => escolhidas.includes(o.simulacao.id));
   if (marcadas.some((o) => o.simulacao.empresaPessoaId !== opcao.simulacao.empresaPessoaId)) {
-    return 'É de outra sociedade: o capítulo é de uma sociedade só.';
+    return 'É de outra sociedade: a Organização Sucessória é de uma sociedade só.';
   }
-  if (marcadas.length >= MAXIMO_DE_CENARIOS) return `O capítulo compara até ${MAXIMO_DE_CENARIOS} cenários.`;
+  if (marcadas.length >= MAXIMO_DE_CENARIOS) return `A Organização Sucessória compara até ${MAXIMO_DE_CENARIOS} cenários.`;
   return null;
 }
 

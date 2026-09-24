@@ -721,7 +721,7 @@ function paginaDaInstituicao(
 export function montaCapitulo(entrada: EntradaDoCapitulo): CapituloSucessorio {
   if (entrada.cenarios.length === 0) throw new Error('Escolha ao menos uma simulação aprovada.');
   if (entrada.cenarios.length > MAXIMO_DE_CENARIOS) {
-    throw new Error(`O capítulo compara até ${MAXIMO_DE_CENARIOS} cenários.`);
+    throw new Error(`A Organização Sucessória compara até ${MAXIMO_DE_CENARIOS} cenários.`);
   }
   const problemas: ProblemaDoDeck[] = [];
   const p = new Pessoas(entrada);
