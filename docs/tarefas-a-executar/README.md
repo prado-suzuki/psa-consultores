@@ -22,7 +22,7 @@ também são importáveis um a um e a pasta inteira traria cada tarefa duas veze
 
 ---
 
-## As 28 tarefas
+## As 30 tarefas
 
 Ordenadas por idade. A coluna **Produção** diz o que depende do passo humano no chat do Lovable;
 traço quer dizer que a tarefa não toca o banco.
@@ -79,6 +79,8 @@ traço quer dizer que a tarefa não toca o banco.
 | [2026_09_22 · Criar item de backlog por fora do app](2026_09_22_criar-item-de-backlog-por-fora-do-app.md) | **Bloqueada na D1 e D2** (auditoria em edge function — seria a primeira) | Edge function nova |
 | [2026_09_22 · O prefixo `[TESTE]` nos cadastros de dev](2026_09_22_prefixo-teste-nos-cadastros-de-dev.md) | **Bloqueada na D1** (decisão dela) | — |
 | [2026_09_23 · A IA não responde no sandbox](2026_09_23_chave-de-ia-no-sandbox.md) | **Com o Bernardo**: 4 opções, 3 decisões | Configuração de ambiente |
+| [2026_09_24 · O acesso por papel na área de Projetos](2026_09_24_acessos-por-papel-na-area-de-projetos.md) | Ser responsável por um projeto não concede acesso: `rls_projects_select` lê papel e criador, e `leader_id` não entra em policy nenhuma. Daí a promoção a Líder Geral. **T3 é decisão dela** | — |
+| [2026_09_24 · Varredura de acesso por papel no banco](2026_09_24_varredura-de-acesso-por-papel-em-todo-o-banco.md) | 130 tabelas com policy por papel, de 532 policies. Depende do método da tarefa acima. Não é a dívida de `USING (true)` de julho, é o problema inverso | — |
 
 ---
 
