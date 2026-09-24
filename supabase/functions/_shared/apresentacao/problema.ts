@@ -12,31 +12,11 @@
  */
 
 /**
- * O que o deck nao conseguiu dizer — vocabulario unico dos dois geradores.
- *
- * Estava declarado DUAS VEZES, em `planejamento-tributario/slides.ts` e em
- * `apresentacao-osg/regras.ts`, com formatos que ja divergiam: o tributario tinha
- * `onde`, a OSG nao. Como a mesma tela junta os avisos dos dois num aviso so,
- * duas definicoes significavam duas linguas no mesmo paragrafo.
- *
- * ## Os dois eixos
- *
- * `tipo` diz a NATUREZA: `origem` quando falta dado na fonte, `formatacao`
- * quando o dado existe e a diagramacao nao coube. O conserto de um e no cadastro
- * (ou na planilha), o do outro e no molde.
- *
- * `onde` diz a PARTE do deck: "3.1 Premissas, a DRE", "caixa de IRPF",
- * "Quadro Societario". E o que permite a tela agrupar em vez de despejar uma
- * lista solta, e o que evita ter de repetir a secao dentro do `detalhe`.
- *
- * ## Um aviso sobre o dado ja gravado
- *
- * Ha registros em producao com `tipo = 'tipo_inesperado'`, escritos por uma
- * versao anterior e fora desta uniao. Quem LE `wp_apresentacao.problemas` precisa
- * tolerar valor desconhecido; quem ESCREVE usa esta uniao.
+ * Aviso de geracao, vocabulario dos dois geradores: `tipo` e `origem` (o cadastro resolve), `formatacao`
+ * (nao coube no molde) ou `sistema` (falha nossa); `onde` e a parte do deck. Ha `tipo_inesperado` antigo.
  */
 export interface ProblemaDoDeck {
-  tipo: "formatacao" | "origem";
+  tipo: "formatacao" | "origem" | "sistema";
   /** A parte do deck: secao, slide, quadro. Nao o nome da entidade. */
   onde: string;
   detalhe: string;

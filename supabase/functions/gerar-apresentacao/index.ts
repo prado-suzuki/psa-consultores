@@ -650,8 +650,8 @@ async function gerarSocietaria(
       anota(
         probs,
         ONDE.quadro,
-        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societario e ficaram fora do deck.`,
-        "formatacao",
+        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societário e ficaram fora do arquivo. É falha do gerador: avise o suporte da PSA Digital.`,
+        "sistema",
       );
     }
   }

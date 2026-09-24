@@ -54,7 +54,8 @@ export interface ResultadoDosDecks {
 }
 
 export interface ProblemaDoDeck {
-  tipo: 'origem' | 'formatacao';
+  /** `sistema` é falha nossa: o analista só avisa o suporte da PSA Digital. */
+  tipo: 'origem' | 'formatacao' | 'sistema';
   detalhe: string;
 }
 
