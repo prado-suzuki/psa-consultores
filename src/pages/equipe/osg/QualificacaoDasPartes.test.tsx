@@ -86,13 +86,21 @@ describe('QualificacaoDasPartes - falha de consulta', () => {
    * Falha e lista vazia diziam a mesma frase, e a frase afirma um fato de
    * negócio: quem lia concluía que o cliente não tem sócio nenhum.
    */
-  it('consulta que falha não vira "nenhuma pessoa cadastrada"', () => {
+  it('consulta que falha não vira "nenhuma pessoa cadastrada" e o erro cru não aparece na tela', () => {
+    const espiaoConsole = vi.spyOn(console, 'error').mockImplementation(() => {});
     mocks.erroPessoas = new Error('PGRST200: embed ambíguo');
     mocks.pessoas = [];
     render(<QualificacaoDasPartes />);
 
     expect(screen.getByText(/Não foi possível carregar as pessoas deste cliente/)).toBeInTheDocument();
-    expect(screen.getByText(/PGRST200/)).toBeInTheDocument();
+    // A mensagem técnica existe, mas só no console: inglês de Postgres não
+    // vai para a tela, que é o que o EX-01 decidiu em 24/09.
+    expect(screen.queryByText(/PGRST200/)).not.toBeInTheDocument();
+    expect(espiaoConsole).toHaveBeenCalledWith(
+      expect.stringContaining('EstadoDeFalha'),
+      expect.any(Error),
+    );
+    espiaoConsole.mockRestore();
     expect(screen.queryByText(/cadastrada para este cliente/)).not.toBeInTheDocument();
   });
 

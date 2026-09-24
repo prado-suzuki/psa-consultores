@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
-import { AlertTriangle, Loader2, Plus, Search, Sprout, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Search, Sprout, Trash2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import {
@@ -59,7 +60,7 @@ const ExploracaoRural = () => {
   });
   const [aExcluir, setAExcluir] = useState<ExploracaoRuralEnriched | null>(null);
 
-  const { data: exploracoes = [], isLoading, error } = useExploracaoRural(clienteId || null);
+  const { data: exploracoes = [], isLoading, error, refetch } = useExploracaoRural(clienteId || null);
   const excluir = useDeleteExploracaoRural();
 
   const filtradas = useMemo(() => {
@@ -84,6 +85,12 @@ const ExploracaoRural = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.exploracaoRural.label}
       subtitle={TELAS_OSG_WORK.exploracaoRural.descricao}
+      headerActions={
+        <Button className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
+          <Plus className="h-4 w-4" />
+          Nova exploração rural
+        </Button>
+      }
     >
       <div className="space-y-4">
         {!clienteId ? (
@@ -102,21 +109,15 @@ const ExploracaoRural = () => {
             </CardContent>
           </Card>
         ) : error ? (
-          /* Falha na consulta NÃO é lista vazia. Tratar as duas igual foi o que
-             escondeu um embed ambíguo do PostgREST: a tela dizia "nenhuma
-             exploração cadastrada" para um cliente que tinha duas, e o erro só
-             apareceu quando alguém foi ler o SQL. */
-          <Card className="border-destructive/40">
-            <CardContent className="py-12 text-center">
-              <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-destructive/70" />
-              <p className="text-sm font-medium text-destructive">
-                Não foi possível carregar as explorações rurais deste cliente.
-              </p>
-              <p className="mx-auto mt-2 max-w-xl text-xs text-muted-foreground">
-                {error instanceof Error ? error.message : String(error)}
-              </p>
-            </CardContent>
-          </Card>
+          /* Falha de consulta não é lista vazia: o componente diz as três
+             causas possíveis e manda o erro cru só para o console. A tela
+             própria que havia aqui virou o EX-01, e a regra é o componente
+             único, não uma cópia por tela. */
+          <EstadoDeFalha
+            oQue="as explorações rurais deste cliente"
+            erro={error}
+            aoTentarDeNovo={refetch}
+          />
         ) : (
           <>
             <Card>
@@ -150,13 +151,6 @@ const ExploracaoRural = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button
-                    className="gap-1.5"
-                    onClick={() => setModal({ open: true, exploracao: null })}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Nova exploração rural
-                  </Button>
                 </div>
               </CardContent>
             </Card>

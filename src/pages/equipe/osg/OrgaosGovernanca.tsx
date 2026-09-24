@@ -92,6 +92,18 @@ const OrgaosGovernanca = () => {
           </div>
         ) : (
           <>
+            {/* O botão de criar mora no cabeçalho da página, e o corpo da tela
+                não gosta dele: sem uma pista aqui, quem lê a tabela não sabe que
+                a ação subiu. O texto diz o que o órgão alimenta e onde está o
+                botão, na mesma frase. Some com a lista vazia, onde a caixa do
+                meio já traz a orientação e o próprio botão. */}
+            {orgaos.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Os órgãos daqui são as colunas da Matriz de Alçadas e definem quem recebe
+                competência no contrato social; para cadastrar um, use o botão Novo órgão, no
+                canto superior direito da página.
+              </p>
+            )}
             {/*
               O botão dos padrões acrescenta só o que falta, então continua útil
               depois da primeira vez: quem apagou um por engano traz de volta sem

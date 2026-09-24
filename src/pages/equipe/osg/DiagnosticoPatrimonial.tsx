@@ -98,6 +98,11 @@ const DiagnosticoPatrimonial = () => {
          rota continuam com o nome antigo. */
       title={TELAS_OSG_WORK.cadastroPatrimonial.label}
       subtitle={TELAS_OSG_WORK.cadastroPatrimonial.descricao}
+      headerActions={
+        <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>
+          <Plus className="h-3.5 w-3.5" /> Novo bem
+        </Button>
+      }
     >
       <div className="space-y-4">
         {!clienteId ? (
@@ -167,14 +172,11 @@ const DiagnosticoPatrimonial = () => {
             </Card>
 
             <Card variant="tabela">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-muted-foreground" />
                   Bens ({bensFiltrados.length}{bens.length !== bensFiltrados.length ? ` de ${bens.length}` : ''})
                 </CardTitle>
-                <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>
-                  <Plus className="h-3.5 w-3.5" /> Novo bem
-                </Button>
               </CardHeader>
               <CardContent>
                 {erroBens ? (

@@ -13,6 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Trash2, Users, Search, Building2, User as UserIcon } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
@@ -44,7 +45,6 @@ interface PessoasTableProps {
   mostrarPapel?: boolean;
   // Quando presente, exibe a coluna "Filiação" (vínculos de parentesco) — só PF.
   filiacaoPorPessoa?: Map<string, string[]>;
-  onNovo: () => void;
   onEditar: (p: PessoaRow) => void;
   onRemover: (p: PessoaRow) => void;
 }
@@ -80,17 +80,14 @@ const COLUNA = {
 } as const;
 
 const PessoasTable = ({
-  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
+  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onEditar, onRemover,
 }: PessoasTableProps) => (
   <Card variant="tabela">
-    <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-      <CardTitle className="text-base flex items-center gap-2">
-        {icone}
-        {titulo} ({pessoas.length})
-      </CardTitle>
-      <Button size="sm" className="gap-1.5" onClick={onNovo}>
-        <Plus className="h-3.5 w-3.5" /> Nova {tipo}
-      </Button>
+    <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                {icone}
+                {titulo} ({pessoas.length})
+              </CardTitle>
     </CardHeader>
     <CardContent>
       {pessoas.length === 0 ? (
@@ -232,6 +229,33 @@ const QualificacaoDasPartes = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.qualificacaoDasPartes.label}
       subtitle={TELAS_OSG_WORK.qualificacaoDasPartes.descricao}
+      headerActions={
+        clienteId ? (
+          /* Duas criações na mesma tela (PJ e PF), um botão s: o tipo é
+             escolhido no menu, porque o modal fixa o tipo na abertura e o
+             badge do cabeçalho dele não é editável. O botão de criar mora
+             no cabeçalho da página, como nas outras telas do módulo. */
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-1.5">
+                <Plus className="h-4 w-4" /> Nova pessoa
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PJ' })}
+              >
+                Pessoa jurídica (PJ)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PF' })}
+              >
+                Pessoa física (PF)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : undefined
+      }
     >
       {/* TEXTO DE APOIO DA TELA, e sem `aria-describedby`: o padrão da casa
           (§3 de `docs/geral/texto-explicativo-na-tela.md`) pede o par id +
@@ -291,7 +315,6 @@ const QualificacaoDasPartes = () => {
               mostrarPapel
               pessoas={pjs}
               buscaAtiva={buscaAtiva}
-              onNovo={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PJ' })}
               onEditar={(p) => setPessoaModal({ open: true, pessoa: p, defaultTipo: 'PJ' })}
               onRemover={(p) => deletePessoa.mutate(p)}
             />
@@ -303,7 +326,6 @@ const QualificacaoDasPartes = () => {
               pessoas={pfs}
               buscaAtiva={buscaAtiva}
               filiacaoPorPessoa={filiacaoPorPessoa}
-              onNovo={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PF' })}
               onEditar={(p) => setPessoaModal({ open: true, pessoa: p, defaultTipo: 'PF' })}
               onRemover={(p) => deletePessoa.mutate(p)}
             />

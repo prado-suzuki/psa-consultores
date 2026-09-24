@@ -123,6 +123,8 @@ logAction({
 });
 ```
 
+**Botão de criar em telas de lista (padrão OSG, vale para o módulo inteiro):** a ação de criar mora no **cabeçalho da página** (`headerActions` do layout), nunca no cabeçalho de card nem dentro de card de filtros. Onde há duas criações na mesma tela (ex.: PJ e PF na Qualificação das Partes), um botão só com `DropdownMenu` de escolha. Ação que nasce só no vazio e não volta a existir (ex.: "Criar o acordo") fica na caixa do estado vazio, e o `headerActions` condicional acende apenas quando há conteúdo, para a mesma ação nunca aparecer em dois lugares ao mesmo tempo. Quando há conteúdo e o botão está no cabeçalho, o corpo da página traz logo abaixo do subtítulo um texto de apoio apontando o botão e o que ele alimenta (molde da prosa de página da Qualificação das Partes). **Exceção consciente:** o Quadro Societário mantém o "Registrar movimento" no card da empresa, porque é porta única dos seis gestos societários, presa ao escopo da empresa em cena, e não criação de item de lista.
+
 ## 🧱 DECOMPOSIÇÃO E CAMADA DE DADOS (padrões consolidados na refatoração de god-components)
 Fonte: os ledgers em `docs/geral/refatoracao-*`. Siga estes padrões ao criar telas novas ou mexer em arquivos grandes.
 
