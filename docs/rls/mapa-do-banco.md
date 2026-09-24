@@ -79,7 +79,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`dashboard_cluster_access`](#dashboardclusteraccess) | 5 | — | interno | estrutura_clusters, profiles, dashboards |
 | [`dashboards`](#dashboards) | 15 | — | interno | profiles |
 | [`dcomp`](#dcomp) | 10 | — | cluster-fiscal | dcomp, per, per_with_contribuinte |
-| [`deliverable_attachments`](#deliverableattachments) | 8 | — | sprint | sprint_deliverables |
+| [`deliverable_attachments`](#deliverableattachments) | 9 | — | sprint | sprint_backlog_items, sprint_deliverables |
 | [`demand_items`](#demanditems) | 10 | — | sprint | routines |
 | [`difal_decisao`](#difaldecisao) | 6 | — | cluster-cliente | difal_sessao |
 | [`difal_sessao`](#difalsessao) | 10 | — | cluster-cliente | cliente |
@@ -150,7 +150,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`org_project_members`](#orgprojectmembers) | 5 | — | projeto | org_projects |
 | [`org_projects`](#orgprojects) | 20 | — | projeto | profiles, estrutura_equipes, estrutura_areas, cliente, ordem_servico, produto_segmento, servicos_prestados |
 | [`org_task_comments`](#orgtaskcomments) | 7 | — | projeto | org_tasks, profiles |
-| [`org_tasks`](#orgtasks) | 26 | — | projeto | profiles, servicos_prestados, cliente, contribuinte, org_tasks, org_projects, produto_tarefa_padrao, tickets |
+| [`org_tasks`](#orgtasks) | 27 | — | projeto | profiles, servicos_prestados, cliente, contribuinte, org_tasks, org_projects, produto_tarefa_padrao, tickets |
 | [`orgao_governanca`](#orgaogovernanca) | 18 | excluido | interno | cliente |
 | [`os_produtos_contratados`](#osprodutoscontratados) | 5 | — | cluster-cliente | ordem_servico, produto_segmento |
 | [`page_permissions`](#pagepermissions) | 10 | — | catalogo | — |
@@ -401,7 +401,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="deliverableattachments"></a>`deliverable_attachments`
 **Acesso:** sprint
-`deliverable_id` string · `file_name` string · `file_path` string · `file_size` number · `file_type` string? · `id` string · `uploaded_at` string · `uploaded_by` string?  ·  **FK:** `deliverable_id`→sprint_deliverables.id
+`backlog_item_id` string? · `deliverable_id` string? · `file_name` string · `file_path` string · `file_size` number · `file_type` string? · `id` string · `uploaded_at` string · `uploaded_by` string?  ·  **FK:** `backlog_item_id`→sprint_backlog_items.id · `deliverable_id`→sprint_deliverables.id
 
 ### <a id="demanditems"></a>`demand_items`
 **Acesso:** sprint
@@ -685,7 +685,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="orgtasks"></a>`org_tasks`
 **Acesso:** projeto
-`actual_hours` number? · `assigned_to` string? · `assigned_to_name` string? · `category` Database["public"]["Enums"]["fiscal_task_category"] · `client_id` string? · `contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `due_date` string? · `due_time` string? · `estimated_hours` number? · `id` string · `is_recurring` boolean? · `parent_task_id` string? · `priority` Database["public"]["Enums"]["fiscal_task_priority"] · `project_id` string · `reviewer_id` string? · `servico_id` string? · `start_date` string? · `status` Database["public"]["Enums"]["fiscal_task_status"] · `tags` string[]? · `tarefa_padrao_id` string? · `ticket_id` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `servico_id`→servicos_prestados.id · `client_id`→cliente.id · `contribuinte_id`→contribuinte.id · `created_by`→profiles.id · `parent_task_id`→org_tasks.id · `project_id`→org_projects.id · `reviewer_id`→profiles.id · `tarefa_padrao_id`→produto_tarefa_padrao.id · `ticket_id`→tickets.id
+`actual_hours` number? · `assigned_to` string? · `assigned_to_name` string? · `category` Database["public"]["Enums"]["fiscal_task_category"] · `client_id` string? · `contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `due_date` string? · `due_time` string? · `estimated_hours` number? · `id` string · `is_recurring` boolean? · `parent_task_id` string? · `priority` Database["public"]["Enums"]["fiscal_task_priority"] · `project_id` string · `review_hours` number? · `reviewer_id` string? · `servico_id` string? · `start_date` string? · `status` Database["public"]["Enums"]["fiscal_task_status"] · `tags` string[]? · `tarefa_padrao_id` string? · `ticket_id` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `servico_id`→servicos_prestados.id · `client_id`→cliente.id · `contribuinte_id`→contribuinte.id · `created_by`→profiles.id · `parent_task_id`→org_tasks.id · `project_id`→org_projects.id · `reviewer_id`→profiles.id · `tarefa_padrao_id`→produto_tarefa_padrao.id · `ticket_id`→tickets.id
 
 ### <a id="orgaogovernanca"></a>`orgao_governanca`
 **Acesso:** interno · **Flags:** excluido
