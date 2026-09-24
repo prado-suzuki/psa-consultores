@@ -392,13 +392,8 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 
 ```typescript
 interface AuditLogEntry {
-  area: 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
-  entity_type: 'project' | 'task' | 'subtask'
-    | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
-    | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
-    | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
-    | 'regra_pis_cofins' | 'procedimento'
-    | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral';
+  area: 'tax' | 'osg' | 'auditoria' | 'juridico' | 'estrutura' | 'cadastros' | 'dev';
+  entity_type: AuditEntityType;
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
@@ -408,6 +403,12 @@ interface AuditLogEntry {
 ```
 
 `performed_by` = `auth.uid()` (preenchido automaticamente pelo hook).
+
+A lista de `entity_type` fica só no tipo `AuditEntityType` de `src/hooks/useAuditLog.ts`, com o
+motivo de cada recorte ao lado. A coluna no banco é `text`, então só esse tipo recusa um nome
+errado. Tipo novo entra ali, não aqui. Parte das entidades audita o agregado inteiro, e não cada
+linha filha (instrumento rural, Acordo de Quotistas, Matriz de Alçadas, Protocolo de Remuneração).
+Antes de criar tipo para uma tabela filha, leia o comentário dela no hook.
 
 ### 8.2 Uso obrigatório
 
