@@ -18,6 +18,7 @@ import {
   MATRICULA_NAO_SE_APLICA,
   momentoDoBem,
   montaForaDaEstrutura,
+  montaOutrosBens,
   montaPatrimonial,
   SEM_MOTIVO_DECLARADO,
   situacaoDaMatricula,
@@ -159,6 +160,7 @@ describe('nomesTitulares', () => {
 
 describe('montaPatrimonial', () => {
   const bem = (over: Partial<BemCru> = {}): BemCru => ({
+    tipo_bem: 'IR',
     denominacao: 'Fazenda A',
     vlr_contabil: 1000,
     participa_estruturacao: true,
@@ -527,3 +529,68 @@ describe('totaisPorSociedade', () => {
     matricula: [{ numero: `${denominacao}-0`, area_documento: 100, area_unidade: 'ha', vlr_contabil: 10 }],
     ...extra,
   });
+
+  // O TOTAL soma a coluna que está em cima dele: só imóvel. Quota e moeda saem na página de outros bens.
+  it('soma os imóveis da sociedade; outro bem e o que está fora da estrutura não entram', () => {
+    const t = totaisPorSociedade([
+      imovel('Faz A', 'Soc'),
+      imovel('Casa', 'Soc', { tipo_bem: 'IB' }),
+      { tipo_bem: 'PS', denominacao: 'Quotas', vlr_contabil: 500, participa_estruturacao: true, empresa_destino: { denominacao: 'Soc' }, matricula: [] },
+      imovel('Chácara', 'Soc', { participa_estruturacao: false }),
+    ]);
+    expect(t.get('Soc')).toEqual({ area: '200,00', valor: fmtBRL(10 + 10) });
+  });
+});
+
+describe('exploracaoDoOrganograma', () => {
+  const parte = (papel: string, nome: string, fracao: number | null = null) =>
+    ({ papel, fracao, pessoa: { denominacao: nome } });
+
+  /* O MMS do sandbox: uma composse meio a meio, com o José também administrador
+     nomeado, e uma parceria em que os dois são os exploradores. */
+  const mms: ExploracaoRuralCrua[] = [
+    { tipo_exploracao: 'composse', partes: [
+      parte('administrador_nomeado', 'José Eduardo'),
+      parte('compossuidor', 'José Eduardo', 50),
+      parte('compossuidor', 'Maria Auxiliadora', 50),
+    ] },
+    { tipo_exploracao: 'parceria', partes: [
+      parte('explorador', 'José Eduardo'),
+      parte('explorador', 'Maria Auxiliadora'),
+    ] },
+  ];
+
+  it('a faixa traz quem explora, uma vez cada, e o empate de fração vai para o administrador nomeado', () => {
+    expect(exploracaoDoOrganograma(mms)).toEqual({
+      rural: ['José Eduardo', 'Maria Auxiliadora'],
+      titular: 'José Eduardo',
+    });
+  });
+
+  it('sem exploração cadastrada: faixa vazia e sem titular — não cai para outra fonte', () => {
+    expect(exploracaoDoOrganograma([])).toEqual({ rural: [], titular: null });
+  });
+
+  it('o titular é o compossuidor de maior fração, e sem composse não há titular', () => {
+    expect(exploracaoDoOrganograma([{ tipo_exploracao: 'composse', partes: [
+      parte('compossuidor', 'Ana', 30), parte('compossuidor', 'Bruno', 70),
+    ] }]).titular).toBe('Bruno');
+    expect(exploracaoDoOrganograma([mms[1]])).toEqual({
+      rural: ['José Eduardo', 'Maria Auxiliadora'], titular: null,
+    });
+  });
+
+  it('o administrador nomeado que não é compossuidor não entra na faixa', () => {
+    const r = exploracaoDoOrganograma([{ tipo_exploracao: 'composse', partes: [
+      parte('administrador_nomeado', 'Contador'), parte('compossuidor', 'Ana', 100),
+    ] }]);
+    expect(r).toEqual({ rural: ['Ana'], titular: 'Ana' });
+  });
+});
+
+describe('montaOutrosBens — o que não é imóvel sai da tabela de imóveis', () => {
+  /* A Agro Aliança do sandbox: a moeda integralizada é "Outros", sem matrícula e sem sociedade de destino. */
+  const moeda: BemCru = {
+    tipo_bem: 'OU', denominacao: 'Moeda corrente integralizada no capital', vlr_contabil: '40983.60',
+    participa_estruturacao: true, empresa_destino: null, titularidade: [], matricula: [],
+  };

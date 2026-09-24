@@ -79,6 +79,10 @@ export interface BemForaDaEstrutura {
 
 /** A forma crua que a query do `bem` devolve. Frouxa de proposito: e JSON do PostgREST. */
 export interface BemCru {
+  /** IR imovel rural · IB imovel urbano · AP arrendamento/parceria · PS participacao · OU outros. */
+  tipo_bem?: string | null;
+  /** O que o "Outros" e, em texto livre (moeda, veiculo, maquina). */
+  descricao_outros?: string | null;
   denominacao?: string | null;
   vlr_contabil?: number | string | null;
   participa_estruturacao?: boolean | null;
@@ -111,6 +115,14 @@ export const SEM_MOTIVO_DECLARADO = "Motivo não declarado no cadastro";
 /** Imovel e o que pode ter matricula (rural e urbano): a mesma fronteira de `matricula_tipo_bem_check`. */
 export function ehImovel(b: Pick<BemCru, "tipo_bem">): boolean {
   return b.tipo_bem === "IR" || b.tipo_bem === "IB";
+}
+
+/** O tipo do bem como a tabela de outros bens escreve. "Outros" usa a descricao, se houver. */
+export function tipoDoOutroBem(b: Pick<BemCru, "tipo_bem" | "descricao_outros">): string {
+  if (b.tipo_bem === "PS") return "Participação societária";
+  if (b.tipo_bem === "AP") return "Arrendamento e/ou parceria";
+  return b.descricao_outros?.trim() || "Outros";
+}
 
 /**
  * Nomes dos titulares, sem repetir e na ordem do cadastro; `especie` filtra DIREITO ou FATO.
@@ -179,6 +191,8 @@ export function situacaoDaMatricula(m: {
  */
 export function montaPatrimonial(bensCrus: readonly BemCru[], probs?: Probs): SociedadePatrimonial[] {
   /* So imovel da estruturacao: os fora dela saem na pagina propria, e os que nao sao imovel na de
+     outros bens. Quem avisa quando o molde nao tem essas paginas e o `gerarPatrimonial`. */
+  const bens = bensCrus.filter((b) => b.participa_estruturacao !== false && ehImovel(b));
 
   const buckets = new Map<string, LinhaPatrimonial[]>();
   let semDestino = 0;
@@ -320,6 +334,49 @@ export function montaOutrosBens(bensCrus: readonly BemCru[], probs?: Probs): Out
     soma += Number(b.vlr_contabil ?? 0) || 0;
     return {
       referencia: b.denominacao ?? "—",
+      tipo: tipoDoOutroBem(b),
+      sociedade: destino || SOCIEDADE_A_DEFINIR,
+      propriedade: titularDeDireito(b.titularidade) || "—",
+      valor: fmtBRL(b.vlr_contabil as number),
+    };
+  });
+  if (semDestino > 0) {
+    anota(probs, ONDE.patrimonial,
+      `${plural(semDestino, "outro bem sai", "outros bens saem")} em "${SOCIEDADE_A_DEFINIR}" — falta a sociedade de destino no cadastro.`);
+  }
+  linhas.sort((a, b) => a.sociedade.localeCompare(b.sociedade, "pt-BR") || a.referencia.localeCompare(b.referencia, "pt-BR"));
+  return { linhas, total: fmtBRL(soma) };
+}
+
+export interface TotalDaSociedade {
+  area: string;
+  valor: string;
+}
+
+/** O TOTAL de cada sociedade pela mesma regra das linhas do `montaPatrimonial`, para nao divergir da coluna. */
+export function totaisPorSociedade(bens: readonly BemCru[]): Map<string, TotalDaSociedade> {
+  const acumulado = new Map<string, { area: number; valor: number }>();
+  for (const b of bens) {
+    if (b.participa_estruturacao === false || !ehImovel(b)) continue;
+    const soc = b.empresa_destino?.denominacao || SOCIEDADE_A_DEFINIR;
+    const t = acumulado.get(soc) ?? { area: 0, valor: 0 };
+    const mats = b.matricula ?? [];
+    if (mats.length === 0) t.valor += Number(b.vlr_contabil ?? 0) || 0;
+    for (const m of mats) {
+      const a = Number(m.area_documento);
+      if (m.area_documento != null && Number.isFinite(a)) t.area += m.area_unidade === "m2" ? a / 10_000 : a;
+      t.valor += Number(m.vlr_contabil ?? b.vlr_contabil ?? 0) || 0;
+    }
+    acumulado.set(soc, t);
+  }
+  return new Map([...acumulado].map(([soc, t]) => [soc, { area: emHectares(t.area, "ha"), valor: fmtBRL(t.valor) }]));
+}
+
+// ---------------------------------------------------------------------------
+// Organograma: a exploracao rural
+// ---------------------------------------------------------------------------
+
+/** Uma linha de `exploracao_rural` com as partes, como o gerador le. */
 // ---------------------------------------------------------------------------
 // Quadro derivado dos bens (empresa a integralizar)
 // ---------------------------------------------------------------------------

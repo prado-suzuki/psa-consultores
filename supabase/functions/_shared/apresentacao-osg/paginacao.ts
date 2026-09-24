@@ -151,3 +151,14 @@ export function paginasDoQuadro(socios: readonly number[]): number {
   }
   return paginas;
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// Capitulo 01 · Outros bens integralizados
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Linhas por pagina da tabela de outros bens, uma por bem, como o teto da de imoveis; o TOTAL vai na ultima. */
+export const LINHAS_POR_PAGINA_DE_OUTROS_BENS = 9;
+
+/** Quantas paginas a tabela de outros bens ocupa. Zero bem, zero pagina: ela sai do deck. */
+export function paginasDeOutrosBens(bens: number): number {
+  return Math.ceil(Math.max(0, bens) / LINHAS_POR_PAGINA_DE_OUTROS_BENS);
+}

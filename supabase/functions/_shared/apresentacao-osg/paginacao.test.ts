@@ -17,6 +17,8 @@ import {
   QUADRO_TOP_MAX,
   paginasDoQuadro,
   repartirLinhas,
+  LINHAS_POR_PAGINA_DE_OUTROS_BENS,
+  paginasDeOutrosBens,
 } from './paginacao.ts';
 
 /** Linhas de mentira: só a quantidade importa para a conta. */
@@ -138,5 +140,16 @@ describe('paginasDoQuadro', () => {
       expect(paginas).toBeGreaterThan(0);
       expect(paginas).toBeLessThanOrEqual(caso.reduce((t, n) => t + n, 0));
     }
+  });
+});
+
+describe('paginasDeOutrosBens', () => {
+  it('zero bem, zero página: a tabela sai do deck', () => {
+    expect(paginasDeOutrosBens(0)).toBe(0);
+  });
+  it('uma página até o teto, e abre outra no bem seguinte', () => {
+    expect(paginasDeOutrosBens(1)).toBe(1);
+    expect(paginasDeOutrosBens(LINHAS_POR_PAGINA_DE_OUTROS_BENS)).toBe(1);
+    expect(paginasDeOutrosBens(LINHAS_POR_PAGINA_DE_OUTROS_BENS + 1)).toBe(2);
   });
 });

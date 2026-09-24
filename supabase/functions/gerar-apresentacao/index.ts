@@ -65,7 +65,7 @@ import type { TotalDaSociedade } from "../_shared/apresentacao-osg/conteudo.ts";
 /* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
    que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
 import {
-  cabemQuantasLinhas, estimarAltura, repartirLinhas,
+  cabemQuantasLinhas, estimarAltura, LINHAS_POR_PAGINA_DE_OUTROS_BENS, repartirLinhas,
   QUADRO_PAD_H, QUADRO_ROW_H, QUADRO_TOP_0, QUADRO_TOP_MAX,
 } from "../_shared/apresentacao-osg/paginacao.ts";
 
@@ -227,6 +227,41 @@ function renderForaDaEstrutura(
 }
 
 /**
+ * Uma pagina da tabela dos bens que nao sao imovel. O TOTAL vai so na ultima; nas
+ * outras a linha sai, como no TOTAL da sociedade.
+ */
+function renderOutrosBens(
+  parts: PptxParts, slidePath: string, linhas: OutrosBens["linhas"], total: string | null,
+): void {
+  const doc = parseXml(readText(parts, slidePath));
+  const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "OB_REF"));
+  if (gf) {
+    const template = listRows(gf).find((r) => rowContainsToken(r, "OB_REF"));
+    if (template) {
+      for (const l of linhas) {
+        const clone = cloneRow(template);
+        applyTokensToNode(clone, {
+          OB_REF: l.referencia,
+          OB_TIPO: l.tipo,
+          OB_SOC: l.sociedade,
+          OB_PROP: l.propriedade,
+          OB_VALOR: l.valor,
+        });
+        insertRowBefore(clone, template);
+      }
+      removeRow(template);
+    }
+    const linhaDoTotal = listRows(gf).find((r) => rowContainsToken(r, "OB_TOT_VALOR"));
+    if (linhaDoTotal) {
+      if (total) applyTokensToNode(linhaDoTotal, { OB_TOT_VALOR: total });
+      else removeRow(linhaDoTotal);
+    }
+  }
+  stripRemainingTokens(doc);
+  writeText(parts, slidePath, serializeXml(doc));
+}
+
+/**
  * Leva a pagina para o fim do deck: o `duplicateSlide` poe toda copia no fim quando nao acha a origem,
  * o que acontece se a relationship traz o `Type` antes do `Target`.
  */
@@ -264,11 +299,14 @@ async function gerarPatrimonial(
     carregarPatrimonial(admin, clienteId, probs),
     carregarForaDaEstrutura(admin, clienteId, probs),
     carregarTotaisPorSociedade(admin, clienteId),
+    carregarOutrosBens(admin, clienteId, probs),
+  ]);
 
   const TEMPLATE = slideObrigatorio(parts, "PROP", "das sociedades");
   /* Achada ANTES das copias da pagina de sociedade, que nao a trazem, mas mudam a
      lista de slides. */
   const SLIDE_FORA = slideDoToken(parts, "NI_REF");
+  const SLIDE_OUTROS = slideDoToken(parts, "OB_REF");
   if (sociedades.length === 0) {
     // Sem sociedades: mantem a pagina vazia, tira row-template pra nao ficar com token cru.
     const xml = readText(parts, TEMPLATE);
@@ -321,6 +359,27 @@ async function gerarPatrimonial(
     }
   }
 
+  /* Os outros bens vem depois das sociedades e antes dos que ficam fora. Molde sem a pagina nao gera
+     a tabela, e o aviso diz o que faltou. */
+  if (!SLIDE_OUTROS) {
+    if (outros.linhas.length > 0) {
+      anota(probs, ONDE.patrimonial,
+        `${outros.linhas.length === 1 ? "O bem que não é imóvel não saiu" : `Os ${outros.linhas.length} bens que não são imóvel não saíram`} (moeda, quotas, arrendamento, outros): o modelo do capítulo 01 no sistema está desatualizado e não tem a página deles. Avise o suporte da PSA Digital.`,
+        "sistema");
+    }
+  } else if (outros.linhas.length === 0) {
+    removeSlide(parts, SLIDE_OUTROS);
+  } else {
+    const paginas: string[] = [SLIDE_OUTROS];
+    const pedacos: Array<OutrosBens["linhas"]> = [];
+    for (let i = 0; i < outros.linhas.length; i += LINHAS_POR_PAGINA_DE_OUTROS_BENS) {
+      pedacos.push(outros.linhas.slice(i, i + LINHAS_POR_PAGINA_DE_OUTROS_BENS));
+    }
+    for (let i = 1; i < pedacos.length; i++) paginas.push(duplicateSlide(parts, SLIDE_OUTROS).newPath);
+    pedacos.forEach((linhas, i) =>
+      renderOutrosBens(parts, paginas[i], linhas, i === pedacos.length - 1 ? outros.total : null));
+    for (const pagina of paginas) moverParaOFim(parts, pagina);
+  }
 
   /* O slide dos que ficaram de fora sai do deck quando nao ha nenhum: tabela com
      cabecalho e nenhuma linha e pior que slide ausente — parece dado perdido. */

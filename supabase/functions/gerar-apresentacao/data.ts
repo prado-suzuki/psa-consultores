@@ -31,7 +31,7 @@ type SB = any;
  */
 export { fmtBRL, fmtInt, fmtPct } from "../_shared/apresentacao-osg/conteudo.ts";
 export type {
-  BemForaDaEstrutura, LinhaPatrimonial, SociedadePatrimonial, TotalDaSociedade,
+  BemForaDaEstrutura, LinhaPatrimonial, OutrosBens, SociedadePatrimonial,
 } from "../_shared/apresentacao-osg/conteudo.ts";
 
 /* Um select para as duas tabelas do patrimonial (integralizados e fora da estruturacao), para que
@@ -70,7 +70,11 @@ export async function carregarForaDaEstrutura(
   /* Sem `probs`: quem ja relatou quantos ficaram de fora foi o `montaPatrimonial`,
      que le a mesma lista. O que passa aqui e so o aviso de motivo em branco. */
   return montaForaDaEstrutura(await lerBens(admin, clienteId), probs);
+}
 
+/** Os bens da estruturacao que nao sao imovel (moeda, quotas, arrendamento, "Outros"). */
+export async function carregarOutrosBens(admin: SB, clienteId: string, probs?: Probs): Promise<OutrosBens> {
+  return montaOutrosBens(await lerBens(admin, clienteId), probs);
 }
 
 // ---------- Organograma ----------
