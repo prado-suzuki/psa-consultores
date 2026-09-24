@@ -4650,11 +4650,18 @@ export type Database = {
           id: string
           origem: Database["public"]["Enums"]["itcd_origem_usufruto"]
           para_pessoa_id: string
+          pct_base_alternativa: number | null
           quotas: number
           simulacao_id: string
+          vlr_base_alternativa_contabil: number | null
+          vlr_base_alternativa_itr: number | null
+          vlr_base_alternativa_mercado: number | null
           vlr_base_contabil: number | null
           vlr_base_itr: number | null
           vlr_base_mercado: number | null
+          vlr_imposto_alternativo_contabil: number | null
+          vlr_imposto_alternativo_itr: number | null
+          vlr_imposto_alternativo_mercado: number | null
           vlr_imposto_contabil: number | null
           vlr_imposto_itr: number | null
           vlr_imposto_mercado: number | null
@@ -4665,11 +4672,18 @@ export type Database = {
           id?: string
           origem: Database["public"]["Enums"]["itcd_origem_usufruto"]
           para_pessoa_id: string
+          pct_base_alternativa?: number | null
           quotas: number
           simulacao_id: string
+          vlr_base_alternativa_contabil?: number | null
+          vlr_base_alternativa_itr?: number | null
+          vlr_base_alternativa_mercado?: number | null
           vlr_base_contabil?: number | null
           vlr_base_itr?: number | null
           vlr_base_mercado?: number | null
+          vlr_imposto_alternativo_contabil?: number | null
+          vlr_imposto_alternativo_itr?: number | null
+          vlr_imposto_alternativo_mercado?: number | null
           vlr_imposto_contabil?: number | null
           vlr_imposto_itr?: number | null
           vlr_imposto_mercado?: number | null
@@ -4680,11 +4694,18 @@ export type Database = {
           id?: string
           origem?: Database["public"]["Enums"]["itcd_origem_usufruto"]
           para_pessoa_id?: string
+          pct_base_alternativa?: number | null
           quotas?: number
           simulacao_id?: string
+          vlr_base_alternativa_contabil?: number | null
+          vlr_base_alternativa_itr?: number | null
+          vlr_base_alternativa_mercado?: number | null
           vlr_base_contabil?: number | null
           vlr_base_itr?: number | null
           vlr_base_mercado?: number | null
+          vlr_imposto_alternativo_contabil?: number | null
+          vlr_imposto_alternativo_itr?: number | null
+          vlr_imposto_alternativo_mercado?: number | null
           vlr_imposto_contabil?: number | null
           vlr_imposto_itr?: number | null
           vlr_imposto_mercado?: number | null
@@ -4840,13 +4861,19 @@ export type Database = {
           doador_pessoa_id: string
           donatario_pessoa_id: string
           id: string
+          pct_base_alternativa: number | null
           pct_da_gia: number
           quotas_recebidas: number
           simulacao_id: string
+          vlr_base_alternativa_contabil: number | null
+          vlr_base_alternativa_itr: number | null
+          vlr_base_alternativa_mercado: number | null
           vlr_base_contabil: number
           vlr_base_itr: number
           vlr_base_mercado: number
-          vlr_doacao_anterior: number | null
+          vlr_imposto_alternativo_contabil: number | null
+          vlr_imposto_alternativo_itr: number | null
+          vlr_imposto_alternativo_mercado: number | null
           vlr_imposto_contabil: number
           vlr_imposto_itr: number
           vlr_imposto_mercado: number
@@ -4856,13 +4883,19 @@ export type Database = {
           doador_pessoa_id: string
           donatario_pessoa_id: string
           id?: string
+          pct_base_alternativa?: number | null
           pct_da_gia: number
           quotas_recebidas: number
           simulacao_id: string
+          vlr_base_alternativa_contabil?: number | null
+          vlr_base_alternativa_itr?: number | null
+          vlr_base_alternativa_mercado?: number | null
           vlr_base_contabil: number
           vlr_base_itr: number
           vlr_base_mercado: number
-          vlr_doacao_anterior?: number | null
+          vlr_imposto_alternativo_contabil?: number | null
+          vlr_imposto_alternativo_itr?: number | null
+          vlr_imposto_alternativo_mercado?: number | null
           vlr_imposto_contabil: number
           vlr_imposto_itr: number
           vlr_imposto_mercado: number
@@ -4872,13 +4905,19 @@ export type Database = {
           doador_pessoa_id?: string
           donatario_pessoa_id?: string
           id?: string
+          pct_base_alternativa?: number | null
           pct_da_gia?: number
           quotas_recebidas?: number
           simulacao_id?: string
+          vlr_base_alternativa_contabil?: number | null
+          vlr_base_alternativa_itr?: number | null
+          vlr_base_alternativa_mercado?: number | null
           vlr_base_contabil?: number
           vlr_base_itr?: number
           vlr_base_mercado?: number
-          vlr_doacao_anterior?: number | null
+          vlr_imposto_alternativo_contabil?: number | null
+          vlr_imposto_alternativo_itr?: number | null
+          vlr_imposto_alternativo_mercado?: number | null
           vlr_imposto_contabil?: number
           vlr_imposto_itr?: number
           vlr_imposto_mercado?: number
