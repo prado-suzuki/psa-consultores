@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
+import { TaskModal, type TaskModalInitialValues } from '@/components/equipe/fiscal/tasks/TaskModal';
 import {
   EscolherDestinoDaFala,
   type MotivoDoDestino,
@@ -14,7 +15,14 @@ import {
   useDomainMentionCandidates,
 } from '@/hooks/useDomainMentionCandidates';
 import { useDomainOrgComments } from '@/hooks/useDomainOrgComments';
-import { useExternalClients, useOrgProjectsForFilter } from '@/hooks/useTaxReferenceData';
+import { useOrgTasks } from '@/hooks/useOrgTasks';
+import {
+  useClusterIdByPageCategory,
+  useExternalClients,
+  useOrgProjectsForFilter,
+  useTeamMembersForTasks,
+} from '@/hooks/useTaxReferenceData';
+import { markdownEnriquecidoParaDoc } from '@/lib/enriquecimentoTexto';
 import type { AreaDeProjetos } from '@/lib/feedComentarios';
 import {
   alvoDoDestino,
@@ -27,6 +35,7 @@ import {
 import type { FeedFiltros } from '@/lib/feedFiltros';
 import { expandirMencaoTodos } from '@/lib/orgCommentMentions';
 import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
+import { serializeTarefaRichText } from '@/lib/tarefaRichText';
 
 interface FeedNovoComentarioProps {
   area: AreaDeProjetos;
@@ -38,6 +47,11 @@ interface FeedNovoComentarioProps {
 
 /** Desistir da escolha de destino não é erro: só interrompe o envio. */
 class EnvioDesfeito extends Error {}
+
+interface TarefaDoDitado {
+  valores: TaskModalInitialValues;
+  projetoId: string | null;
+}
 
 /**
  * Começar assunto de dentro do feed.
@@ -85,6 +99,9 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
    * perguntar de novo o que a pessoa acabou de responder.
    */
   const destinoEscolhidoNaMencao = useRef(false);
+  const [tarefaDoDitado, setTarefaDoDitado] = useState<TarefaDoDitado | null>(null);
+  const restaurarDitadoComoComentarioRef = useRef<(() => void) | null>(null);
+  const tarefaDoDitadoCriadaRef = useRef(false);
 
   const { data: clientes = [] } = useExternalClients();
   const { data: projetos = [] } = useOrgProjectsForFilter();
@@ -207,6 +224,17 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
         isPending={isCreating}
         mentionCandidates={mentionCandidates}
         aoMencionarSemGente={destinoParaMencionar}
+        onTarefaSugerida={(sugestao, usarComoComentario) => {
+          restaurarDitadoComoComentarioRef.current = usarComoComentario;
+          tarefaDoDitadoCriadaRef.current = false;
+          setTarefaDoDitado({
+            valores: {
+              title: sugestao.titulo,
+              description: serializeTarefaRichText(markdownEnriquecidoParaDoc(sugestao.descricao)),
+            },
+            projetoId: alvo?.projectId ?? filtros.projetoId ?? null,
+          });
+        }}
         onSubmit={async (body, files, mencoes) => {
           // Projeto no filtro já é o destino: perguntar de novo seria repetir o recorte.
           const escolhido =
@@ -292,6 +320,96 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
         onEscolher={responderModal}
         onCancelar={() => responderModal(null)}
       />
+
+      {tarefaDoDitado && (
+        <ModalTarefaDoDitado
+          area={area}
+          tarefa={tarefaDoDitado}
+          onCreated={() => {
+            tarefaDoDitadoCriadaRef.current = true;
+          }}
+          onFechar={() => {
+            const criada = tarefaDoDitadoCriadaRef.current;
+            const restaurar = restaurarDitadoComoComentarioRef.current;
+            setTarefaDoDitado(null);
+            tarefaDoDitadoCriadaRef.current = false;
+            restaurarDitadoComoComentarioRef.current = null;
+            if (!criada && restaurar) {
+              toast.info('A tarefa sugerida não foi criada.', {
+                action: { label: 'Usar como comentário', onClick: restaurar },
+              });
+            }
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function ModalTarefaDoDitado({
+  area,
+  tarefa,
+  onCreated,
+  onFechar,
+}: {
+  area: AreaDeProjetos;
+  tarefa: TarefaDoDitado;
+  onCreated: () => void;
+  onFechar: () => void;
+}) {
+  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
+
+  if (tarefa.projetoId) {
+    return (
+      <ModalTarefaDoDitadoComProjeto
+        area={area}
+        tarefa={tarefa}
+        teamMembers={teamMembers}
+        onCreated={onCreated}
+        onFechar={onFechar}
+      />
+    );
+  }
+
+  return (
+    <TaskModal
+      open
+      onOpenChange={(aberto) => !aberto && onFechar()}
+      area={area}
+      teamMembers={teamMembers}
+      initialValues={tarefa.valores}
+      onCreated={onCreated}
+    />
+  );
+}
+
+function ModalTarefaDoDitadoComProjeto({
+  area,
+  tarefa,
+  teamMembers,
+  onCreated,
+  onFechar,
+}: {
+  area: AreaDeProjetos;
+  tarefa: TarefaDoDitado;
+  teamMembers: { id: string; name: string }[];
+  onCreated: () => void;
+  onFechar: () => void;
+}) {
+  const { data: tarefas = [] } = useOrgTasks({ projectId: tarefa.projetoId! });
+  const tarefasMae = tarefas.filter((item) => !item.parent_task_id);
+
+  return (
+    <TaskModal
+      open
+      onOpenChange={(aberto) => !aberto && onFechar()}
+      area={area}
+      teamMembers={teamMembers}
+      parentTasks={tarefasMae}
+      defaultProjectId={tarefa.projetoId}
+      initialValues={tarefa.valores}
+      onCreated={onCreated}
+    />
   );
 }

@@ -15,6 +15,7 @@ describe('secoesDeAcessos', () => {
   it('devolve o rótulo de cada seção', () => {
     expect(rotuloDaSecao('pages')).toBe('Páginas');
     expect(rotuloDaSecao('agente')).toBe('Agente');
+    expect(rotuloDaSecao('enriquecimento_perfis')).toBe('Perfis de IA');
   });
 
   it('nenhum id se repete — dois itens com o mesmo id acenderiam juntos', () => {

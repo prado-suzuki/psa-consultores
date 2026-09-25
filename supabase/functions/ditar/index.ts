@@ -14,6 +14,9 @@ import {
   prepararEnriquecimento,
   validarPedidoEnriquecimento,
 } from '../_shared/enriquecimentoTexto.ts';
+import { classificarComFallback } from '../_shared/classificacao/classificar.ts';
+import { obterClassificador } from '../_shared/classificacao/classificadores/index.ts';
+import { classificacaoPedeTarefa } from '../_shared/classificacao/classificadores/intencaoDitado.ts';
 import { chamarChat, ErroIA, ErroTranscricaoVazia, transcrever } from '../_shared/ia.ts';
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
@@ -103,17 +106,21 @@ serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const { data: perfilData, error: perfilError } = await admin
-      .from('enriquecimento_perfil')
-      .select('nome, rotulo, instrucoes, modelo, temperatura, contrato_saida, ativo')
-      .eq('nome', 'transcricao-fiel')
-      .eq('ativo', true)
-      .maybeSingle();
-    if (perfilError || !perfilData) {
-      console.error('ditar enrichment profile error:', perfilError?.message ?? 'perfil ausente');
-      throw new Error('Não foi possível carregar o perfil de limpeza da transcrição.');
-    }
-    const perfilLimpeza = interpretarPerfilEnriquecimento(perfilData);
+    const carregarPerfil = async (nome: string) => {
+      const { data, error } = await admin
+        .from('enriquecimento_perfil')
+        .select('nome, rotulo, instrucoes, modelo, temperatura, contrato_saida, ativo')
+        .eq('nome', nome)
+        .eq('ativo', true)
+        .maybeSingle();
+      if (error || !data) {
+        console.error('ditar enrichment profile error:', nome, error?.message ?? 'perfil ausente');
+        throw new Error(`Não foi possível carregar o perfil ${nome}.`);
+      }
+      return interpretarPerfilEnriquecimento(data);
+    };
+
+    const perfilLimpeza = await carregarPerfil('transcricao-fiel');
     const pedidoLimpeza = validarPedidoEnriquecimento(
       perfilLimpeza,
       transcricao.texto,
@@ -133,14 +140,58 @@ serve(async (req) => {
       throw new Error('A limpeza da transcrição devolveu um formato inesperado.');
     }
 
-    return json(
-      {
-        texto: resultado.texto,
-        enriquecimento: configuracao.enriquecimento ?? null,
-      },
-      200,
-      cors,
-    );
+    const classificacao = await classificarComFallback(obterClassificador('intencao-ditado'), {
+      texto: resultado.texto,
+    });
+    const perfilForcado = configuracao.enriquecimento?.perfil === 'comentario-para-tarefa';
+
+    if (perfilForcado || classificacaoPedeTarefa(classificacao)) {
+      try {
+        const perfilTarefa = await carregarPerfil('comentario-para-tarefa');
+        const pedidoTarefa = validarPedidoEnriquecimento(perfilTarefa, resultado.texto, undefined, {
+          titulo: 'simples',
+          descricao: 'rico',
+        });
+        const chamadaTarefa = prepararEnriquecimento(perfilTarefa, pedidoTarefa);
+        const respostaTarefa = await chamarChat({
+          modelo: chamadaTarefa.modelo,
+          temperatura: chamadaTarefa.temperatura,
+          mensagens: chamadaTarefa.mensagens,
+          ferramentas: chamadaTarefa.ferramentas,
+          escolhaDeFerramenta: chamadaTarefa.escolhaDeFerramenta,
+          maxTokens: 4096,
+          timeoutMs: 40_000,
+        });
+        const tarefa = interpretarEnriquecimento(perfilTarefa, pedidoTarefa, respostaTarefa);
+        if (!tarefa.estruturado) throw new Error('O perfil de tarefa devolveu texto simples.');
+
+        return json(
+          {
+            texto: resultado.texto,
+            acao: {
+              tipo: 'abrir_tarefa',
+              titulo: tarefa.campos.titulo.texto,
+              descricao: tarefa.campos.descricao.texto,
+              classificacao: {
+                nome: classificacao.classificador,
+                versao: classificacao.versao,
+                classe: classificacao.classe,
+                certeza: classificacao.certeza,
+              },
+            },
+          },
+          200,
+          cors,
+        );
+      } catch (erro) {
+        console.warn(
+          'ditar task enrichment failed, returning transcription:',
+          erro instanceof Error ? erro.message : 'erro desconhecido',
+        );
+      }
+    }
+
+    return json({ texto: resultado.texto, acao: { tipo: 'inserir_texto' } }, 200, cors);
   } catch (erro) {
     if (erro instanceof ErroIA) return json({ error: erro.message }, erro.status, cors);
     console.error('ditar error:', erro instanceof Error ? erro.message : 'erro desconhecido');

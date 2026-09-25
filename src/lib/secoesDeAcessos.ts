@@ -4,6 +4,7 @@ import {
   FileText,
   FolderKanban,
   LayoutDashboard,
+  Sparkles,
   UserCheck,
   Users,
 } from 'lucide-react';
@@ -55,6 +56,12 @@ export const SECOES_DE_ACESSOS = [
   { id: 'cadastro_categorias', label: 'Produtos & Serviços', icon: FolderKanban },
   { id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard },
   { id: 'agente', label: 'Agente', icon: Bot },
+  // Irmã da anterior: o Agente responde sobre a tela; os Perfis de IA são a
+  // configuração do ENRIQUECIMENTO de texto (ditado → tarefa etc.), que a edge
+  // function `enriquecer-texto` lê a cada chamada. Perto do Agente porque é a
+  // mesma pergunta — "a IA se comporta como?" — e não perto de Cadastros porque
+  // não é cadastro de domínio, é parametrização de IA.
+  { id: 'enriquecimento_perfis', label: 'Perfis de IA', icon: Sparkles },
 ] as const satisfies readonly SecaoDeAcessos[];
 
 export type IdDeSecaoDeAcessos = (typeof SECOES_DE_ACESSOS)[number]['id'];

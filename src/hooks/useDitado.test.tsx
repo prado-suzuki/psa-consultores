@@ -62,7 +62,7 @@ describe('useDitado', () => {
   it('grava sem timeslice, envia multipart e entrega a transcrição', async () => {
     const onResultado = vi.fn();
     mocks.invoke.mockResolvedValue({
-      data: { texto: 'Texto limpo.', enriquecimento: null },
+      data: { texto: 'Texto limpo.', acao: { tipo: 'inserir_texto' } },
       error: null,
     });
     const { result, unmount } = renderHook(() =>
@@ -82,14 +82,17 @@ describe('useDitado', () => {
     const formulario = mocks.invoke.mock.calls[0][1].body as FormData;
     expect(formulario.get('ditado')).toBe('comentario');
     expect((formulario.get('file') as File).type).toBe('audio/webm');
-    expect(onResultado).toHaveBeenCalledWith({ texto: 'Texto limpo.', enriquecimento: null });
+    expect(onResultado).toHaveBeenCalledWith({
+      texto: 'Texto limpo.',
+      acao: { tipo: 'inserir_texto' },
+    });
     unmount();
     expect(pararFaixa).toHaveBeenCalled();
   });
 
   it('reutiliza a faixa viva em gravações consecutivas', async () => {
     mocks.invoke.mockResolvedValue({
-      data: { texto: 'Texto limpo.', enriquecimento: null },
+      data: { texto: 'Texto limpo.', acao: { tipo: 'inserir_texto' } },
       error: null,
     });
     const { result, unmount } = renderHook(() =>
@@ -110,7 +113,7 @@ describe('useDitado', () => {
   it('para automaticamente no limite configurado', async () => {
     vi.useFakeTimers();
     mocks.invoke.mockResolvedValue({
-      data: { texto: 'Fim.', enriquecimento: null },
+      data: { texto: 'Fim.', acao: { tipo: 'inserir_texto' } },
       error: null,
     });
     const { result } = renderHook(() =>

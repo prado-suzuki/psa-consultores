@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
-import { useDitado, type EnriquecimentoDoDitado, type EstadoDitado } from '@/hooks/useDitado';
+import { useDitado, type EstadoDitado, type TarefaSugeridaDoDitado } from '@/hooks/useDitado';
 import { cn } from '@/lib/utils';
 
 export interface AlvoDitado {
@@ -15,7 +15,7 @@ interface BotaoDitadoProps {
   ditado: string;
   alvo: AlvoDitado;
   disabled?: boolean;
-  onEnriquecimento?: (configuracao: EnriquecimentoDoDitado) => void;
+  onTarefaSugerida?: (tarefa: TarefaSugeridaDoDitado) => void;
   onEstadoChange?: (estado: EstadoDitado) => void;
 }
 
@@ -28,7 +28,7 @@ export function BotaoDitado({
   ditado,
   alvo,
   disabled,
-  onEnriquecimento,
+  onTarefaSugerida,
   onEstadoChange,
 }: BotaoDitadoProps) {
   const onEstadoChangeRef = useRef(onEstadoChange);
@@ -36,8 +36,16 @@ export function BotaoDitado({
   const { estado, segundos, erro, iniciar } = useDitado({
     ditado,
     onResultado: (resultado) => {
+      if (resultado.acao?.tipo === 'abrir_tarefa' && onTarefaSugerida) {
+        onTarefaSugerida({
+          titulo: resultado.acao.titulo,
+          descricao: resultado.acao.descricao,
+          transcricaoOriginal: resultado.texto,
+          classificacao: resultado.acao.classificacao,
+        });
+        return;
+      }
       alvo.inserirTexto(resultado.texto);
-      if (resultado.enriquecimento) onEnriquecimento?.(resultado.enriquecimento);
     },
   });
 

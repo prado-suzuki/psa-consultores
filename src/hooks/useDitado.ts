@@ -3,17 +3,30 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type EstadoDitado = 'ocioso' | 'gravando' | 'transcrevendo' | 'erro';
-export type QuandoEnriquecerDitado = 'automatico' | 'oferecer';
 
-export interface EnriquecimentoDoDitado {
-  perfil: string;
-  quando: QuandoEnriquecerDitado;
+export interface TarefaSugeridaDoDitado {
+  titulo: string;
+  descricao: string;
+  transcricaoOriginal: string;
+  classificacao: {
+    nome: string;
+    versao: number;
+    classe: string;
+    certeza: 'alta' | 'media' | 'baixa';
+  };
 }
 
-export interface ResultadoDitado {
-  texto: string;
-  enriquecimento: EnriquecimentoDoDitado | null;
-}
+export type ResultadoDitado =
+  | { texto: string; acao: { tipo: 'inserir_texto' } }
+  | {
+      texto: string;
+      acao: {
+        tipo: 'abrir_tarefa';
+        titulo: string;
+        descricao: string;
+        classificacao: TarefaSugeridaDoDitado['classificacao'];
+      };
+    };
 
 interface UseDitadoOptions {
   ditado: string;

@@ -103,7 +103,14 @@ type AuditEntityType =
   // pergunta que se faz ao log e sempre "o que mudou no acesso do fulano", e a
   // linha de `user_roles` deixa de existir no momento em que o papel e tirado.
   | 'papel'
-  | 'area_de_acesso';
+  | 'area_de_acesso'
+  // Perfis de IA do enriquecimento de texto (`enriquecimento_perfil`). A linha
+  // INTEIRA é a configuração que a edge function aplica na próxima chamada, e o
+  // `nome` é a chave que o código cita — por isso o diff campo a campo é o
+  // mínimo: sem ele, "quem mudou a instrução do perfil X" não tem resposta.
+  // Não existe tipo para exclusão: a tela não oferece apagar (ver
+  // `useDomainEnriquecimentoPerfis`), só desativar.
+  | 'enriquecimento_perfil';
 
 interface AuditLogEntry {
   area: AuditArea;

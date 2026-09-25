@@ -419,7 +419,8 @@ describe('TaskModal — criação', () => {
 
   it('cria a tarefa com o payload exato e fecha o modal', async () => {
     const user = userEvent.setup();
-    const { props } = renderModal();
+    const onCreated = vi.fn();
+    const { props } = renderModal({ onCreated });
 
     expect(screen.getByRole('heading', { name: 'Nova Tarefa' })).toBeInTheDocument();
 
@@ -477,9 +478,31 @@ describe('TaskModal — criação', () => {
     ]);
 
     expect(kinds()).toEqual(['create']);
+    expect(onCreated).toHaveBeenCalledWith('T-NOVA');
     expect(mocks.clearDraft).toHaveBeenCalled();
     expect(props.onOpenChange).toHaveBeenCalledWith(false);
     expect(mocks.toast.success).toHaveBeenCalledWith('Tarefa criada com sucesso');
+  });
+
+  it('prefere os valores iniciais da IA a um rascunho antigo', () => {
+    mocks.restoreDraft.mockReturnValue({
+      title: 'Rascunho antigo',
+      description: 'Descrição antiga',
+    });
+
+    renderModal({
+      initialValues: {
+        title: 'Revisar relatório',
+        description: 'Conferir os valores antes do envio.',
+      },
+      defaultProjectId: 'PRJ1',
+    });
+
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Revisar relatório');
+    expect(screen.getByLabelText(/^Descrição/)).toHaveTextContent(
+      'Conferir os valores antes do envio.',
+    );
+    expect(mocks.restoreDraft).not.toHaveBeenCalled();
   });
 
   it('bloqueia o envio e mostra as mensagens de campo obrigatório', async () => {

@@ -20,6 +20,7 @@ import {
 } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 import { useEnriquecerTexto } from '@/hooks/useEnriquecerTexto';
+import type { TarefaSugeridaDoDitado } from '@/hooks/useDitado';
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -55,6 +56,7 @@ interface CommentComposerProps {
   /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
   replyingToName?: string | null;
   onCancel?: () => void;
+  onTarefaSugerida?: (tarefa: TarefaSugeridaDoDitado, usarComoComentario: () => void) => void;
   onSubmit: (body: string, files: File[], mentions: string[]) => Promise<void>;
 }
 
@@ -68,6 +70,7 @@ export function CommentComposer({
   aoMencionarSemGente,
   replyingToName,
   onCancel,
+  onTarefaSugerida,
   onSubmit,
 }: CommentComposerProps) {
   /** Corpo já no formato de gravação (marcador + JSON) — é o que o editor emite. */
@@ -377,6 +380,14 @@ export function CommentComposer({
                 ditado="comentario"
                 alvo={{ inserirTexto: (texto) => inserirTextoRef.current?.(texto) }}
                 disabled={isPending || formatacao.isPending}
+                onTarefaSugerida={
+                  onTarefaSugerida
+                    ? (tarefa) =>
+                        onTarefaSugerida(tarefa, () =>
+                          inserirTextoRef.current?.(tarefa.transcricaoOriginal),
+                        )
+                    : undefined
+                }
                 onEstadoChange={(estado) =>
                   setDitadoOcupado(estado === 'gravando' || estado === 'transcrevendo')
                 }

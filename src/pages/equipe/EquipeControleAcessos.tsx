@@ -15,6 +15,7 @@ import { UsersRolesView } from '@/components/acessos/UsersRolesView';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
 import { AgenteTab } from '@/components/acessos/AgenteTab';
+import { EnriquecimentoPerfisTab } from '@/components/acessos/EnriquecimentoPerfisTab';
 
 /**
  * Fachada do Controle de Acessos: a barra escolhe a seção, cada seção é um
@@ -147,6 +148,13 @@ const EquipeControleAcessos = () => {
                   insights e o historico de aprendizado. */}
               <TabsContent value="agente" className="space-y-4">
                 <AgenteTab />
+              </TabsContent>
+
+              {/* Perfis de IA Tab — gestão de enriquecimento_perfil: instruções,
+                  modelo, temperatura e contrato de saída que a edge function
+                  enriquecer-texto aplica a cada chamada. */}
+              <TabsContent value="enriquecimento_perfis" className="space-y-4">
+                <EnriquecimentoPerfisTab />
               </TabsContent>
             </Tabs>
           </div>

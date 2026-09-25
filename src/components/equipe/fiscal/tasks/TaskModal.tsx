@@ -63,6 +63,11 @@ import { TaskEditBody } from '@/components/equipe/fiscal/tasks/task-modal/TaskEd
 import { TaskEditHeader } from '@/components/equipe/fiscal/tasks/task-modal/TaskEditHeader';
 import { TaskPropertyBar } from '@/components/equipe/fiscal/tasks/task-modal/TaskPropertyBar';
 
+export interface TaskModalInitialValues {
+  title: string;
+  description: string;
+}
+
 interface TaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,6 +77,8 @@ interface TaskModalProps {
   parentTasks?: OrgTask[];
   defaultParentId?: string | null;
   defaultProjectId?: string | null;
+  initialValues?: TaskModalInitialValues;
+  onCreated?: (taskId: string) => void;
   /**
    * Este modal é o que abriu por cima de outro, pelo atalho de editar da linha
    * de subtarefa. Serve para uma coisa só: não oferecer o mesmo atalho de novo,
@@ -89,6 +96,8 @@ export const TaskModal = ({
   parentTasks = [],
   defaultParentId,
   defaultProjectId,
+  initialValues,
+  onCreated,
   aninhado = false,
 }: TaskModalProps) => {
   const { user } = useAuth();
@@ -354,8 +363,18 @@ export const TaskModal = ({
       });
     } else {
       isResettingRef.current = true;
-      const draft = restoreDraft();
-      if (draft && draft.title) {
+      const draft = initialValues ? null : restoreDraft();
+      if (initialValues) {
+        form.reset({
+          title: initialValues.title,
+          description: initialValues.description,
+          status: 'todo',
+          priority: 'medium',
+          reviewer_id: null,
+          review_comment: '',
+          project_id: defaultProjectId || '',
+        });
+      } else if (draft && draft.title) {
         form.reset(draft);
         setShowDraftNotice(true);
         setTimeout(() => setShowDraftNotice(false), 4000);
@@ -377,7 +396,14 @@ export const TaskModal = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, task?.id, defaultParentId, defaultProjectId]);
+  }, [
+    open,
+    task?.id,
+    defaultParentId,
+    defaultProjectId,
+    initialValues?.title,
+    initialValues?.description,
+  ]);
 
   const handleAssigneeChange = (userId: string) => {
     if (userId === '_none') {
@@ -470,6 +496,7 @@ export const TaskModal = ({
         } else {
           const createdTask = await createTask.mutateAsync(input);
           taskId = createdTask.id;
+          onCreated?.(createdTask.id);
         }
         if (requiresTransitionComment) partiallySavedTaskIdRef.current = taskId;
       }
