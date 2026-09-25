@@ -270,6 +270,10 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     'src/components/equipe/dev/perdcomp/per-detail/PerDetailSituationSidebar.tsx': 1,
   },
   'dentro-do-cartao': {
+    // O corpo do evento no feed de comentários, branco pela mesma razão da fala
+    // humana logo acima dele: as duas caixas moram no cartão do feed, e tingir só
+    // a do evento o faria ler como legenda do cartão em vez de conteúdo.
+    'src/components/comentarios/feed/FeedItemComentario.tsx': 1,
     // As quatro do `DailyQuickStatusDialog` são três motivos no mesmo arquivo (o
     // corpo do modal é `bg-muted/60`, e dentro dele há cartão, pílula e
     // esqueleto). Entrada de arquivo é única por construção — ver o teste

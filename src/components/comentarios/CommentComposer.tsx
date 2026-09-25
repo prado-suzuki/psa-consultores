@@ -276,7 +276,7 @@ export function CommentComposer({
           </div>
           <OrgCommentBody body={serializarDoc(sugestao.doc)} />
           {!sugestaoAtual && (
-            <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+            <p className="mt-2 text-xs text-warning">
               O texto mudou depois da solicitação. Formate novamente para gerar outra sugestão.
             </p>
           )}
