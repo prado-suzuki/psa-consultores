@@ -79,6 +79,13 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
     deck: null,
     geraSlides: true,
   },
+  {
+    // Capítulo 04: deck da `gerar-apresentacao`, com a escolha das simulações aprovadas na própria linha.
+    id: 'sucessoria',
+    nome: 'Organização Sucessória',
+    origem: 'Legítima e disponível, tributação do ITCMD e as simulações aprovadas da Calculadora de ITCMD.',
+    deck: 'sucessoria',
+  },
   // AS DUAS ERAM UMA: a "Abertura de Demanda" trazia o diagrama e a tabela
   // grudados, e saíam sempre juntos. Separadas, cada uma se marca, se vê e se
   // imprime por si. O que as unia era o DESTINATÁRIO — as duas vão no mesmo
@@ -138,9 +145,6 @@ export const viraSlide = (p: PecaDaBiblioteca): boolean => p.deck !== null || p.
 
 /** Tudo que vira slide — pelo botão de cima ou pelos controles da própria tela. */
 export const PECAS_DE_SLIDE = PECAS_DA_BIBLIOTECA.filter(viraSlide);
-
-/** As que o botão único de cima alcança: os decks da apresentação da OSG. */
-export const PECAS_COM_DECK = PECAS_DA_BIBLIOTECA.filter((p) => p.deck !== null);
 
 /** As que ficam na tela e não viram slide nenhum. */
 export const PECAS_SO_DE_TELA = PECAS_DA_BIBLIOTECA.filter((p) => !viraSlide(p));

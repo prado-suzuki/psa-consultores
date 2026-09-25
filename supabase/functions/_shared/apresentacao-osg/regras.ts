@@ -38,17 +38,19 @@
 export { anota } from "../apresentacao/problema.ts";
 export type { ProblemaDoDeck, Probs } from "../apresentacao/problema.ts";
 
-/**
- * As secoes do deck da OSG, para o campo `onde`.
- *
- * Do lado tributario `onde` e o rotulo do slide ("3.1 Premissas, a DRE", "caixa
- * de IRPF"). Aqui sao as tres pecas que a geracao monta. E o que permite a tela
- * agrupar os avisos por parte do deck em vez de listar solto.
- */
+/** As partes do deck da OSG para o campo `onde`, pelo qual a tela agrupa os avisos. */
 export const ONDE = {
   patrimonial: "Diagnóstico Patrimonial",
   quadro: "Quadro Societário",
   organograma: "Organograma",
+  // Capitulo 04: a instituicao se repete por cenario, e o aviso leva o nome dele junto.
+  qualificacao: "Qualificação das Partes",
+  tributacaoAtual: "Tributação atual",
+  instituicao: "Tributação da instituição",
+  resumoDosTributos: "Resumo dos tributos",
+  resumoDosCenarios: "Resumo dos cenários",
+  /** O que o molde do 04 nao tem: forma ou pagina que o gerador procura. */
+  sucessoria: "Organização Sucessória",
 } as const;
 
 /** "1 imovel" / "3 imoveis" — o relato e lido por humano, entao concorda. */
@@ -59,14 +61,12 @@ export const plural = (n: number, um: string, varios: string): string =>
 // Empresa no quadro societario
 // ---------------------------------------------------------------------------
 
-export type TipoDeEmpresa = "CN" | "PR" | "SC" | "OUTRO" | "AUSENTE";
+export type TipoDeEmpresa = "CN" | "PR" | "SC" | "AUSENTE";
 
-/** Normaliza o campo livre `pessoa.tipo_empresa`, que aceita nulo e caixa mista. */
+/** Normaliza `pessoa.tipo_empresa`; o banco so aceita PR, CN, SC ou vazio (`pessoa_tipo_empresa_check`). */
 export function lerTipoDeEmpresa(bruto: string | null | undefined): TipoDeEmpresa {
   const t = String(bruto ?? "").trim().toUpperCase();
-  if (t === "") return "AUSENTE";
-  if (t === "CN" || t === "PR" || t === "SC") return t;
-  return "OUTRO";
+  return t === "CN" || t === "PR" || t === "SC" ? t : "AUSENTE";
 }
 
 /**
@@ -90,13 +90,10 @@ export function motivoDoQuadroAusente(args: {
   const { denominacao, tipo, temQuadroGravado, linhasApuradas, houveMovimento } = args;
 
   if (tipo === "SC") {
-    return `"${denominacao}" nao entra no quadro societario: esta marcada como socia (SC), nao como sociedade do cliente.`;
+    return `"${denominacao}" não entra no quadro societário: está marcada como sócia (SC), não como sociedade do cliente.`;
   }
   if (tipo === "AUSENTE") {
-    return `"${denominacao}" ficou fora do quadro societario: o campo "tipo de empresa" esta vazio no cadastro (esperado CN ou PR).`;
-  }
-  if (tipo === "OUTRO") {
-    return `"${denominacao}" ficou fora do quadro societario: "tipo de empresa" tem valor que o gerador nao reconhece (esperado CN ou PR).`;
+    return `"${denominacao}" ficou fora do quadro societário: o campo "tipo de empresa" está vazio no cadastro (esperado CN ou PR).`;
   }
   if (linhasApuradas > 0) return null;
 
@@ -106,12 +103,12 @@ export function motivoDoQuadroAusente(args: {
     // devolveria para uma empresa sem nenhum lancamento. As duas situacoes pedem
     // acoes opostas — lancar o quadro, ou conferir por que tudo zerou.
     return houveMovimento
-      ? `"${denominacao}" e constituida (CN) e o quadro saiu vazio: ha movimentacao de quotas lancada, mas os saldos se anulam.`
-      : `"${denominacao}" e constituida (CN) e ainda nao tem quadro societario gravado — nenhuma movimentacao de quotas lancada.`;
+      ? `"${denominacao}" é constituída (CN) e o quadro saiu vazio: há movimentação de quotas lançada, mas os saldos se anulam.`
+      : `"${denominacao}" é constituída (CN) e ainda não tem quadro societário gravado — nenhuma movimentação de quotas lançada.`;
   }
   return temQuadroGravado
-    ? `"${denominacao}" e a integralizar (PR) e o quadro gravado ficou sem linhas apos a apuracao.`
-    : `"${denominacao}" e a integralizar (PR) e nao foi possivel derivar o quadro dos bens dela.`;
+    ? `"${denominacao}" é a integralizar (PR) e o quadro gravado ficou sem linhas após a apuração.`
+    : `"${denominacao}" é a integralizar (PR) e não foi possível derivar o quadro dos bens dela.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +134,7 @@ export function faixaDaEmpresa(tipo: TipoDeEmpresa): FaixaDoOrganograma | null {
 export function motivoForaDoOrganograma(denominacao: string, tipo: TipoDeEmpresa): string | null {
   if (faixaDaEmpresa(tipo) !== null) return null;
   if (tipo === "SC") return null; // socia: o lugar dela e a faixa de socios
-  return `"${denominacao}" nao aparece no organograma: sem "tipo de empresa" (CN ou PR) nao ha faixa onde posiciona-la.`;
+  return `"${denominacao}" não aparece no organograma: sem "tipo de empresa" (CN ou PR) não há faixa onde posicioná-la.`;
 }
 
 /** So PF e socia (SC) entram na faixa "Socios"; o resto ja aparece em outra faixa. */
@@ -193,18 +190,15 @@ export function temImpedimentoAtivo(impedimentos: Array<{ cancelado?: unknown }>
 export function relatoDasMatriculas(denominacao: string, motivos: MotivoDaMatricula[]): string[] {
   const conta = (m: MotivoDaMatricula) => motivos.filter((x) => x === m).length;
   const saida: string[] = [];
-  const impedidas = conta("impedimento");
   const semValor = conta("sem_valor");
   const semTitular = conta("sem_titular");
 
-  if (impedidas > 0) {
-    saida.push(`${plural(impedidas, "matricula ficou", "matriculas ficaram")} fora do quadro de "${denominacao}": impedimento ativo.`);
-  }
+  /* Matricula com impedimento ativo fica fora do quadro por regra; nao e dado faltando, e nao avisa. */
   if (semValor > 0) {
-    saida.push(`${plural(semValor, "matricula ficou", "matriculas ficaram")} fora do quadro de "${denominacao}": sem valor contabil na matricula nem no bem.`);
+    saida.push(`${plural(semValor, "matrícula ficou", "matrículas ficaram")} fora do quadro de "${denominacao}": sem valor contábil na matrícula nem no bem.`);
   }
   if (semTitular > 0) {
-    saida.push(`${plural(semTitular, "matricula ficou", "matriculas ficaram")} fora do quadro de "${denominacao}": nenhum titular vinculado.`);
+    saida.push(`${plural(semTitular, "matrícula ficou", "matrículas ficaram")} fora do quadro de "${denominacao}": nenhum titular vinculado.`);
   }
   return saida;
 }
@@ -227,7 +221,7 @@ export function percentuaisSaemVazios(totalQuotas: number): boolean {
 }
 
 export function relatoDePercentualVazio(denominacao: string): string {
-  return `O quadro de "${denominacao}" sai com todos os percentuais em "—": o total de quotas apurado e zero.`;
+  return `O quadro de "${denominacao}" sai com todos os percentuais em "—": o total de quotas apurado é zero.`;
 }
 
 /*

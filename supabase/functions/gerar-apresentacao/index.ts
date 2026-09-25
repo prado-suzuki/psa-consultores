@@ -1,38 +1,5 @@
-// Edge Function: gerar-apresentacao (v2 — Patrimonial + Organograma + Quadro)
-//
-// Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
-//   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
-// Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-//
-// Saida: PERSISTE, desde 21/09/2026. Cada deck vira um arquivo em
-//   `osg-apresentacoes` e uma linha em `osg_apresentacao`, com versao, checksum do
-//   arquivo, checksum do molde, versao do gerador, os problemas congelados e o
-//   SNAPSHOT do conteudo. O front recebe URL assinada, nao mais bytes em base64.
-//
-//   Antes disto a geracao nao deixava rastro: baixava e pronto. Nao havia como
-//   dizer o que foi entregue a um cliente, nem quando, nem de qual molde — e
-//   regerar depois dava outro arquivo, porque o cadastro anda.
-//
-//   Continua NAO mexendo em `documento_gerado`/`documento_arquivo`: aquelas tem
-//   `checklist_item_id` e `triado_em`, e a apresentacao apareceria no checklist do
-//   cliente como documento que ele deve entregar. A fronteira e antiga e vale.
-//
-// A sequencia de gravar (validar → versionar → subir → registrar → assinar) NAO
-//   mora aqui: e a casca `_shared/apresentacao/registrar.ts`, compartilhada com o
-//   `gerar-slides-tributarios`. O que e da OSG entra por parametro — a ancora
-//   `cliente_id` + `tipo`, o bucket, o nome do arquivo e o snapshot.
-//
-// Contrato:
-//   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, url, apresentacaoId, versao }],
-//       erros?: [...], problemas?: [...] }
-//
-// `erros` e `problemas` NAO sao a mesma coisa:
-//   erros    — excecao num deck (template ausente, PPTX invalido, erro de query).
-//              Custa o arquivo inteiro; aquele deck nao vem.
-//   problemas — buraco de cadastro. O .pptx SAI, e sai faltando coisa: empresa fora
-//              do quadro, bem sem sociedade de destino, titular em placeholder.
-//              Ate 09/2026 isso ia calado, e quem apresentava descobria na reuniao.
+// Edge Function gerar-apresentacao: os capitulos 01, 02 e 04 da apresentacao da OSG, gravados pela
+// casca `_shared/apresentacao/registrar.ts`. Contrato e regras: docs/osg/apresentacao-da-osg.md.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -43,7 +10,7 @@ import { parseXml, serializeXml, qsa } from "../_shared/ooxml/xml.ts";
 import { applyTokensToSlideXml, applyTokensToNode, stripRemainingTokens, type Tokens } from "../_shared/ooxml/runs.ts";
 import { stripTiming } from "../_shared/ooxml/timing.ts";
 import { validatePptx } from "../_shared/ooxml/validate.ts";
-import { duplicateSlide, removeSlide } from "../_shared/ooxml/slide.ts";
+import { duplicateSlide, removeSlide, slideDoToken } from "../_shared/ooxml/slide.ts";
 import {
   listShapes, getShapeXfrm, setShapeXfrm, shapeContainsToken,
   cloneShapeWithId, removeShape,
@@ -54,21 +21,23 @@ import {
 } from "../_shared/ooxml/table.ts";
 import { nextCNvPrId } from "../_shared/ooxml/ids.ts";
 import {
-  carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
+  carregarForaDaEstrutura, carregarOutrosBens, carregarPatrimonial, carregarTotaisPorSociedade, carregarOrganograma,
+  carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
-  type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
+  type BemForaDaEstrutura, type OutrosBens, type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
   type ProblemaDoDeck,
 } from "./data.ts";
 import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
+import { gerarSucessoria } from "./sucessoria.ts";
+import type { TotalDaSociedade } from "../_shared/apresentacao-osg/conteudo.ts";
 /* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
    que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
 import {
-  cabemQuantasLinhas, estimarAltura, repartirLinhas,
+  cabemQuantasLinhas, estimarAltura, LINHAS_POR_PAGINA_DE_OUTROS_BENS, repartirLinhas,
   QUADRO_PAD_H, QUADRO_ROW_H, QUADRO_TOP_0, QUADRO_TOP_MAX,
 } from "../_shared/apresentacao-osg/paginacao.ts";
 
-type DeckTipo = "patrimonial" | "societaria";
-type BodyTipo = DeckTipo | "ambas";
+type DeckTipo = "patrimonial" | "societaria" | "sucessoria";
 
 /**
  * O que um gerador devolve: os bytes, as contagens e o SNAPSHOT.
@@ -89,9 +58,36 @@ interface DeckMontado {
 }
 
 const TEMPLATE_PATHS: Record<DeckTipo, string> = {
-  patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
-  societaria: "TEMPLATE_SOCIETARIA.pptx",
+  /* O nome do molde muda quando o desenho muda: cada ambiente guarda o seu no bucket, e a funcao
+     antiga do outro ambiente leria o desenho novo. */
+  patrimonial: "TEMPLATE_CAP01_PATRIMONIAL.pptx",
+  societaria: "TEMPLATE_CAP02_SOCIETARIA.pptx",
+  /* Molde montado por docs/OSG modelo/ferramenta/montar-cap04.ts. */
+  sucessoria: "TEMPLATE_CAP04_SUCESSORIA.pptx",
 };
+
+/* O nome que entra no arquivo gravado: `PSA_<rotulo>_<cliente>_v<n>.pptx`. */
+const ROTULO_DO_ARQUIVO: Record<DeckTipo, string> = {
+  patrimonial: "Patrimonial",
+  societaria: "Societaria",
+  sucessoria: "Sucessoria",
+};
+
+const TIPOS = Object.keys(TEMPLATE_PATHS) as DeckTipo[];
+const ehTipo = (t: unknown): t is DeckTipo => typeof t === "string" && (TIPOS as string[]).includes(t);
+
+/**
+ * Os decks pedidos: `tipos` (a lista marcada) ou `tipo` do contrato antigo, em que `ambas` e so
+ * patrimonial e societaria.
+ */
+function decksPedidos(body: { tipo?: unknown; tipos?: unknown }): DeckTipo[] | null {
+  if (Array.isArray(body?.tipos)) {
+    const unicos = [...new Set(body.tipos)];
+    return unicos.length > 0 && unicos.every(ehTipo) ? unicos : null;
+  }
+  if (body?.tipo === "ambas") return ["patrimonial", "societaria"];
+  return ehTipo(body?.tipo) ? [body.tipo] : null;
+}
 
 const BUCKET_TEMPLATES = "osg-templates";
 /* Provisionado em 14/08/2026 e vazio ate agora: a geracao nao persistia nada. */
@@ -123,17 +119,13 @@ function dataBR(d = new Date()): string {
 // PATRIMONIAL — 1 slide por sociedade, linhas clonadas por matricula
 // ============================================================================
 
-// Template patrimonial:
-//   slide1 = capa {{DATA}} {{CLIENTE}}
-//   slide2 = divisor
-//   slide3 = template repetivel: {{SOCIEDADE}} + tabela com row-template {{PROP}} {{REF}} {{MAT}} {{MUN}} {{VALOR}}
-//
-// Estrategia: pra cada sociedade em `sociedades[]`, duplicar slide3 → aplicar
-// tokens da sociedade + clonar rows. No fim, remover o slide3 original.
+// Molde patrimonial: as paginas se acham pelo token (`slideDoToken`); a de sociedade se duplica por
+// sociedade e clona uma linha por matricula.
 function renderPatrimonialSlide(
   parts: PptxParts,
   slidePath: string,
   soc: SociedadePatrimonial,
+  total: TotalDaSociedade | null = null,
 ): void {
   const xml0 = readText(parts, slidePath);
   const doc = parseXml(xml0);
@@ -148,15 +140,25 @@ function renderPatrimonialSlide(
       for (const linha of soc.linhas) {
         const clone = cloneRow(template);
         applyTokensToNode(clone, {
+          MOM: linha.momento,
           PROP: linha.propriedade,
+          FATO: linha.deFato,
           REF: linha.referencia,
           MAT: linha.matriculaLabel,
           MUN: linha.municipioUf,
+          AREA: linha.area,
+          SIT: linha.situacao,
           VALOR: linha.valor,
         });
         insertRowBefore(clone, template);
       }
       removeRow(template);
+    }
+    /* O TOTAL e da sociedade inteira: so a ultima pagina dela o leva. Molde sem essa linha passa reto. */
+    const linhaDoTotal = listRows(gf).find((r) => rowContainsToken(r, "TOT_AREA"));
+    if (linhaDoTotal) {
+      if (total) applyTokensToNode(linhaDoTotal, { TOT_AREA: total.area, TOT_VALOR: total.valor });
+      else removeRow(linhaDoTotal);
     }
   }
 
@@ -164,6 +166,95 @@ function renderPatrimonialSlide(
   applyTokensToNode(doc, { SOCIEDADE: soc.nome } as Tokens);
   stripRemainingTokens(doc);
   writeText(parts, slidePath, serializeXml(doc));
+}
+
+/** A tabela dos bens fora da estruturacao, com o motivo, em pagina propria. */
+function renderForaDaEstrutura(
+  parts: PptxParts, slidePath: string, linhas: readonly BemForaDaEstrutura[],
+): void {
+  const xml0 = readText(parts, slidePath);
+  const doc = parseXml(xml0);
+  const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "NI_REF"));
+  if (gf) {
+    const rows = listRows(gf);
+    const template = rows.find((r) => rowContainsToken(r, "NI_REF"));
+    if (template) {
+      for (const l of linhas) {
+        const clone = cloneRow(template);
+        applyTokensToNode(clone, {
+          NI_REF: l.referencia,
+          NI_MAT: l.matriculaLabel,
+          NI_MUN: l.municipioUf,
+          NI_TIT: l.titular,
+          NI_MOTIVO: l.motivo,
+        });
+        insertRowBefore(clone, template);
+      }
+      removeRow(template);
+    }
+  }
+  stripRemainingTokens(doc);
+  writeText(parts, slidePath, serializeXml(doc));
+}
+
+/**
+ * Uma pagina da tabela dos bens que nao sao imovel. O TOTAL vai so na ultima; nas
+ * outras a linha sai, como no TOTAL da sociedade.
+ */
+function renderOutrosBens(
+  parts: PptxParts, slidePath: string, linhas: OutrosBens["linhas"], total: string | null,
+): void {
+  const doc = parseXml(readText(parts, slidePath));
+  const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "OB_REF"));
+  if (gf) {
+    const template = listRows(gf).find((r) => rowContainsToken(r, "OB_REF"));
+    if (template) {
+      for (const l of linhas) {
+        const clone = cloneRow(template);
+        applyTokensToNode(clone, {
+          OB_REF: l.referencia,
+          OB_TIPO: l.tipo,
+          OB_SOC: l.sociedade,
+          OB_PROP: l.propriedade,
+          OB_VALOR: l.valor,
+        });
+        insertRowBefore(clone, template);
+      }
+      removeRow(template);
+    }
+    const linhaDoTotal = listRows(gf).find((r) => rowContainsToken(r, "OB_TOT_VALOR"));
+    if (linhaDoTotal) {
+      if (total) applyTokensToNode(linhaDoTotal, { OB_TOT_VALOR: total });
+      else removeRow(linhaDoTotal);
+    }
+  }
+  stripRemainingTokens(doc);
+  writeText(parts, slidePath, serializeXml(doc));
+}
+
+/**
+ * Leva a pagina para o fim do deck: o `duplicateSlide` poe toda copia no fim quando nao acha a origem,
+ * o que acontece se a relationship traz o `Type` antes do `Target`.
+ */
+function moverParaOFim(parts: PptxParts, slidePath: string): void {
+  const num = slidePath.match(/slide(\d+)\.xml$/)?.[1];
+  const rels = readText(parts, "ppt/_rels/presentation.xml.rels");
+  const rel = [...rels.matchAll(/<Relationship\s[^>]*>/g)].map((m) => m[0])
+    .find((r) => r.includes(`Target="slides/slide${num}.xml"`));
+  const rid = rel?.match(/Id="(rId\d+)"/)?.[1];
+  if (!rid) return;
+  const pres = readText(parts, "ppt/presentation.xml");
+  const el = pres.match(new RegExp(`<p:sldId[^>]*r:id="${rid}"[^>]*/>`))?.[0];
+  if (!el) return;
+  writeText(parts, "ppt/presentation.xml", pres.replace(el, "").replace("</p:sldIdLst>", `${el}</p:sldIdLst>`));
+}
+
+
+/** Como o `slideDoToken`, mas a pagina e obrigatoria: molde sem ela nao gera. */
+function slideObrigatorio(parts: PptxParts, token: string, pagina: string): string {
+  const sp = slideDoToken(parts, token);
+  if (!sp) throw new Error(`O modelo em uso não tem a página ${pagina} (falta o campo {{${token}}}).`);
+  return sp;
 }
 
 async function gerarPatrimonial(
@@ -175,17 +266,28 @@ async function gerarPatrimonial(
 ): Promise<DeckMontado> {
   const parts = unpackPptx(bytesDoMolde);
 
-  const sociedades = await carregarPatrimonial(admin, clienteId, probs);
+  const [sociedades, foraDaEstrutura, totais, outros] = await Promise.all([
+    carregarPatrimonial(admin, clienteId, probs),
+    carregarForaDaEstrutura(admin, clienteId, probs),
+    carregarTotaisPorSociedade(admin, clienteId),
+    carregarOutrosBens(admin, clienteId, probs),
+  ]);
 
-  const TEMPLATE = "ppt/slides/slide3.xml";
+  const TEMPLATE = slideObrigatorio(parts, "PROP", "das sociedades");
+  /* Achada ANTES das copias da pagina de sociedade, que nao a trazem, mas mudam a
+     lista de slides. */
+  const SLIDE_FORA = slideDoToken(parts, "NI_REF");
+  const SLIDE_OUTROS = slideDoToken(parts, "OB_REF");
   if (sociedades.length === 0) {
-    // Sem sociedades: mantem slide3 vazio, tira row-template pra nao ficar com token cru.
+    // Sem sociedades: mantem a pagina vazia, tira row-template pra nao ficar com token cru.
     const xml = readText(parts, TEMPLATE);
     const doc = parseXml(xml);
     const gf = listGraphicFrames(doc).find((g) => graphicFrameContainsToken(g, "PROP"));
     if (gf) {
       const tr = listRows(gf).find((r) => rowContainsToken(r, "PROP"));
       if (tr) removeRow(tr);
+      const tot = listRows(gf).find((r) => rowContainsToken(r, "TOT_AREA"));
+      if (tot) removeRow(tot);
     }
     applyTokensToNode(doc, { SOCIEDADE: "—" } as Tokens);
     stripRemainingTokens(doc);
@@ -220,8 +322,50 @@ async function gerarPatrimonial(
       paths.push(dup.newPath);
     }
     for (let i = 0; i < chunks.length; i++) {
-      renderPatrimonialSlide(parts, paths[i], { nome: chunks[i].nome, linhas: chunks[i].linhas });
+      const ultimaDaSociedade = i === chunks.length - 1 || chunks[i + 1].nome !== chunks[i].nome;
+      renderPatrimonialSlide(
+        parts, paths[i], { nome: chunks[i].nome, linhas: chunks[i].linhas },
+        ultimaDaSociedade ? totais.get(chunks[i].nome) ?? null : null,
+      );
     }
+  }
+
+  /* Os outros bens vem depois das sociedades e antes dos que ficam fora. Molde sem a pagina nao gera
+     a tabela, e o aviso diz o que faltou. */
+  if (!SLIDE_OUTROS) {
+    if (outros.linhas.length > 0) {
+      anota(probs, ONDE.patrimonial,
+        `${outros.linhas.length === 1 ? "O bem que não é imóvel não saiu" : `Os ${outros.linhas.length} bens que não são imóvel não saíram`} (moeda, quotas, arrendamento, outros): o modelo do Diagnóstico Patrimonial está desatualizado e não tem a página deles. Entre em contato com o suporte da PSA Digital.`,
+        "sistema");
+    }
+  } else if (outros.linhas.length === 0) {
+    removeSlide(parts, SLIDE_OUTROS);
+  } else {
+    const paginas: string[] = [SLIDE_OUTROS];
+    const pedacos: Array<OutrosBens["linhas"]> = [];
+    for (let i = 0; i < outros.linhas.length; i += LINHAS_POR_PAGINA_DE_OUTROS_BENS) {
+      pedacos.push(outros.linhas.slice(i, i + LINHAS_POR_PAGINA_DE_OUTROS_BENS));
+    }
+    for (let i = 1; i < pedacos.length; i++) paginas.push(duplicateSlide(parts, SLIDE_OUTROS).newPath);
+    pedacos.forEach((linhas, i) =>
+      renderOutrosBens(parts, paginas[i], linhas, i === pedacos.length - 1 ? outros.total : null));
+    for (const pagina of paginas) moverParaOFim(parts, pagina);
+  }
+
+  /* O slide dos que ficaram de fora sai do deck quando nao ha nenhum: tabela com
+     cabecalho e nenhuma linha e pior que slide ausente — parece dado perdido. */
+  if (!SLIDE_FORA) {
+    /* Molde sem esta pagina: o codigo aceita o antigo, porque a funcao e publicada antes do molde. */
+    if (foraDaEstrutura.length > 0) {
+      anota(probs, ONDE.patrimonial,
+        `${foraDaEstrutura.length === 1 ? "O imóvel fora da estruturação não saiu" : `Os ${foraDaEstrutura.length} imóveis fora da estruturação não saíram`}: o modelo do Diagnóstico Patrimonial está desatualizado e não tem a página deles. Entre em contato com o suporte da PSA Digital.`,
+        "sistema");
+    }
+  } else if (foraDaEstrutura.length === 0) {
+    removeSlide(parts, SLIDE_FORA);
+  } else {
+    renderForaDaEstrutura(parts, SLIDE_FORA, foraDaEstrutura);
+    moverParaOFim(parts, SLIDE_FORA);
   }
 
   // Capa + divisor: aplicar globais
@@ -237,13 +381,13 @@ async function gerarPatrimonial(
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
   return {
     bytes: packPptx(parts),
-    contagens: { sociedades: sociedades.length },
-    snapshot: { sociedades },
+    contagens: { sociedades: sociedades.length, outrosBens: outros.linhas.length, foraDaEstrutura: foraDaEstrutura.length },
+    snapshot: { sociedades, outrosBens: outros, foraDaEstrutura },
   };
 }
 
 // ============================================================================
-// ORGANOGRAMA (slide3 da societaria) — 4 faixas horizontais de {{ORG_ITEM}}
+// ORGANOGRAMA (pagina {{ORG_ITEM}} da societaria) — 4 faixas horizontais de {{ORG_ITEM}}
 // ============================================================================
 
 // Faixas Y (EMU) descobertas via debug-tpl no TEMPLATE_SOCIETARIA.pptx slide3:
@@ -393,7 +537,7 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
 }
 
 // ============================================================================
-// QUADRO SOCIETARIO (slide4 da societaria) — 1 tabela por empresa
+// QUADRO SOCIETARIO (pagina {{SOCIO}} da societaria) — 1 tabela por empresa
 // ============================================================================
 
 // Layout: 2 colunas × N linhas por slide. Ao esgotar altura, duplicar slide.
@@ -574,11 +718,12 @@ async function gerarSocietaria(
     resolverTitular(admin, clienteId, probs),
   ]);
 
-  // Organograma (slide3)
-  renderOrganograma(parts, "ppt/slides/slide3.xml", bands, titular);
+  // Organograma e quadro, cada um pelo token que so a pagina dele tem.
+  const SLIDE_ORGANOGRAMA = slideObrigatorio(parts, "ORG_ITEM", "do organograma");
+  const SLIDE_QUADRO = slideObrigatorio(parts, "SOCIO", "do quadro societário");
+  renderOrganograma(parts, SLIDE_ORGANOGRAMA, bands, titular);
 
-  // Quadro (slide4 + duplicatas)
-  const SLIDE_QUADRO = "ppt/slides/slide4.xml";
+  // Quadro (a pagina do molde + duplicatas)
   if (empresas.length === 0) {
     removeSlide(parts, SLIDE_QUADRO);
   } else {
@@ -618,8 +763,8 @@ async function gerarSocietaria(
       anota(
         probs,
         ONDE.quadro,
-        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societario e ficaram fora do deck.`,
-        "formatacao",
+        `${restantes.length === 1 ? "1 empresa não coube" : `${restantes.length} empresas não couberam`} no quadro societário e ficaram fora do arquivo. Entre em contato com o suporte da PSA Digital.`,
+        "sistema",
       );
     }
   }
@@ -681,9 +826,13 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const clienteId = String(body?.clienteId ?? "");
-    const tipoIn = String(body?.tipo ?? "") as BodyTipo;
-    if (!clienteId || !["ambas", "patrimonial", "societaria"].includes(tipoIn)) {
-      return json({ error: "clienteId e tipo obrigatorios (tipo ∈ ambas|patrimonial|societaria)" }, 400);
+    const decks = decksPedidos(body);
+    /* So o capitulo 04 le isto: o ultimo ato de cada cenario escolhido na tela. */
+    const simulacaoIds: string[] = Array.isArray(body?.simulacaoIds)
+      ? body.simulacaoIds.filter((x: unknown): x is string => typeof x === "string" && x.length > 0)
+      : [];
+    if (!clienteId || !decks) {
+      return json({ error: `clienteId e tipos obrigatorios (tipos ⊂ ${TIPOS.join("|")}; ou tipo = ambas)` }, 400);
     }
 
     // Cluster isolation
@@ -702,7 +851,6 @@ serve(async (req) => {
       .from("cliente").select("id, nome, excluido").eq("id", clienteId).maybeSingle();
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
-    const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
     const arquivos: Array<{
       tipo: DeckTipo;
       nome: string;
@@ -726,7 +874,6 @@ serve(async (req) => {
     for (const tipo of decks) {
       try {
         const problemas: ProblemaDoDeck[] = [];
-        const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
 
         /*
          * A CASCA COMPARTILHADA assume daqui: baixar o molde, validar o pacote,
@@ -754,12 +901,16 @@ serve(async (req) => {
             bucketSaida: BUCKET_SAIDA,
             pasta: clienteId,
             nomeArquivo: (versao) =>
-              `PSA_${tipoLabel}_${slugify(cli.nome)}_v${versao}.pptx`,
+              `PSA_${ROTULO_DO_ARQUIVO[tipo]}_${slugify(cli.nome)}_v${versao}.pptx`,
           },
           montar: async (bytesDoMolde) => {
+            /* O capitulo 04 LE COM O TOKEN DO USUARIO, e nao com o `admin`: a RLS das
+               tabelas `itcd_*` (a da calculadora) e o que diz quais simulacoes ele ve. */
             const montado = tipo === "patrimonial"
               ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
-              : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
+              : tipo === "societaria"
+                ? await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas)
+                : await gerarSucessoria(userClient, bytesDoMolde, clienteId, simulacaoIds, problemas);
             /* Os avisos ficam vazios de proposito: o que esta geracao tem a dizer
                ja entrou no `problemas`, com `onde` e causa, pelas regras puras. */
             return { bytes: montado.bytes, avisos: [], snapshot: montado.snapshot };

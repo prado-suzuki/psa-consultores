@@ -13,6 +13,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { MatrizLinhaModal } from '@/components/equipe/osg/governanca/MatrizLinhaModal';
 import { AcrescentarAtividadeModal } from '@/components/equipe/osg/governanca/AcrescentarAtividadeModal';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -190,15 +191,20 @@ const MatrizDeAlcadas = () => {
                         primeira linha parecendo desencontrado dele.
                       */}
                       {/*
-                        A coluna diz se vira clausula, porque nem toda vira e
-                        isso nao se adivinha. No Grupo Mattei as Gerencias tem as
-                        23 celulas preenchidas e ZERO alinea no contrato: quem
-                        preenche aquela coluna precisa saber que esta descrevendo
-                        a operacao, e nao escrevendo contrato.
+                        Nem toda coluna vira clausula, e isso nao se adivinha: quem
+                        preenche um orgao "Só na Matriz" descreve a operacao, nao escreve contrato.
                       */}
                       {orgaos.map((o) => (
                         <TableHead key={o.id} className="min-w-[150px]">
                           {o.nome}
+                          {!o.entra_no_contrato && (
+                            <Badge
+                              variant="outline"
+                              className="mt-1 block w-fit text-[10px] font-normal text-muted-foreground"
+                            >
+                              Só na Matriz
+                            </Badge>
+                          )}
                         </TableHead>
                       ))}
                     </TableRow>

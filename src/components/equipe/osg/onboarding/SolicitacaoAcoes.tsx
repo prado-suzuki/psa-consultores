@@ -42,6 +42,15 @@ interface SolicitacaoAcoesProps {
   /** Há OS da OSG para gerar/atualizar a partir dela. */
   temOrigemNaOs: boolean;
   listaVazia: boolean;
+  /**
+   * O corpo da tela já está oferecendo a geração no seu próprio botão.
+   *
+   * Quando isso acontece o botão daqui sai: era o mesmo ato repetido em dois
+   * cantos da tela, com dois rótulos diferentes. Quem decide é a página, porque
+   * o corpo vazio nem sempre oferece — com a OS sem documento vinculado ele só
+   * informa, e aí este continua sendo o único.
+   */
+  geracaoNoCorpo?: boolean;
   itensAtivos: number;
   /**
    * Arquivos do cliente ainda sem tipo de documento.
@@ -63,6 +72,7 @@ export function SolicitacaoAcoes({
   status,
   temOrigemNaOs,
   listaVazia,
+  geracaoNoCorpo = false,
   itensAtivos,
   arquivosSemTipo,
   ocupado,
@@ -91,7 +101,7 @@ export function SolicitacaoAcoes({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {temOrigemNaOs && (
+      {temOrigemNaOs && !geracaoNoCorpo && (
         <ButtonTooltip text={listaVazia
           ? 'Cria a lista de documentos a partir dos produtos contratados na OS.'
           : 'Verifica se novos produtos foram incluídos na OS e adiciona os documentos necessários à solicitação.'}>

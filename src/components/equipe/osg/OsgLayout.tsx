@@ -1,6 +1,7 @@
 import { resolverCabecalho, type TextoDoCabecalho } from '@/config/textosDasTelas';
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -59,16 +60,31 @@ import {
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
-import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
+import { GRUPOS_OSG_WORK, INICIO_OSG_WORK, TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
+const ROTAS_OSG_WORK_SEM_CLIENTE = new Set([
+  TELAS_OSG_WORK.bibliotecaModelos.path,
+  TELAS_OSG_WORK.montagemDocumentos.path,
+]);
+
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
-  const { data: clientes = [], isLoading } = useClientesLista();
-  const clienteSelecionado = clientes.find((c) => c.id === clienteId);
+  const { data: clientes = [], isLoading, isError } = useClientesLista();
+
+  /**
+   * A URL não é autorização. O contexto agora lê o cliente dela (CD-11), mas a
+   * barra continua sendo o ponto que conhece a lista visível do usuário. Por
+   * isso é aqui que um UUID inexistente ou fora do recorte é descartado.
+   */
+  useEffect(() => {
+    if (isLoading || isError || !clienteId) return;
+    if (!clientes.some((cliente) => cliente.id === clienteId)) setClienteId('');
+  }, [clienteId, clientes, isError, isLoading, setClienteId]);
+
   const semCliente = !clienteId;
 
   return (
@@ -105,14 +121,10 @@ const OsgWorkClienteBar = () => {
             )}
           />
         </div>
-        {semCliente ? (
+        {semCliente && (
           <div className="flex items-center gap-1.5 text-xs font-medium text-osg-700">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>Selecione um cliente para usar as ferramentas</span>
-          </div>
-        ) : (
-          <div className="text-xs text-muted-foreground truncate">
-            Trabalhando em: <span className="font-semibold">{clienteSelecionado?.nome}</span>
           </div>
         )}
       </div>
@@ -129,6 +141,11 @@ type OsgLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   /**
+   * Selo ao lado do título do cabeçalho, repassado ao `TituloDaPagina`.
+   * Plano da Solicitação §1.7 — aditivo, e as outras telas da área não passam.
+   */
+  selo?: React.ReactNode;
+  /**
    * A tela é dona da própria rolagem: a área de conteúdo ganha a altura da
    * janela e não rola, e o filho decide qual pedaço dele rola (no Feed, só a
    * lista). O padrão da casa é a janela rolar, com a moldura subindo junto.
@@ -140,7 +157,7 @@ type OsgLayoutProps = {
 } & TextoDoCabecalho;
 
 export const OsgLayout = (props: OsgLayoutProps) => {
-  const { children, headerActions, rolagemNoConteudo = false } = props;
+  const { children, headerActions, selo, rolagemNoConteudo = false } = props;
   // A ÁREA É DO LAYOUT (ver a mesma nota no `FiscalLayout`), e é `osg` fixo —
   // NÃO a apresentação da rota que o `areaLabel` resolve mais abaixo. As três
   // caras da OSG existem para o sobretítulo e para a barra; quem escreve "na
@@ -193,6 +210,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
   // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
+  const exibeBarraDeCliente = isWork && !ROTAS_OSG_WORK_SEM_CLIENTE.has(location.pathname);
   const isProjects =
     location.pathname.startsWith('/equipe/osg/inicio') ||
     location.pathname.startsWith('/equipe/osg/dashboard') ||
@@ -570,7 +588,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} selo={selo} />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -583,7 +601,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
           </div>
         </header>
 
-        {isWork && <OsgWorkClienteBar />}
+        {exibeBarraDeCliente && <OsgWorkClienteBar />}
 
         {/* Scrollable Content Area */}
         <div className={rolagemNoConteudo ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto'}>

@@ -5,6 +5,11 @@ import { colunasDe, colunasTortas } from './alinhamentoDeTabela';
 import { Ctrl, Num, NumCampo, Th, Txt } from './itcmdKit';
 import { simulacaoSalva } from './simulacaoSalvaFixture';
 
+// O seletor de status lê o papel no AuthContext; o teste monta o componente solto.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAdmin: true, isLider: false, isSublider: false }),
+}));
+
 // ALINHAMENTO DE COLUNA — o bug que já morde duas vezes.
 //
 // As células montavam a classe por concatenação, então `text-right` e o `text-left` do

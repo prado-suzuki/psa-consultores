@@ -29,11 +29,10 @@ describe('lerTipoDeEmpresa', () => {
     expect(lerTipoDeEmpresa(' Pr ')).toBe('PR');
   });
 
-  it('separa ausente de desconhecido, porque o conserto e diferente', () => {
+  it('vazio e ausente — o banco não aceita outro valor além de PR, CN e SC', () => {
     expect(lerTipoDeEmpresa(null)).toBe('AUSENTE');
     expect(lerTipoDeEmpresa('')).toBe('AUSENTE');
     expect(lerTipoDeEmpresa('   ')).toBe('AUSENTE');
-    expect(lerTipoDeEmpresa('HOLDING')).toBe('OUTRO');
   });
 });
 
@@ -49,14 +48,14 @@ describe('motivoDoQuadroAusente', () => {
   // que faltava era preencher um campo.
   it('cada causa tem a sua frase, e a frase nomeia o campo a corrigir', () => {
     const ausente = motivoDoQuadroAusente({ ...base, tipo: 'AUSENTE' });
-    expect(ausente).toContain('"tipo de empresa" esta vazio');
+    expect(ausente).toContain('"tipo de empresa" está vazio');
     expect(ausente).not.toContain('socio');
 
     const cn = motivoDoQuadroAusente({ ...base, tipo: 'CN' });
-    expect(cn).toContain('nenhuma movimentacao de quotas');
+    expect(cn).toContain('nenhuma movimentação de quotas');
 
     const sc = motivoDoQuadroAusente({ ...base, tipo: 'SC' });
-    expect(sc).toContain('socia (SC)');
+    expect(sc).toContain('sócia (SC)');
 
     expect(new Set([ausente, cn, sc]).size).toBe(3);
   });
@@ -65,7 +64,7 @@ describe('motivoDoQuadroAusente', () => {
     expect(motivoDoQuadroAusente({ ...base, tipo: 'PR', temQuadroGravado: false }))
       .toContain('derivar o quadro dos bens');
     expect(motivoDoQuadroAusente({ ...base, tipo: 'PR', temQuadroGravado: true }))
-      .toContain('apos a apuracao');
+      .toContain('após a apuração');
   });
 
   it('o nome da empresa entra na frase — sem ele o aviso nao e acionavel', () => {
@@ -86,7 +85,7 @@ describe('faixaDaEmpresa e organograma', () => {
   it('socia sem faixa nao vira aviso; empresa sem tipo vira', () => {
     expect(motivoForaDoOrganograma('Fulano Part.', 'SC')).toBeNull();
     expect(motivoForaDoOrganograma('Fazenda X', 'CN')).toBeNull();
-    expect(motivoForaDoOrganograma('Fazenda X', 'AUSENTE')).toContain('nao aparece no organograma');
+    expect(motivoForaDoOrganograma('Fazenda X', 'AUSENTE')).toContain('não aparece no organograma');
   });
 });
 
@@ -152,9 +151,9 @@ describe('relatoDasMatriculas', () => {
   it('agrupa por motivo em vez de uma linha por matricula', () => {
     const r = relatoDasMatriculas('Fazenda X', ['sem_valor', 'sem_valor', 'sem_titular', null]);
     expect(r).toHaveLength(2);
-    expect(r[0]).toContain('2 matriculas ficaram');
-    expect(r[0]).toContain('sem valor contabil');
-    expect(r[1]).toContain('1 matricula ficou');
+    expect(r[0]).toContain('2 matrículas ficaram');
+    expect(r[0]).toContain('sem valor contábil');
+    expect(r[1]).toContain('1 matrícula ficou');
   });
 
   it('nenhum descarte, nenhuma linha', () => {
@@ -174,8 +173,8 @@ describe('percentuaisSaemVazios', () => {
 
 describe('plural e anota', () => {
   it('concorda o numero', () => {
-    expect(plural(1, 'matricula ficou', 'matriculas ficaram')).toBe('1 matricula ficou');
-    expect(plural(3, 'matricula ficou', 'matriculas ficaram')).toBe('3 matriculas ficaram');
+    expect(plural(1, 'matrícula ficou', 'matrículas ficaram')).toBe('1 matrícula ficou');
+    expect(plural(3, 'matrícula ficou', 'matrículas ficaram')).toBe('3 matrículas ficaram');
   });
 
   it('anota sem acumulador nao quebra — quem nao quer relato chama sem ele', () => {
@@ -195,7 +194,8 @@ describe('plural e anota', () => {
     ]);
   });
 
-  it('as tres secoes do deck da OSG sao distintas', () => {
-    expect(new Set(Object.values(ONDE)).size).toBe(3);
+  // O que se confere e que duas partes do deck nao dividem o mesmo rotulo.
+  it('as secoes do deck da OSG sao distintas', () => {
+    expect(new Set(Object.values(ONDE)).size).toBe(Object.keys(ONDE).length);
   });
 });

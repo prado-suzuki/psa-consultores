@@ -1,8 +1,8 @@
-import type { ResultadoDosDecks } from '@/hooks/useGerarApresentacao';
+import type { DeckDaApresentacao, ResultadoDosDecks } from '@/hooks/useGerarApresentacao';
 
 export interface PecaDeDeckEsperada {
   nome: string;
-  tipo: 'patrimonial' | 'societaria';
+  tipo: DeckDaApresentacao;
 }
 
 /**

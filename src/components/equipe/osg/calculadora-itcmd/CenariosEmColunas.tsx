@@ -1,49 +1,55 @@
+import { useState } from 'react';
+import type { BaseDeCalculo } from '@/hooks/useSimulacoesItcmd';
 import { brlDeDecimal, pctDeDecimal } from './itcmdFmt';
 import { ComDica, ComoDicas, LinhaDeTotal, LinhaDeValor, Secao } from './itcmdKit';
+import { AvisoDeParcelaDiferida, VerNaBase } from './SelecaoDaBase';
 import {
   CENARIOS, DICA_CENARIO, ROTULO_CENARIO, type Cenario, type SaidaSimulacao,
 } from '@/lib/osg/itcmd/simulacao';
 
 /**
- * Um quadro por cenário de avaliação, no formato do resumo de tributos que a OSG
- * apresenta.
- *
- * A ordem de leitura é de cima para baixo: total do acervo, alíquota,
- * base de cada donatário, imposto de cada donatário e o TOTAL por último. O total
- * fecha o quadro porque é a conclusão — botá-lo gigante no topo empurrava o título
- * para duas linhas e obrigava a ler de baixo para cima para entender de onde veio.
- *
- * Cenário sem valor no cadastro fica tracejado e diz o motivo. `—` nunca é R$ 0,00.
+ * Um quadro por cenário, na ordem do resumo de tributos da OSG, com o TOTAL por último. Cenário sem valor
+ * fica tracejado com o motivo: `—` nunca é R$ 0,00. As duas bases se alternam na simulação aberta.
  */
-export function CenariosEmColunas({ saida, instituicao, total, falta }: {
-  saida: SaidaSimulacao;
-  /**
-   * A apuração da INSTITUIÇÃO DE USUFRUTO, quando houver. Ato próprio, guia própria,
-   * imposto próprio — e o cliente compara o TOTAL dos dois: o deck do Agro Aliança
-   * escolheu um cenário "por apresentar o menor custo tributário total".
-   */
-  instituicao?: SaidaSimulacao | null;
-  total?: Record<Cenario, string | null>;
+export function CenariosEmColunas({ porBase, comAlternativa, falta }: {
+  /** O ato em cada base: a doação, a instituição de usufruto (guia própria) e o TOTAL dos dois, que o cliente compara. */
+  porBase: Record<BaseDeCalculo, {
+    doacao: SaidaSimulacao | null;
+    instituicao: SaidaSimulacao | null;
+    total: Record<Cenario, string | null>;
+  }>;
+  /** Os atos que têm a base de 70% ("reserva", "instituição"). Vazio: só há a integral. */
+  comAlternativa: string[];
   /**
    * O QUE FALTA em cada cenário, na frase que o controlador monta — a MESMA do aviso
    * do topo. Sem isso o quadro afirmava por conta própria, e afirmava errado.
    */
   falta?: Record<Cenario, string | null>;
 }) {
+  const [base, setBase] = useState<BaseDeCalculo>('100');
+  const vista = porBase[base].doacao ? porBase[base] : porBase['100'];
+  if (vista.doacao == null) return null;
+  const saida = vista.doacao;
   return (
     <ComoDicas>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {CENARIOS.map((cenario, ordem) => (
-          <QuadroDoCenario
-            key={cenario}
-            cenario={cenario}
-            ordem={ordem}
-            saida={saida}
-            instituicao={instituicao ?? null}
-            total={total?.[cenario] ?? null}
-            falta={falta?.[cenario] ?? null}
-          />
+      <div className="space-y-3">
+        {comAlternativa.length > 0 && <VerNaBase valor={base} aoTrocar={setBase} />}
+        {base === '70' && comAlternativa.map((onde) => (
+          <AvisoDeParcelaDiferida key={onde} onde={onde} />
         ))}
+        <div className="grid gap-4 lg:grid-cols-3">
+          {CENARIOS.map((cenario, ordem) => (
+            <QuadroDoCenario
+              key={cenario}
+              cenario={cenario}
+              ordem={ordem}
+              saida={saida}
+              instituicao={vista.instituicao}
+              total={vista.total[cenario]}
+              falta={falta?.[cenario] ?? null}
+            />
+          ))}
+        </div>
       </div>
     </ComoDicas>
   );
@@ -90,8 +96,8 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
               mentir quando o cenário virou indisponível por bem FALTANDO em vez de por
               cadastro vazio: o aviso dizia "3 de 13 bens sem valor de ITR" e este
               parágrafo, ao lado, dizia que não havia nenhum. */}
-          {falta ?? 'Cadastro incompleto neste cenário'}. O cenário fica de fora até o
-          cadastro dos bens fechar: em branco, nunca zerado.
+          {falta ?? 'Cadastro incompleto neste valor'}. Este valor fica de fora até o
+          cadastro dos bens fechar.
         </p>
       ) : (
         <dl className="divide-y divide-border/70">
@@ -99,7 +105,7 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
             rotulo="Total do acervo"
             valor={brlDeDecimal(saida.acervoPorCenario[cenario])}
             dica={'O acervo avaliado por esta régua. É ele que dá o preço da quota, e é '
-              + 'a única coisa que muda de um cenário para o outro.'}
+              + 'a única coisa que muda de um valor de avaliação para o outro.'}
           />
           <LinhaDeValor
             rotulo="Alíquota"
@@ -124,9 +130,6 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
             <LinhaDeValor
               key={`imposto-${l.donatarioId}`}
               rotulo={l.nome}
-              detalhe={l.doacaoAnterior
-                ? `já recebeu ${brlDeDecimal(l.doacaoAnterior)}`
-                : undefined}
               valor={brlDeDecimal(l.porCenario[cenario]?.imposto)}
             />
           ))}

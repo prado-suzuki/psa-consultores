@@ -21,6 +21,10 @@ decisões de implementação.
 - [`memorial-georref-por-imovel.md`](./memorial-georref-por-imovel.md) — **lacuna aberta** do B15: o
   memorial de georreferenciamento ainda pende de UMA matrícula; o dado por item já existe, falta a
   migration de conteúdo que faz o bloco repetir sobre `imoveis`. Desenho fechado + handoff.
+- [`apresentacao-da-osg.md`](./apresentacao-da-osg.md) — regras em vigor do gerador da apresentação da OSG
+  (capítulos 01, 02 e 04): contrato da função, moldes, o que cada capítulo mostra e quando avisa.
+- [`calculadora-itcmd.md`](./calculadora-itcmd.md) — as duas bases de cálculo com usufruto (100% e 70%) na
+  Calculadora de ITCMD: fundamento, gravação, simulações antigas e as migrations.
 - [`tela-gerar-descarte-visivel.md`](./tela-gerar-descarte-visivel.md) — decisão de como a tela Gerar
   conta os blocos que saíram e anuncia os que o motor descartou (emenda 9.2 do contrato L2/L3).
 

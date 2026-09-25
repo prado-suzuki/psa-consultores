@@ -10,6 +10,7 @@ import {
   contarPorProduto,
   filtrarPorProduto,
   FILTRO_TODOS,
+  removerPedeConfirmacao,
   type CatalogoDocumento,
   type EdicaoItem,
   type EstruturaDoItem,
@@ -24,6 +25,7 @@ import {
   type DocumentEditorValue,
 } from './DocumentEditorDialog';
 import { DocumentGroups, type DisplayDocument } from './DocumentGroups';
+import { DialogoRemoverDocumento } from './DialogoRemoverDocumento';
 import {
   chipCls,
   panelContainerCls,
@@ -112,6 +114,12 @@ export function OnboardingWorkspace({
    * cabeçalho depende dela: com uma gaveta aberta, o modal nasce nela.
    */
   const [grupoAberto, setGrupoAberto] = useState('');
+  const [removendo, setRemovendo] = useState<DisplayDocument | null>(null);
+
+  const pedirRemocao = (documento: DisplayDocument) => {
+    if (removerPedeConfirmacao(status)) setRemovendo(documento);
+    else onDispensar(documento.id);
+  };
 
   const porId = useMemo(() => new Map(itens.map((item) => [item.id, item])), [itens]);
   const idsJaPedidos = useMemo(
@@ -302,7 +310,7 @@ export function OnboardingWorkspace({
             grupoAberto={grupoAberto}
             onGrupoAberto={setGrupoAberto}
             onEdit={abrirEdicao}
-            onRemove={(documento) => onDispensar(documento.id)}
+            onRemove={pedirRemocao}
             onAddOptional={incluirOpcional}
           />
         </section>
@@ -318,6 +326,16 @@ export function OnboardingWorkspace({
         documentosDoProduto={documentosDoProduto}
         grupoInicial={grupoDoModal}
         onSave={salvarEditor}
+      />
+
+      <DialogoRemoverDocumento
+        documento={removendo?.title ?? null}
+        doCatalogo={Boolean(removendo?.catalogId)}
+        onCancelar={() => setRemovendo(null)}
+        onConfirmar={() => {
+          if (removendo) onDispensar(removendo.id);
+          setRemovendo(null);
+        }}
       />
     </>
   );

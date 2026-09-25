@@ -31,13 +31,14 @@ describe('HistoricoDeSimulacoes', () => {
     expect(screen.getByText('Cristina')).toBeInTheDocument();
     expect(screen.getByText('2026-02')).toBeInTheDocument();
 
-    // Os três TOTAIS — doação + instituição de usufruto —, e não o imposto da doação
-    // sozinho (que é 186.864,00 e não aparece mais na lista).
+    // Os TOTAIS (doação + instituição), não o imposto da doação sozinho, e na base integral: a de 70% se
+    // vê na simulação aberta.
     expect(screen.getByText('Total do ato')).toBeInTheDocument();
-    expect(screen.getByText('R$ 195.000,00')).toBeInTheDocument();
-    expect(screen.getByText('R$ 93.000,00')).toBeInTheDocument();
-    expect(screen.getByText('R$ 258.000,00')).toBeInTheDocument();
-    expect(screen.queryByText('R$ 186.864,00')).not.toBeInTheDocument();
+    expect(screen.getByText('R$ 95.140,00')).toBeInTheDocument();
+    expect(screen.getByText('R$ 45.000,00')).toBeInTheDocument();
+    expect(screen.getByText('R$ 127.809,29')).toBeInTheDocument();
+    expect(screen.queryByText('R$ 93.432,00')).not.toBeInTheDocument();
+    expect(screen.queryByText('R$ 64.218,60')).not.toBeInTheDocument();
     // Sem nome dado, a simulação se chama pela versão — que é o rótulo que ela
     // sempre teve na coluna.
     expect(screen.getByText('Versão 1')).toBeInTheDocument();

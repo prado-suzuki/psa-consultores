@@ -28,10 +28,11 @@ const empresa = (socios: number) => ({
   socios: Array.from({ length: socios }, (_, i) => ({ pessoaId: `p${i}` })),
 });
 
-/** Um bem do diagnóstico patrimonial, no mínimo que a regra lê. */
-const bem = (destino: string | null, participa = true) => ({
+/** Um bem do diagnóstico patrimonial, no mínimo que a regra lê. Imóvel rural por padrão. */
+const bem = (destino: string | null, participa = true, tipo_bem = 'IR') => ({
   empresa_destino_pessoa_id: destino,
   participa_estruturacao: participa,
+  tipo_bem,
 });
 
 function contar(
@@ -84,5 +85,13 @@ describe('useContagemDeSlides — patrimonial', () => {
 
   it('bem sem destino agrupa num slide só', () => {
     expect(contar([], [bem(null), bem(null)]).patrimonial).toBe(1);
+  });
+
+  it('o que não é imóvel sai da página da sociedade e conta na tabela de outros bens', () => {
+    // A moeda sem destino não abre página de sociedade: vai para a tabela de outros bens (9 por página).
+    expect(contar([], [bem('e1'), bem(null, true, 'OU')]).patrimonial).toBe(2);
+    expect(contar([], [bem('e1'), bem('e1', true, 'PS'), bem('e2', true, 'OU')]).patrimonial).toBe(2);
+    expect(contar([], [bem('e1'), ...Array.from({ length: 10 }, () => bem('e1', true, 'OU'))]).patrimonial).toBe(3);
+    expect(contar([], [bem('e1'), bem('e1', false, 'OU')]).patrimonial).toBe(1);
   });
 });

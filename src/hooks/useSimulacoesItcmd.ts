@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { FECHO_SUPORTE, frasePapelNecessario } from '@/lib/rlsMessages';
 import type { Cenario, SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
 
 /**
@@ -67,6 +68,30 @@ export const ROTULO_DO_STATUS: Record<StatusDaSimulacao, string> = {
 };
 
 /**
+ * As duas bases com usufruto, 100% e 70%; nenhuma é a decisão, e a simulação grava as duas. Fundamento
+ * legal e simulações antigas: docs/osg/calculadora-itcmd.md.
+ */
+export type BaseDeCalculo = '100' | '70';
+
+/** Base e imposto de uma guia nos três cenários, numa base de cálculo. */
+export interface Apuracao {
+  basePorCenario: Record<Cenario, string | null>;
+  impostoPorCenario: Record<Cenario, string | null>;
+}
+
+/**
+ * A guia em cada base gravada: as duas com alternativa, uma só na doação sem reserva e na simulação antiga.
+ * Vazio na reserva, que não tem guia própria.
+ */
+export type ApuracoesPorBase = Partial<Record<BaseDeCalculo, Apuracao>>;
+
+/** A mesma guia na outra base, como vai para a gravação: sempre a de 70%. */
+export interface BaseAlternativa extends Apuracao {
+  /** "70.00": a base integral mora nas colunas de sempre. */
+  pctBase: string;
+}
+
+/**
  * UMA GUIA: o par doador declarante → beneficiário, com a apuração dele.
  *
  * É a unidade em que a SEFAZ tributa e em que o motor apura. O resultado morava no
@@ -82,10 +107,7 @@ export interface GiaSalva {
   quotasRecebidas: string;
   /** "Percentual Transmitido ao Beneficiário": soma 100% entre os desta guia. */
   pctDaGia: string;
-  /** A acumulação, em valor e por par. `null` = nada declarado. */
-  doacaoAnterior: string | null;
-  basePorCenario: Record<Cenario, string | null>;
-  impostoPorCenario: Record<Cenario, string | null>;
+  porBase: ApuracoesPorBase;
 }
 
 /** Uma linha do quadro de usufruto, congelada. */
@@ -100,12 +122,7 @@ export interface LinhaDoUsufrutoSalva {
   quotasUsufruto: string;
 }
 
-/**
- * Uma concessão de usufruto: quem passou o voto de quantas quotas a quem.
- *
- * `reserva` não tem valor nem imposto — ela vive dentro da guia da doação. Só a
- * `instituicao` é guia própria, e aí os três cenários vêm preenchidos.
- */
+/** Uma concessão de usufruto; `reserva` vive dentro da guia da doação, só a `instituicao` tem guia própria. */
 export interface ConcessaoSalva {
   deId: string;
   deNome: string;
@@ -113,8 +130,7 @@ export interface ConcessaoSalva {
   paraNome: string;
   origem: 'reserva' | 'instituicao';
   quotas: string;
-  basePorCenario: Record<Cenario, string | null>;
-  impostoPorCenario: Record<Cenario, string | null>;
+  porBase: ApuracoesPorBase;
 }
 
 /** Uma linha do histórico, como a tela precisa dela. */
@@ -151,21 +167,12 @@ export interface SimulacaoSalva {
    */
   origemSimulacaoId: string | null;
   acervoPorCenario: Record<Cenario, string | null>;
-  /** O imposto da DOAÇÃO. Já traz a base reduzida quando houve reserva. */
-  impostoPorCenario: Record<Cenario, string | null>;
-  /**
-   * O IMPOSTO DO ATO INTEIRO: a doação mais as guias de instituição de usufruto.
-   *
-   * É o número que responde "quanto custa este cenário", e é o que a lista mostra.
-   * O da doação sozinho já conta a reserva — ela não tem guia própria, ela reduz a
-   * base desta —, mas deixava a instituição de fora, que é ato tributado com guia
-   * separada. Somado a partir do que está GRAVADO, não do motor.
-   */
-  totalPorCenario: Record<Cenario, string | null>;
+  /** O imposto da doação em cada base, somado das guias; sem reserva é o mesmo nas duas. */
+  doacaoPorBase: Record<BaseDeCalculo, Record<Cenario, string | null>>;
+  /** O imposto do ato inteiro em cada base (doação mais instituições), somado do que está gravado. */
+  totalPorBase: Record<BaseDeCalculo, Record<Cenario, string | null>>;
   /** A doação transmitiu a nua propriedade e o doador guardou o voto? */
   comReserva: boolean;
-  pctBaseReserva: string;
-  pctBaseInstituicao: string;
   /** O quadro de usufruto congelado, e as concessões que saíram dele. */
   usufruto: LinhaDoUsufrutoSalva[];
   concessoes: ConcessaoSalva[];
@@ -231,6 +238,13 @@ const nomeParaAuditoria = (
 
 /** `numeric` chega como número ou string do PostgREST; texto é a forma canônica. */
 const texto = (v: unknown): string | null => (v == null ? null : String(v));
+
+/** "100.00" → '100', "70.00" → '70'. Outro percentual é erro: poria o número na coluna errada. */
+const baseDe = (pct: unknown): BaseDeCalculo => {
+  const t = texto(pct)?.replace(/\.0+$/, '');
+  if (t === '100' || t === '70') return t;
+  throw new Error(`Base de cálculo gravada fora de 100% e 70%: ${String(pct)}.`);
+};
 const textoOuZero = (v: unknown): string => texto(v) ?? '0';
 
 /**
@@ -253,28 +267,114 @@ const deCentavos = (c: bigint): string => {
 };
 
 /**
- * O total do cenário: a doação mais as guias de instituição.
- *
- * Nulo quando a doação é nula — cenário sem apuração não vira total. Concessão sem
- * valor é a `reserva`, que não tem guia própria: ela entra com zero, não bloqueia.
+ * O que se vê de uma guia numa base: a pedida ou, se não foi gravada, a que existe, e a resposta diz qual
+ * (doação sem reserva, simulação antiga). Nulo só na reserva.
  */
-function somarOAto(
-  doacao: string | null,
-  concessoes: ConcessaoSalva[],
+export function apuracaoNaBase(
+  porBase: ApuracoesPorBase,
+  base: BaseDeCalculo,
+): { apuracao: Apuracao; base: BaseDeCalculo } | null {
+  const pedida = porBase[base];
+  if (pedida) return { apuracao: pedida, base };
+  const outra: BaseDeCalculo = base === '100' ? '70' : '100';
+  return porBase[outra] ? { apuracao: porBase[outra]!, base: outra } : null;
+}
+
+/** O ato tem guia com as duas bases? Sem reserva e sem instituição, só há a integral. */
+export const temDuasBases = (s: Pick<SimulacaoSalva, 'comReserva' | 'concessoes'>): boolean =>
+  s.comReserva || s.concessoes.some((c) => c.origem === 'instituicao');
+
+/** Em que bases estas guias foram gravadas, da integral para a reduzida. */
+export const basesGravadas = (guias: Array<{ porBase: ApuracoesPorBase }>): BaseDeCalculo[] =>
+  (['100', '70'] as const).filter((b) => guias.length > 0 && guias.every((g) => g.porBase[b]));
+
+/**
+ * O imposto somado de um conjunto de guias, numa base e num cenário. Nulo quando alguma
+ * guia não tem valor no cenário: ausência não é zero.
+ */
+function somarNaBase(
+  guias: Array<{ porBase: ApuracoesPorBase }>,
+  base: BaseDeCalculo,
   cenario: Cenario,
 ): string | null {
-  if (doacao == null) return null;
-  const daInstituicao = concessoes.reduce((a, c) => {
-    const v = c.impostoPorCenario[cenario];
-    return v == null ? a : a + emCentavos(v);
-  }, 0n);
-  return deCentavos(emCentavos(doacao) + daInstituicao);
+  let soma = 0n;
+  for (const g of guias) {
+    const v = apuracaoNaBase(g.porBase, base)?.apuracao.impostoPorCenario[cenario];
+    if (v == null) return null;
+    soma += emCentavos(v);
+  }
+  return deCentavos(soma);
+}
+
+/** A doação e o ato inteiro, nas duas bases e nos três cenários. */
+function totaisNasBases(gias: GiaSalva[], concessoes: ConcessaoSalva[]): Pick<
+  SimulacaoSalva, 'doacaoPorBase' | 'totalPorBase'
+> {
+  const instituicoes = concessoes.filter((c) => c.origem === 'instituicao');
+  const porCenario = (f: (cenario: Cenario) => string | null) => ({
+    contabil: f('contabil'), itr: f('itr'), mercado: f('mercado'),
+  });
+  const naBase = (base: BaseDeCalculo) => {
+    const doacao = porCenario((c) => somarNaBase(gias, base, c));
+    return {
+      doacao,
+      total: porCenario((c) => {
+        // Cenário sem doação apurada não vira total; instituição sem valor, também não.
+        if (doacao[c] == null) return null;
+        const daInstituicao = somarNaBase(instituicoes, base, c);
+        return daInstituicao == null ? null : deCentavos(emCentavos(doacao[c]!) + emCentavos(daInstituicao));
+      }),
+    };
+  };
+  const integral = naBase('100');
+  const reduzida = naBase('70');
+  return {
+    doacaoPorBase: { '100': integral.doacao, '70': reduzida.doacao },
+    totalPorBase: { '100': integral.total, '70': reduzida.total },
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function paraSimulacaoSalva(row: any): SimulacaoSalva {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nome = (p: any): string => p?.pessoa?.denominacao ?? p?.pessoa_id ?? '—';
+  const comReserva = row.com_reserva === true;
+
+  /** As duas bases de uma linha de guia; `principal` diz em que base estão as colunas de sempre. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const porBaseDe = (x: any, principal: BaseDeCalculo): ApuracoesPorBase => {
+    const apuracao: ApuracoesPorBase = {
+      [principal]: {
+        basePorCenario: {
+          contabil: texto(x.vlr_base_contabil),
+          itr: texto(x.vlr_base_itr),
+          mercado: texto(x.vlr_base_mercado),
+        },
+        impostoPorCenario: {
+          contabil: texto(x.vlr_imposto_contabil),
+          itr: texto(x.vlr_imposto_itr),
+          mercado: texto(x.vlr_imposto_mercado),
+        },
+      },
+    };
+    if (x.pct_base_alternativa != null) {
+      apuracao[baseDe(x.pct_base_alternativa)] = {
+        basePorCenario: {
+          contabil: texto(x.vlr_base_alternativa_contabil),
+          itr: texto(x.vlr_base_alternativa_itr),
+          mercado: texto(x.vlr_base_alternativa_mercado),
+        },
+        impostoPorCenario: {
+          contabil: texto(x.vlr_imposto_alternativo_contabil),
+          itr: texto(x.vlr_imposto_alternativo_itr),
+          mercado: texto(x.vlr_imposto_alternativo_mercado),
+        },
+      };
+    }
+    return apuracao;
+  };
+  // Sem reserva a guia da doação só existe na base integral.
+  const baseDaDoacao: BaseDeCalculo = comReserva ? baseDe(row.pct_base_reserva) : '100';
 
    
   const gias: GiaSalva[] = (row.itcd_simulacao_gia ?? [])
@@ -286,17 +386,7 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
       donatarioNome: g.donatario?.denominacao ?? g.donatario_pessoa_id,
       quotasRecebidas: String(g.quotas_recebidas ?? 0),
       pctDaGia: textoOuZero(g.pct_da_gia),
-      doacaoAnterior: texto(g.vlr_doacao_anterior),
-      basePorCenario: {
-        contabil: texto(g.vlr_base_contabil),
-        itr: texto(g.vlr_base_itr),
-        mercado: texto(g.vlr_base_mercado),
-      },
-      impostoPorCenario: {
-        contabil: texto(g.vlr_imposto_contabil),
-        itr: texto(g.vlr_imposto_itr),
-        mercado: texto(g.vlr_imposto_mercado),
-      },
+      porBase: porBaseDe(g, baseDaDoacao),
     }));
 
   const usufruto: LinhaDoUsufrutoSalva[] = (row.itcd_simulacao_usufruto ?? [])
@@ -322,16 +412,7 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
       paraNome: c.para?.denominacao ?? c.para_pessoa_id,
       origem: c.origem,
       quotas: String(c.quotas ?? 0),
-      basePorCenario: {
-        contabil: texto(c.vlr_base_contabil),
-        itr: texto(c.vlr_base_itr),
-        mercado: texto(c.vlr_base_mercado),
-      },
-      impostoPorCenario: {
-        contabil: texto(c.vlr_imposto_contabil),
-        itr: texto(c.vlr_imposto_itr),
-        mercado: texto(c.vlr_imposto_mercado),
-      },
+      porBase: c.origem === 'instituicao' ? porBaseDe(c, baseDe(row.pct_base_instituicao)) : {},
     }));
 
   return {
@@ -351,19 +432,8 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
       itr: texto(row.vlr_acervo_itr),
       mercado: texto(row.vlr_acervo_mercado),
     },
-    impostoPorCenario: {
-      contabil: texto(row.vlr_imposto_contabil),
-      itr: texto(row.vlr_imposto_itr),
-      mercado: texto(row.vlr_imposto_mercado),
-    },
-    totalPorCenario: {
-      contabil: somarOAto(texto(row.vlr_imposto_contabil), concessoes, 'contabil'),
-      itr: somarOAto(texto(row.vlr_imposto_itr), concessoes, 'itr'),
-      mercado: somarOAto(texto(row.vlr_imposto_mercado), concessoes, 'mercado'),
-    },
-    comReserva: row.com_reserva === true,
-    pctBaseReserva: textoOuZero(row.pct_base_reserva),
-    pctBaseInstituicao: textoOuZero(row.pct_base_instituicao),
+    ...totaisNasBases(gias, concessoes),
+    comReserva,
     usufruto,
     concessoes,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -437,10 +507,12 @@ export function cadeiaDe(
 export function totalDaCadeia(
   cadeia: SimulacaoSalva[],
   cenario: Cenario,
+  /** A base de CADA ato: numa cadeia, um ato pode ser visto em 100% e o outro em 70%. */
+  baseDoAto: (s: SimulacaoSalva) => BaseDeCalculo,
 ): string | null {
   let soma = 0n;
   for (const s of cadeia) {
-    const v = s.totalPorCenario[cenario];
+    const v = s.totalPorBase[baseDoAto(s)][cenario];
     if (v == null) return null;
     soma += emCentavos(v);
   }
@@ -471,9 +543,12 @@ export function useSimulacoesItcmd(clienteId: string | null) {
             vlr_aporte_moeda, quotas_do_aporte,
             pessoa:donatario_pessoa_id ( denominacao ) ),
           itcd_simulacao_gia ( doador_pessoa_id, donatario_pessoa_id,
-            quotas_recebidas, pct_da_gia, vlr_doacao_anterior,
+            quotas_recebidas, pct_da_gia,
             vlr_base_contabil, vlr_base_itr, vlr_base_mercado,
             vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado,
+            pct_base_alternativa,
+            vlr_base_alternativa_contabil, vlr_base_alternativa_itr, vlr_base_alternativa_mercado,
+            vlr_imposto_alternativo_contabil, vlr_imposto_alternativo_itr, vlr_imposto_alternativo_mercado,
             doador:doador_pessoa_id ( denominacao ),
             donatario:donatario_pessoa_id ( denominacao ) ),
           itcd_simulacao_usufruto ( pessoa_id, papel, quotas, quotas_plena,
@@ -482,12 +557,20 @@ export function useSimulacoesItcmd(clienteId: string | null) {
           itcd_simulacao_concessao ( de_pessoa_id, para_pessoa_id, origem, quotas,
             vlr_base_contabil, vlr_base_itr, vlr_base_mercado,
             vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado,
+            pct_base_alternativa,
+            vlr_base_alternativa_contabil, vlr_base_alternativa_itr, vlr_base_alternativa_mercado,
+            vlr_imposto_alternativo_contabil, vlr_imposto_alternativo_itr, vlr_imposto_alternativo_mercado,
             de:de_pessoa_id ( denominacao ),
             para:para_pessoa_id ( denominacao ) )
         `)
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // A mensagem crua do PostgREST é de máquina: vai para o console, e a
+        // lista recebe a frase da casa (CI-E03) — falha não se veste de vazio.
+        console.error('itcd_simulacao: consulta do histórico falhou', error);
+        throw new Error('Não foi possível carregar as simulações.');
+      }
       return (data ?? []).map(paraSimulacaoSalva);
     },
   });
@@ -538,9 +621,10 @@ export interface SimulacaoParaGravar {
     donatarioPessoaId: string;
     quotasRecebidas: string;
     pctDaGia: string;
-    doacaoAnterior: string | null;
     basePorCenario: Record<Cenario, string | null>;
     impostoPorCenario: Record<Cenario, string | null>;
+    /** A mesma guia em 70%, quando a doação tem reserva. Nulo sem reserva. */
+    baseAlternativa: BaseAlternativa | null;
   }>;
   /**
    * O USUFRUTO DESTE CENÁRIO. Vem sempre — o quadro existe mesmo quando o ato não
@@ -568,6 +652,8 @@ export interface SimulacaoParaGravar {
     /** Nulo na reserva: ela não tem guia própria. */
     basePorCenario: Record<Cenario, string | null> | null;
     impostoPorCenario: Record<Cenario, string | null> | null;
+    /** A mesma guia em 70% — só na instituição; a reserva não tem guia. */
+    baseAlternativa?: BaseAlternativa | null;
   }>;
 }
 
@@ -597,12 +683,25 @@ export function useGravarSimulacaoItcmd() {
       const exigir = (rotulo: string, v: string | null): string => {
         if (v == null) {
           throw new Error(
-            `Cenário ${rotulo} sem valor: complete o cadastro dos bens para apurar os `
-            + 'três cenários. A simulação não foi gravada.',
+            `Sem o valor ${rotulo}: complete o cadastro dos bens para apurar os três `
+            + 'valores de avaliação. A simulação não foi gravada.',
           );
         }
         return v;
       };
+      // A OUTRA BASE, com os três cenários obrigatórios também: base pela metade não é
+      // alternativa, e a apresentação mostraria uma coluna incompleta.
+      const alternativa = (b: BaseAlternativa | null | undefined, rotulo: string) => (b == null
+        ? null
+        : {
+          pct_base: b.pctBase,
+          vlr_base_contabil: exigir(`contábil ${rotulo} em 70%`, b.basePorCenario.contabil),
+          vlr_base_itr: exigir(`ITR ${rotulo} em 70%`, b.basePorCenario.itr),
+          vlr_base_mercado: exigir(`mercado ${rotulo} em 70%`, b.basePorCenario.mercado),
+          vlr_imposto_contabil: exigir(`contábil ${rotulo} em 70%`, b.impostoPorCenario.contabil),
+          vlr_imposto_itr: exigir(`ITR ${rotulo} em 70%`, b.impostoPorCenario.itr),
+          vlr_imposto_mercado: exigir(`mercado ${rotulo} em 70%`, b.impostoPorCenario.mercado),
+        });
 
       const porId = new Map(s.saida.linhas.map((l) => [l.donatarioId, l]));
       // QUEM NÃO RECEBEU NADA não é beneficiário do ato e não entra: a tabela pede
@@ -670,13 +769,13 @@ export function useGravarSimulacaoItcmd() {
           donatario_pessoa_id: g.donatarioPessoaId,
           quotas_recebidas: Number(g.quotasRecebidas),
           pct_da_gia: g.pctDaGia,
-          vlr_doacao_anterior: g.doacaoAnterior,
           vlr_base_contabil: exigir('contábil da guia', g.basePorCenario.contabil),
           vlr_base_itr: exigir('ITR da guia', g.basePorCenario.itr),
           vlr_base_mercado: exigir('mercado da guia', g.basePorCenario.mercado),
           vlr_imposto_contabil: exigir('contábil da guia', g.impostoPorCenario.contabil),
           vlr_imposto_itr: exigir('ITR da guia', g.impostoPorCenario.itr),
           vlr_imposto_mercado: exigir('mercado da guia', g.impostoPorCenario.mercado),
+          base_alternativa: alternativa(g.baseAlternativa, 'da guia'),
         })),
         usufruto: s.usufruto.map((u) => ({
           pessoa_id: u.pessoaId,
@@ -704,12 +803,16 @@ export function useGravarSimulacaoItcmd() {
             && exigir('ITR da instituição', c.impostoPorCenario.itr),
           vlr_imposto_mercado: c.impostoPorCenario
             && exigir('mercado da instituição', c.impostoPorCenario.mercado),
+          base_alternativa: alternativa(c.baseAlternativa, 'da instituição'),
         })),
       };
 
       const { data: simulacaoId, error: erroDaGravacao } = await supabase
         .rpc('itcd_gravar_simulacao', { p: payload as unknown as Json });
-      if (erroDaGravacao) throw new Error(erroDaGravacao.message);
+      if (erroDaGravacao) {
+        console.error('itcd_gravar_simulacao:', erroDaGravacao);
+        throw new Error(FECHO_SUPORTE);
+      }
       if (simulacaoId == null) {
         throw new Error('A gravação não devolveu o id da simulação.');
       }
@@ -763,7 +866,10 @@ export function useRenomearSimulacaoItcmd() {
           updated_by: quem,
         })
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('itcd_simulacao: renomear falhou', error);
+        throw new Error(FECHO_SUPORTE);
+      }
 
       await logAction({
         area: 'osg',
@@ -814,7 +920,15 @@ export function useAlterarStatusSimulacaoItcmd() {
           updated_by: quem,
         })
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('itcd_simulacao: alterar status falhou', error);
+        // A única escrita com papel nesta tabela é aprovar (sublíder):
+        // recusa do RLS vira a frase do catálogo, não o inglês do banco.
+        const recusaDePapel =
+          (error as { code?: string })?.code === '42501'
+          || /row-level security/i.test(error.message);
+        throw new Error(recusaDePapel ? frasePapelNecessario('sublider') : FECHO_SUPORTE);
+      }
 
       // APROVAR é o portão antes de a apresentação sair para o cliente, e é a mudança
       // de status que mais importa registrar: `aprovada_por` diz quem aprovou AGORA, e

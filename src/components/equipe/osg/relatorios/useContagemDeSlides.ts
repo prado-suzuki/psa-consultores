@@ -9,44 +9,21 @@ import { useRelatorioSocietario } from '@/hooks/useRelatorioSocietario';
  * silêncio, que é justamente como esta contagem passou a mentir. O módulo é conta
  * pura, sem import nenhum, para poder entrar no bundle do Vite.
  */
-import { paginasDoQuadro } from '../../../../../supabase/functions/_shared/apresentacao-osg/paginacao.ts';
+import {
+  paginasDeOutrosBens, paginasDoQuadro,
+} from '../../../../../supabase/functions/_shared/apresentacao-osg/paginacao.ts';
 
 /**
- * Quantos slides cada deck vai ter, sem desenhar nenhum deles.
- *
- * A Biblioteca deixou de mostrar as tabelas: ela existe para GERAR, e quem abre
- * quer marcar e clicar, não ler. Mas gerar às cegas é pior que ler demais — deck
- * vazio só se descobre abrindo o .pptx. A contagem é o mínimo que responde
- * "tem o que gerar?" antes do clique, e é sobre o DECK, não sobre o cliente.
- *
- * AS REGRAS SÃO AS DA `gerar-apresentacao`, não as da tela:
- *
- *  - patrimonial: um slide por sociedade de destino, e a função descarta
- *    `participa_estruturacao = false` antes de agrupar. Bem fora da estruturação
- *    não vira slide e por isso não conta aqui.
- *  - societária: organograma (slide3), que sai sempre, mais as páginas do quadro
- *    (slide4, duplicado enquanto sobra empresa). O quadro empilha as empresas em
- *    duas colunas e abre página nova quando a altura estoura — e desde 21/09/2026
- *    PARTE a empresa que não couber, então o número de páginas não tem teto.
- *
- * ## Por que esta linha deixou de ser um chute — 21/09/2026
- *
- * Ela devolvia `2` fixo para a societária, com o comentário de que era "o piso, e
- * quem lê 2 pode receber 3 se houver muita empresa". Medido: um cliente com 41
- * sócios recebia **7**. Não era piso com folga, era promessa errada por 5 slides,
- * e quem lia marcava a peça sem saber o que vinha.
- *
- * Agora a conta vem da `paginasDoQuadro`, o mesmo módulo que o gerador usa para
- * paginar. Custa um import atravessando para `supabase/functions` e paga com a
- * impossibilidade de divergir: se o molde mudar de altura, os dois mudam juntos.
- *
- * Continua valendo a régua das outras linhas: conta SLIDE DE CONTEÚDO. Capa e
- * divisor não entram em nenhum dos três decks.
+ * Quantos slides de conteúdo cada deck vai ter, pelas regras da `gerar-apresentacao` (capa e divisor não
+ * contam): o patrimonial por sociedade com imóvel mais outros bens; a societária pela `paginasDoQuadro`.
  */
 export interface ContagemDeSlides {
   patrimonial: number;
   societaria: number;
   carregando: boolean;
+  /** A consulta falhou: a coluna diz que não contou, nunca "sem dados". */
+  erro: boolean;
+  tentarDeNovo: () => void;
 }
 
 /**
@@ -68,14 +45,24 @@ export interface ContagemDeSlides {
 export const SLIDES_DO_TRIBUTARIO = 6;
 
 export function useContagemDeSlides(clienteId: string | null): ContagemDeSlides {
-  const { data: bens = [], isLoading: carregandoBens } = useRelatorioDP(clienteId);
-  const { data: empresas = [], isLoading: carregandoEmpresas } = useRelatorioSocietario(clienteId);
+  const {
+    data: bens = [], isLoading: carregandoBens,
+    isError: erroBens, refetch: refetchBens,
+  } = useRelatorioDP(clienteId);
+  const {
+    data: empresas = [], isLoading: carregandoEmpresas,
+    isError: erroEmpresas, refetch: refetchEmpresas,
+  } = useRelatorioSocietario(clienteId);
 
   return useMemo(() => {
     const participa = (b: DPBem) => b.participa_estruturacao !== false;
+    /* Imóvel vai para a página da sociedade e o resto para a de outros bens, como o `ehImovel` do gerador. */
+    const imovel = (b: DPBem) => b.tipo_bem === 'IR' || b.tipo_bem === 'IB';
+    const naEstrutura = bens.filter(participa);
     const destinos = new Set(
-      bens.filter(participa).map((b) => b.empresa_destino_pessoa_id ?? '__sem_destino__'),
+      naEstrutura.filter(imovel).map((b) => b.empresa_destino_pessoa_id ?? '__sem_destino__'),
     );
+    const outrosBens = naEstrutura.filter((b) => !imovel(b)).length;
 
     /*
      * Zero empresa continua devolvendo zero, e não 1 pelo organograma.
@@ -88,9 +75,14 @@ export function useContagemDeSlides(clienteId: string | null): ContagemDeSlides 
     const socios = empresas.map((e) => e.socios.length);
 
     return {
-      patrimonial: destinos.size,
+      patrimonial: destinos.size + paginasDeOutrosBens(outrosBens),
       societaria: empresas.length > 0 ? 1 + paginasDoQuadro(socios) : 0,
       carregando: carregandoBens || carregandoEmpresas,
+      erro: erroBens || erroEmpresas,
+      tentarDeNovo: () => {
+        void refetchBens();
+        void refetchEmpresas();
+      },
     };
-  }, [bens, empresas, carregandoBens, carregandoEmpresas]);
+  }, [bens, empresas, carregandoBens, carregandoEmpresas, erroBens, erroEmpresas, refetchBens, refetchEmpresas]);
 }

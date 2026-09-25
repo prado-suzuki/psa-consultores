@@ -102,7 +102,8 @@ export function HistoricoDeSimulacoes({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas</SelectItem>
-              {STATUS_DA_SIMULACAO.map((s) => (
+              {/* O "Rascunho" saiu das opções com o status (o enum do banco fica). */}
+              {STATUS_DA_SIMULACAO.filter((s) => s !== 'rascunho').map((s) => (
                 <SelectItem key={s} value={s}>{ROTULO_DO_STATUS[s]}</SelectItem>
               ))}
             </SelectContent>
@@ -144,8 +145,8 @@ export function HistoricoDeSimulacoes({
                 <ComDica
                   dica={'Doação MAIS instituição de usufruto, quando o ato tiver as '
                     + 'duas. A reserva já está no valor da doação: ela muda a natureza '
-                    + 'e a base daquela guia, sem gerar uma própria. Abra a simulação '
-                    + 'para ver guia por guia.'}
+                    + 'e a base daquela guia, sem gerar uma própria. Aqui na base de '
+                    + '100%; abra a simulação para ver guia por guia, e em 70%.'}
                 >
                   Total do ato
                 </ComDica>
@@ -155,7 +156,7 @@ export function HistoricoDeSimulacoes({
             <TableRow>
               <TableHead className={rotuloDeColunaCls}>
                 <ComDica
-                  dica={'O nome dado ao cenário, ou a versão quando ele não tem nome. O '
+                  dica={'O nome da simulação, ou a versão quando ela não tem nome. O '
                     + 'sinal ↳ diz de qual simulação este ato parte.'}
                 >
                   Simulação
@@ -198,7 +199,7 @@ export function HistoricoDeSimulacoes({
                 </TableHead>
               ))}
               <TableHead className={rotuloDeColunaCls}>
-                <ComDica dica="O que vale, o que é ensaio e o que saiu do caminho. Quem troca é a simulação aberta.">
+                <ComDica dica="O que vale, o que espera decisão e o que saiu do caminho. Quem troca é a simulação aberta.">
                   Status
                 </ComDica>
               </TableHead>
@@ -245,7 +246,7 @@ export function HistoricoDeSimulacoes({
                     key={c}
                     className="text-right font-mono text-xs font-semibold tabular-nums"
                   >
-                    {brlDeDecimal(s.totalPorCenario[c])}
+                    {brlDeDecimal(s.totalPorBase['100'][c])}
                   </TableCell>
                 ))}
                 <TableCell>

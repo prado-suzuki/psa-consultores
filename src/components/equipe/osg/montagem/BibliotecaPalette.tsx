@@ -110,7 +110,7 @@ export function BibliotecaPalette({ documentoId, idsNoModelo }: Props) {
                               ? 'cursor-default border-dashed border-osg-moss/40 bg-osg-moss/[0.04]'
                               : adicionado
                                 ? 'cursor-default border-osg-100 bg-osg-50/50 opacity-60'
-                                : 'cursor-grab border-osg-200 bg-card hover:border-osg-moss/50 hover:shadow-sm active:cursor-grabbing',
+                                : 'cursor-grab border-osg-200 bg-field hover:border-osg-moss/50 hover:shadow-sm active:cursor-grabbing',
                           )}
                         >
                           {!inerte && <GripVertical className="h-3.5 w-3.5 shrink-0 text-osg-300 group-hover:text-osg-500" />}

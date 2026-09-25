@@ -110,7 +110,7 @@ const CalculadoraItcmd = () => {
                 Apurando e gravando a simulação…
               </p>
               <p className="text-xs text-muted-foreground">
-                Três cenários de avaliação, uma guia por par doador × donatário.
+                Três valores de avaliação, uma GIA por doador.
               </p>
             </div>
           </div>
@@ -139,9 +139,11 @@ const CalculadoraItcmd = () => {
               <Dado rotulo="Doa" valor={naSessao.doadores.join(', ') || '—'} />
             </div>
             <CenariosEmColunas
-              saida={naSessao.saida}
-              instituicao={calc.saidaDaInstituicao}
-              total={calc.impostoTotalPorCenario}
+              porBase={calc.apuracaoPorBase}
+              comAlternativa={[
+                ...(calc.comReserva ? ['reserva'] : []),
+                ...(calc.totalInstituido > 0n ? ['instituição'] : []),
+              ]}
               falta={calc.faltaNoCenario}
             />
           </div>

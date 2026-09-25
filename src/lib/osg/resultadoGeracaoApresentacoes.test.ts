@@ -39,12 +39,12 @@ describe('conferirDecksGerados', () => {
         arquivos: [{ tipo: 'patrimonial', nome: 'patrimonial.pptx' }],
         erro: null,
         errosPorDeck: [
-          { tipo: 'societaria', message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' },
+          { tipo: 'societaria', message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' },
         ],
       }),
     ).toEqual({
       gerados: ['patrimonial.pptx'],
-      falhas: ['Quadro Societário e Organograma: Template ausente: TEMPLATE_SOCIETARIA.pptx'],
+      falhas: ['Quadro Societário e Organograma: Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx'],
     });
   });
 

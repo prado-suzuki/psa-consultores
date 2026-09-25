@@ -45,7 +45,7 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="rounded-2xl border border-osg-300/60 bg-superficie-cartao p-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {ativos.map((m, i) => {
         const selecionado = m.id === modeloId;
         return (
@@ -55,7 +55,7 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
             aria-pressed={selecionado}
             onClick={() => onEscolher(m.id)}
             className={cn(
-              'group relative flex flex-col gap-2 rounded-md border bg-superficie-cartao p-4 pl-5 text-left shadow-sm transition-all duration-200 animate-osg-card-in motion-reduce:animate-none',
+              'group relative flex flex-col gap-2 rounded-md border bg-field p-4 pl-5 text-left shadow-sm transition-all duration-200 animate-osg-card-in motion-reduce:animate-none',
               selecionado
                 ? 'border-osg-moss/60 shadow-osg-300/40 ring-1 ring-osg-moss/25'
                 : 'border-osg-300/60 shadow-osg-300/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-300/30',

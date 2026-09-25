@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { AlertCircle, ListChecks, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
+import { AlertCircle, Loader2, PackageOpen, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
+import { FaixaDeEstado, SeloEstadoSolicitacao } from '@/components/equipe/osg/onboarding/FaixaDeEstado';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
+import { SolicitacaoEncerrada } from '@/components/equipe/osg/onboarding/SolicitacaoEncerrada';
 import { ModalEnviarSolicitacao } from '@/components/equipe/osg/onboarding/ModalEnviarSolicitacao';
 import { ModalFinalizarSolicitacao } from '@/components/equipe/osg/onboarding/ModalFinalizarSolicitacao';
 import { SolicitacaoVazia } from '@/components/equipe/osg/onboarding/SolicitacaoVazia';
@@ -18,6 +20,8 @@ import { useDomainSolicitacao, type EscolhaDoEnvio } from '@/hooks/useDomainSoli
 import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import { contarArquivosSemTipo } from '@/lib/checklistDerivado';
 import {
+  estadoDaSolicitacao,
+  geracaoTemOQueTrazer,
   type CatalogoDocumento,
   type EdicaoItem,
   type EstruturaDoItem,
@@ -196,12 +200,45 @@ const Onboarding = () => {
   };
 
   const encerrada = solicitacao?.status === 'encerrada';
-  const emChecklist = solicitacao?.status === 'em_checklist';
+  /**
+   * O estado do ciclo já resolvido — `encerrada` separada em finalizada e
+   * cancelada (plano §0). É dele que se alimentam a faixa, o selo do cabeçalho
+   * e o corpo encerrado; nenhum dos três pergunta o enum de novo.
+   */
+  const estado = estadoDaSolicitacao(solicitacao ?? null);
   const ocupado = gerarDaOs.isPending
     || enviarSolicitacao.isPending
     || passarParaChecklist.isPending
     || encerrarSolicitacao.isPending
     || abrirNovaSolicitacao.isPending;
+
+  /**
+   * Lista em zero num cliente que TEM OS da OSG: o corpo convida a gerar.
+   *
+   * Cobre os três caminhos que chegam a zero — nunca gerou, encerrou e abriu
+   * outra, ou dispensou tudo e a lista voltou a ficar vazia — e sai do ar assim
+   * que existir o primeiro item, porque aí o número prometido pela geração
+   * deixaria de bater.
+   *
+   * Encerrada fica de fora: ela não recebe item novo, e o topo já oferece "Abrir
+   * nova solicitação".
+   */
+  const convidarAGerar = !encerrada
+    && itens.length === 0
+    && ordensServico.length > 0;
+
+  /**
+   * Com o botão no meio da tela, o do topo sai — 21/09/2026.
+   *
+   * Eram dois botões para o mesmo ato e com rótulos diferentes ("Gerar lista a
+   * partir da OS" no topo, "Gerar os 58 documentos da OS" no meio), o que fazia
+   * a tela vazia parecer ter duas saídas. Ficou a do meio, com o rótulo do topo.
+   *
+   * A pergunta vai ao componente do corpo e não se repete aqui: o corpo vazio
+   * nem sempre traz botão, e nesse caso o do topo tem de continuar.
+   */
+  const geracaoNoCorpo = convidarAGerar
+    && geracaoTemOQueTrazer(documentosDaOs, ordensServico.length);
 
   const acoesDoTopo = clienteId && (solicitacao || ordensServico.length > 0)
     ? (
@@ -209,6 +246,7 @@ const Onboarding = () => {
         status={solicitacao?.status ?? null}
         temOrigemNaOs={ordensServico.length > 0}
         listaVazia={itens.length === 0}
+        geracaoNoCorpo={geracaoNoCorpo}
         itensAtivos={ativos.length}
         arquivosSemTipo={contarArquivosSemTipo(documentosDoCliente)}
         ocupado={ocupado}
@@ -233,25 +271,6 @@ const Onboarding = () => {
     && (catalogo.data?.produtosContratados.length ?? 0) === 0;
 
   /**
-   * Lista em zero num cliente que TEM OS da OSG: o corpo convida a gerar.
-   *
-   * Cobre os três caminhos que chegam a zero — nunca gerou, encerrou e abriu
-   * outra, ou dispensou tudo e a lista voltou a ficar vazia — e sai do ar assim
-   * que existir o primeiro item, porque aí o número prometido pela geração
-   * deixaria de bater.
-   *
-   * Encerrada fica de fora: ela não recebe item novo, e o topo já oferece "Abrir
-   * nova solicitação".
-   */
-  const convidarAGerar = !encerrada
-    && itens.length === 0
-    && ordensServico.length > 0;
-
-  /** Data curta, para dizer desde quando o cliente vê a lista. */
-  const emData = (iso: string | null) =>
-    (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
-
-  /**
    * O subtítulo é FIXO: o texto da Patrícia (10/09/2026), e mais nada.
    *
    * Ele variava com o estado — "Enviada ao cliente em 10/09/2026", "Em fase de
@@ -273,6 +292,13 @@ const Onboarding = () => {
       title={TELAS_OSG_WORK.solicitacaoDocumentos.label}
       subtitle={TELAS_OSG_WORK.solicitacaoDocumentos.descricao}
       headerActions={acoesDoTopo}
+      selo={(
+        <SeloEstadoSolicitacao
+          estado={estado}
+          enviadaEm={solicitacao?.enviadaEm ?? null}
+          encerradaEm={solicitacao?.encerradaEm ?? null}
+        />
+      )}
     >
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
@@ -319,63 +345,39 @@ const Onboarding = () => {
             enviadaEm={solicitacao?.enviadaEm}
           />
 
-          {solicitacao?.status === 'enviada' && (
-            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
-              <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
-              <p className="leading-relaxed">
-                Solicitação <strong className="font-semibold">aberta desde{' '}
-                {emData(solicitacao.enviadaEm)}</strong>. O cliente já pode visualizar a
-                lista e enviar os documentos. Novos documentos adicionados à solicitação
-                também ficarão disponíveis no portal. A solicitação permanecerá aberta até
-                ser finalizada.
-              </p>
-            </div>
-          )}
+          {/* Encerrada é um corpo próprio — faixa, resumo e lista só-consulta no
+              SolicitacaoEncerrada (§1.5) — e o workspace não renderiza: a
+              superfície de trabalho não existe para um pedido que acabou. Os
+              dois estados abertos ficam com a FaixaDeEstado (§1.4). */}
+          {encerrada && solicitacao ? (
+            <SolicitacaoEncerrada
+              estado={estado === 'cancelada' ? 'cancelada' : 'finalizada'}
+              encerradaEm={solicitacao.encerradaEm}
+              ativos={ativos}
+            />
+          ) : (
+            <>
+              <FaixaDeEstado
+                estado={estado}
+                enviadaEm={solicitacao?.enviadaEm ?? null}
+              />
 
-          {emChecklist && (
-            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
-              <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
-              <p className="leading-relaxed">
-                {/* "A solicitação permanecerá aberta até ser finalizada", e não
-                    "o pedido só fecha quando você encerrar". A Patrícia mandou
-                    trocar essa frase em 10/09/2026; ela existia em DUAS faixas e
-                    a primeira passagem só corrigiu a de "aberta desde". */}
-                Esta solicitação está <strong className="font-semibold">em fase de
-                checklist</strong>: a tela do cliente mostra o que falta, de quem é cada
-                documento, e o envio dele já chega classificado. Novos documentos
-                adicionados aqui também ficarão disponíveis no portal. A solicitação
-                permanecerá aberta até ser finalizada.
-              </p>
-            </div>
+              <OnboardingWorkspace
+                itens={ativos}
+                dispensados={dispensados}
+                catalogDocuments={catalogo.data.catalogDocuments}
+                catalogoPorId={catalogo.data.catalogoPorId}
+                produtosContratados={produtosDoRail}
+                produtosPorDocumento={catalogo.data.produtosPorDocumento}
+                somenteLeitura={encerrada}
+                status={solicitacao?.status ?? null}
+                onAdicionarDoCatalogo={incluirDoCatalogo}
+                onAdicionarManual={incluirManual}
+                onEditar={editar}
+                onDispensar={dispensar}
+              />
+            </>
           )}
-
-          {encerrada && (
-            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
-              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-osg-500/70" />
-              <p className="leading-relaxed">
-                Esta solicitação foi <strong className="font-semibold">finalizada</strong>
-                {solicitacao?.encerradaEm ? ` em ${emData(solicitacao.encerradaEm)}` : ''} e
-                está só para consulta. O cliente continua vendo os arquivos que enviou, mas
-                não envia mais nada. Para pedir outros documentos, abra uma nova solicitação
-                pelo botão no topo.
-              </p>
-            </div>
-          )}
-
-          <OnboardingWorkspace
-            itens={ativos}
-            dispensados={dispensados}
-            catalogDocuments={catalogo.data.catalogDocuments}
-            catalogoPorId={catalogo.data.catalogoPorId}
-            produtosContratados={produtosDoRail}
-            produtosPorDocumento={catalogo.data.produtosPorDocumento}
-            somenteLeitura={encerrada}
-            status={solicitacao?.status ?? null}
-            onAdicionarDoCatalogo={incluirDoCatalogo}
-            onAdicionarManual={incluirManual}
-            onEditar={editar}
-            onDispensar={dispensar}
-          />
         </div>
       )}
 

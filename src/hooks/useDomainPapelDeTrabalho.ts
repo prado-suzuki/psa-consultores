@@ -430,7 +430,7 @@ export interface ResultadoDaGeracao {
   versao: number;
   nomeArquivo: string;
   url: string | null;
-  problemas: { tipo: 'formatacao' | 'origem'; onde: string; detalhe: string }[];
+  problemas: { tipo: 'formatacao' | 'origem' | 'sistema'; onde: string; detalhe: string }[];
 }
 
 /**

@@ -17,14 +17,17 @@ import {
   linhaDeTotalCls, LinhaDeTotal, LinhaDeValor, Num, Q, Quadro, rotuloCls, Secao, Th,
   Txt,
 } from './itcmdKit';
-import { AvisoDeParcelaDiferida } from './SelecaoDaBase';
+import { AvisoDeParcelaDiferida, SelecaoDaBase, VerNaBase } from './SelecaoDaBase';
 import {
   CENARIOS, DICA_CENARIO, ROTULO_CENARIO, type Cenario,
 } from '@/lib/osg/itcmd/simulacao';
 import {
-  ROTULO_DO_STATUS, STATUS_DA_SIMULACAO, cadeiaDe, rotuloDaSimulacao, totalDaCadeia,
-  type SimulacaoSalva, type StatusDaSimulacao,
+  ROTULO_DO_STATUS, STATUS_DA_SIMULACAO, apuracaoNaBase, basesGravadas, cadeiaDe,
+  rotuloDaSimulacao, temDuasBases, totalDaCadeia,
+  type BaseDeCalculo, type SimulacaoSalva, type StatusDaSimulacao,
 } from '@/hooks/useSimulacoesItcmd';
+import { useAuth } from '@/contexts/AuthContext';
+import { frasePapelNecessario } from '@/lib/rlsMessages';
 
 /**
  * UMA SIMULAÇÃO ABERTA — o registro de execução de um cenário.
@@ -125,6 +128,16 @@ function Corpo({
   renomeando: boolean;
 }) {
   const nome = nomeadorDe(simulacao);
+  /* Só visualização: a simulação guarda as duas bases. Começa na integral, a única de toda guia. */
+  const [base, setBase] = useState<BaseDeCalculo>('100');
+  const instituicao = simulacao.concessoes.some((c) => c.origem === 'instituicao');
+  /* A APROVAÇÃO é decisão de sublíder ou superior (policy da migration
+     20260831210500): quem não tem o papel vê a opção desabilitada — e, na
+     simulação já aprovada, o seletor inteiro, porque voltar o status é
+     desaprovar, que exige o papel do mesmo jeito. */
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const podeAprovar = isAdmin || isLider || isSublider;
+  const travadoPeloPapel = !podeAprovar && simulacao.status === 'aprovada';
 
   return (
     <ComoDicas>
@@ -179,7 +192,7 @@ function Corpo({
           <div className="ml-auto space-y-1 rounded-lg border border-border bg-osg-50/40 px-3 py-2">
             <span className={rotuloCls}>
               <ComDica
-                dica={'Rascunho, gerada, aprovada ou substituída. Trocar o status não '
+                dica={'Gerada, aprovada ou substituída. Trocar o status não '
                   + 'recalcula nada: os números continuam sendo os do momento em que a '
                   + 'simulação foi gravada.'}
               >
@@ -188,7 +201,7 @@ function Corpo({
             </span>
             <Select
               value={simulacao.status}
-              disabled={alterando}
+              disabled={alterando || travadoPeloPapel}
               onValueChange={(v) => aoAlterarStatus(simulacao.id, v as StatusDaSimulacao)}
             >
               <SelectTrigger
@@ -198,11 +211,34 @@ function Corpo({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_DA_SIMULACAO.map((s) => (
-                  <SelectItem key={s} value={s}>{ROTULO_DO_STATUS[s]}</SelectItem>
+                {/* O "Rascunho" saiu das opções (o enum do banco fica). Se uma
+                    simulação antiga ainda estiver nele, o valor atual aparece,
+                    desabilitado, para o seletor não mentir o que ela é. */}
+                {simulacao.status === 'rascunho' && (
+                  <SelectItem value="rascunho" disabled>
+                    {ROTULO_DO_STATUS.rascunho}
+                  </SelectItem>
+                )}
+                {STATUS_DA_SIMULACAO.filter((s) => s !== 'rascunho').map((s) => (
+                  <SelectItem
+                    key={s}
+                    value={s}
+                    disabled={s === 'aprovada' && !podeAprovar}
+                  >
+                    {ROTULO_DO_STATUS[s]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {!podeAprovar && (
+              <p className="max-w-[170px] text-[11px] leading-snug text-muted-foreground">
+                {frasePapelNecessario('sublider')}
+              </p>
+            )}
+            {/* A regra que decide o destino da simulação, visível sem hover. */}
+            <p className="max-w-[170px] text-[11px] leading-snug text-muted-foreground">
+              Só a simulação aprovada entra na apresentação de Organização Sucessória.
+            </p>
           </div>
         </div>
       </div>
@@ -224,8 +260,11 @@ function Corpo({
             <QuadroDoUsufruto simulacao={simulacao} nome={nome} />
           </TabsContent>
           <TabsContent value="itcd" className={`mt-0 space-y-4 ${abaCls}`}>
-            <TresCenarios simulacao={simulacao} nome={nome} />
-            <ACadeia simulacao={simulacao} todas={todas} />
+            {temDuasBases(simulacao) && <VerNaBase valor={base} aoTrocar={setBase} />}
+            {base === '70' && simulacao.comReserva && <AvisoDeParcelaDiferida onde="reserva" />}
+            {base === '70' && instituicao && <AvisoDeParcelaDiferida onde="instituição" />}
+            <TresCenarios simulacao={simulacao} nome={nome} base={base} />
+            <ACadeia simulacao={simulacao} todas={todas} base={base} aoTrocarBase={setBase} />
           </TabsContent>
         </div>
       </Tabs>
@@ -261,7 +300,7 @@ function NomeEditavel({ simulacao, aoRenomear, renomeando }: {
     return (
       <div className="flex items-center gap-2">
         <span className="text-base font-semibold">{rotulo}</span>
-        <DicaDoControle dica="Dar um nome ao cenário: “Sem reserva”, “51% pelo Avelino”. Sem nome, ela se chama pela versão.">
+        <DicaDoControle dica="Dá um nome à simulação, que vira o nome do cenário na apresentação. Sem nome, ela se chama pela versão.">
           <button
             type="button"
             aria-label="Renomear a simulação"
@@ -394,15 +433,15 @@ function QuadroDaDoacao({ simulacao, nome }: {
             </Th>
             <Th
               alinhar="esquerda"
-              dica={'Em quantas guias o doador emitiu, e no nome de quem. Cônjuge em '
-                + 'conjunto é doador fiscal próprio, pela meação.'}
+              dica={'Individual ou em conjunto com o cônjuge. Em conjunto, o casal '
+                + 'foi um doador só, numa GIA.'}
             >
               Emissão GIA
             </Th>
             {/* O APORTE só ganha coluna quando houve um: é hipótese de cenário, e
                 uma coluna de zeros em toda simulação sem aporte seria ruído. */}
             {temAporte && (
-              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou nos três cenários pelo valor de face, sem ITCMD.">
+              <Th dica="Dinheiro integralizado no capital: virou quotas ao preço da quota e entrou pelo valor de face nos três valores de avaliação, sem ITCMD.">
                 Aporte (R$)
               </Th>
             )}
@@ -532,9 +571,9 @@ function QuadroDoUsufruto({ simulacao, nome }: {
     <div className="space-y-4">
       <DesfechoDoAto
         comReserva={simulacao.comReserva}
-        pctBaseReserva={simulacao.pctBaseReserva}
-        pctBaseInstituicao={simulacao.pctBaseInstituicao}
         guias={guias.length}
+        basesDaReserva={basesGravadas(simulacao.gias)}
+        basesDaInstituicao={basesGravadas(guias)}
       />
 
       {/* PRIMEIRO O ATO, depois o resultado: quem instituiu para quem é o que se
@@ -683,18 +722,21 @@ function QuadroDoUsufruto({ simulacao, nome }: {
  * O DESFECHO DO ATO, em uma frase. É a primeira coisa da aba porque é a pergunta que
  * se faz ao abrir uma simulação antiga: isto gerou instrumento? gerou guia?
  */
-function DesfechoDoAto({ comReserva, pctBaseReserva, pctBaseInstituicao, guias }: {
+function DesfechoDoAto({ comReserva, guias, basesDaReserva, basesDaInstituicao }: {
   comReserva: boolean;
-  pctBaseReserva: string;
-  pctBaseInstituicao: string;
   guias: number;
+  /** Em que bases a guia foi gravada: as duas, ou uma só na simulação antiga. */
+  basesDaReserva: BaseDeCalculo[];
+  basesDaInstituicao: BaseDeCalculo[];
 }) {
-  const pct = (v: string) => `${pctDeDecimal(v).replace(',0000', '')}`;
+  const emQueBases = (b: BaseDeCalculo[], plural: boolean) => (b.length === 2
+    ? `apurada${plural ? 's' : ''} em 100% e em 70%`
+    : `gravada${plural ? 's' : ''} só em ${b[0] ?? '—'}%`);
 
   if (!comReserva && guias === 0) {
     return (
       <p className="rounded-md border border-border bg-muted/60 px-3 py-2.5 text-sm text-foreground">
-        <strong className="font-semibold">Nenhum ato de usufruto neste cenário.</strong>
+        <strong className="font-semibold">Nenhum ato de usufruto nesta simulação.</strong>
         {' Cada um vota o que tem: não há instrumento de usufruto nem guia a recolher. '}
         O quadro abaixo é como a sociedade fica depois da doação.
       </p>
@@ -706,7 +748,7 @@ function DesfechoDoAto({ comReserva, pctBaseReserva, pctBaseInstituicao, guias }
       {comReserva && (
         <p>
           <strong className="font-semibold">Reserva de usufruto na doação</strong>
-          {` — base de ${pct(pctBaseReserva)}. `}
+          {` — ${emQueBases(basesDaReserva, false)}. `}
           <span className="text-muted-foreground">
             O voto fica com quem doa. Sem guia própria: é a guia da doação que muda de
             natureza e de base.
@@ -716,18 +758,12 @@ function DesfechoDoAto({ comReserva, pctBaseReserva, pctBaseInstituicao, guias }
       {guias > 0 && (
         <p>
           <strong className="font-semibold">Instituição de usufruto</strong>
-          {` — ${guias} ${guias === 1 ? 'guia' : 'guias'}, base de `}
-          {`${pct(pctBaseInstituicao)}. `}
+          {` — ${guias} ${guias === 1 ? 'guia' : 'guias'}, `}
+          {`${emQueBases(basesDaInstituicao, guias > 1)}. `}
           <span className="text-muted-foreground">
             Ato próprio e tributado, com imposto na aba de Cálculo.
           </span>
         </p>
-      )}
-      {pctBaseReserva === '70.00' && comReserva && (
-        <AvisoDeParcelaDiferida onde="reserva" />
-      )}
-      {pctBaseInstituicao === '70.00' && guias > 0 && (
-        <AvisoDeParcelaDiferida onde="instituição" />
       )}
     </div>
   );
@@ -742,17 +778,13 @@ function pctDeQuotas(parte: bigint, totalTexto: string): string {
 }
 
 /**
- * A ABA DO CÁLCULO: os três cenários lado a lado, na ordem do resumo de tributos que a
- * OSG apresenta — total do acervo, alíquota, BASE de cada donatário, imposto de cada
- * donatário e o total por último.
- *
- * Cada quadro fecha no TOTAL DO ATO: a doação mais as guias de instituição de
- * usufruto. A reserva não aparece como linha porque não é guia — ela já está dentro do
- * imposto da doação, reduzindo a base dele.
+ * A aba do Cálculo: os três cenários lado a lado, na ordem do resumo de tributos, cada um fechando no
+ * TOTAL DO ATO (doação mais instituições), na base que está sendo vista.
  */
-function TresCenarios({ simulacao, nome }: {
+function TresCenarios({ simulacao, nome, base }: {
   simulacao: SimulacaoSalva;
   nome: Nomeador;
+  base: BaseDeCalculo;
 }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
@@ -763,19 +795,24 @@ function TresCenarios({ simulacao, nome }: {
           ordem={ordem}
           simulacao={simulacao}
           nome={nome}
+          base={base}
         />
       ))}
     </div>
   );
 }
 
-function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
+function QuadroDoCenario({ cenario, ordem, simulacao, nome, base }: {
   cenario: Cenario;
   /** Posição na fila, só para a entrada em cascata — a mesma da tela da sessão. */
   ordem: number;
   simulacao: SimulacaoSalva;
   nome: Nomeador;
+  base: BaseDeCalculo;
 }) {
+  /* A guia na base vista; na simulação antiga, a que existe, marcada, em vez de traço onde há número. */
+  const na = (porBase: SimulacaoSalva['gias'][number]['porBase']) => apuracaoNaBase(porBase, base);
+  const soEm = (b: BaseDeCalculo | undefined) => (b && b !== base ? `gravada só em ${b}%` : undefined);
   const daInstituicao = simulacao.concessoes.filter((c) => c.origem === 'instituicao');
   /**
    * SE HÁ MAIS DE UM DOADOR, a base e o imposto aparecem POR GUIA e não por donatário.
@@ -804,7 +841,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
             cada donatário sai da tabela progressiva, e a faixa diz de onde vem. */}
         <LinhaDeValor rotulo="Alíquota" valor="2% a 8%" />
 
-        <Secao>{porGuia ? 'Base de cálculo, por guia' : 'Base de cálculo'}</Secao>
+        <Secao>{porGuia ? 'Base de cálculo, por doador e donatário' : 'Base de cálculo'}</Secao>
         {simulacao.gias.map((g) => (
           <LinhaDeValor
             key={`base-${g.doadorId}>${g.donatarioId}`}
@@ -812,12 +849,12 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
               ? `${nome(g.doadorId, g.doadorNome)} → ${nome(g.donatarioId, g.donatarioNome)}`
               : nome(g.donatarioId, g.donatarioNome)}
             detalhe={pctDeDecimal(g.pctDaGia)}
-            valor={brlDeDecimal(g.basePorCenario[cenario])}
+            valor={brlDeDecimal(na(g.porBase)?.apuracao.basePorCenario[cenario])}
           />
         ))}
 
         <Secao>
-          {porGuia ? 'Simulação do ITCMD, por guia' : 'Simulação do valor de ITCMD'}
+          {porGuia ? 'Simulação do ITCMD, por doador e donatário' : 'Simulação do valor de ITCMD'}
         </Secao>
         {simulacao.gias.map((g) => (
           <LinhaDeValor
@@ -825,7 +862,9 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
             rotulo={porGuia
               ? `${nome(g.doadorId, g.doadorNome)} → ${nome(g.donatarioId, g.donatarioNome)}`
               : nome(g.donatarioId, g.donatarioNome)}
-            valor={brlDeDecimal(g.impostoPorCenario[cenario])}
+            // Sem reserva a guia só existe em 100%, e isso não é falta: não se marca.
+            detalhe={simulacao.comReserva ? soEm(na(g.porBase)?.base) : undefined}
+            valor={brlDeDecimal(na(g.porBase)?.apuracao.impostoPorCenario[cenario])}
           />
         ))}
 
@@ -838,20 +877,21 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
             {daInstituicao.map((g) => (
               <LinhaDeValor
                 key={`inst-${g.deId}>${g.paraId}`}
-                rotulo={`${g.deNome} → ${g.paraNome}`}
-                valor={brlDeDecimal(g.impostoPorCenario[cenario])}
+                rotulo={`${nome(g.deId, g.deNome)} → ${nome(g.paraId, g.paraNome)}`}
+                detalhe={soEm(na(g.porBase)?.base)}
+                valor={brlDeDecimal(na(g.porBase)?.apuracao.impostoPorCenario[cenario])}
               />
             ))}
             <LinhaDeValor
               rotulo="ITCMD da doação"
-              valor={brlDeDecimal(simulacao.impostoPorCenario[cenario])}
+              valor={brlDeDecimal(simulacao.doacaoPorBase[base][cenario])}
             />
           </>
         )}
 
         <LinhaDeTotal
           rotulo={daInstituicao.length > 0 ? 'Total do ato' : 'Imposto total'}
-          valor={brlDeDecimal(simulacao.totalPorCenario[cenario])}
+          valor={brlDeDecimal(simulacao.totalPorBase[base][cenario])}
           dica={daInstituicao.length > 0
             ? 'Doação MAIS instituição de usufruto: as guias das duas naturezas.'
             : 'Só a doação: este ato não tem guia de instituição de usufruto.'}
@@ -872,17 +912,28 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
  * diferentes são apurações separadas. E quando acumulam, a soma dos devidos é igual à
  * apuração da base consolidada: fracionar não economiza.
  */
-function ACadeia({ simulacao, todas }: {
+function ACadeia({ simulacao, todas, base, aoTrocarBase }: {
   simulacao: SimulacaoSalva;
   todas: SimulacaoSalva[];
+  /** A base do ato ABERTO: é a do seletor de cima, e a linha dele na cadeia a acompanha. */
+  base: BaseDeCalculo;
+  aoTrocarBase: (b: BaseDeCalculo) => void;
 }) {
+  /* A base de cada ato: numa cadeia, um ato pode ser visto numa base e o seguinte em outra. Os outros
+     começam na integral. */
+  const [basesDosOutros, setBasesDosOutros] = useState<Record<string, BaseDeCalculo>>({});
   const cadeia = cadeiaDe(simulacao, todas);
   if (cadeia.length < 2) return null;
+  const baseDe = (s: SimulacaoSalva): BaseDeCalculo =>
+    (s.id === simulacao.id ? base : basesDosOutros[s.id] ?? '100');
+  const trocar = (s: SimulacaoSalva, b: BaseDeCalculo) => (s.id === simulacao.id
+    ? aoTrocarBase(b)
+    : setBasesDosOutros((atual) => ({ ...atual, [s.id]: b })));
 
   return (
     <Quadro
       titulo="Cadeia de atos"
-      legenda="Cada linha é um ato; a última é a soma"
+      legenda="Cada linha é um ato, na base em que está sendo vista; a última é a soma"
     >
       <table className="w-full text-sm">
         <thead className={cabecalhoDaTabelaCls}>
@@ -892,6 +943,13 @@ function ACadeia({ simulacao, todas }: {
             </Th>
             <Th alinhar="esquerda" dica="O mês da UPF de cada ato. Atos em competências diferentes foram apurados com UPFs diferentes.">
               Competência
+            </Th>
+            <Th
+              alinhar="esquerda"
+              dica={'A base em que o ato aparece aqui. Só quem tem reserva ou instituição '
+                + 'de usufruto tem as duas; sem elas, a guia só existe em 100%.'}
+            >
+              Base
             </Th>
             {/* `Th` do kit, e não um `th` solto: estas três eram as únicas colunas da
                 tela sem o rótulo em caixa alta, e sem dica. */}
@@ -913,8 +971,19 @@ function ACadeia({ simulacao, todas }: {
                 {rotuloDaSimulacao(s)}
               </Txt>
               <Txt>{s.competencia}</Txt>
+              <Txt className="font-sans">
+                {temDuasBases(s) ? (
+                  <SelecaoDaBase
+                    valor={baseDe(s)}
+                    aoTrocar={(b) => trocar(s, b)}
+                    rotulo={`Base de ${rotuloDaSimulacao(s)}`}
+                  />
+                ) : (
+                  <span className="text-muted-foreground">100%</span>
+                )}
+              </Txt>
               {CENARIOS.map((c) => (
-                <Num key={c}>{brlDeDecimal(s.totalPorCenario[c])}</Num>
+                <Num key={c}>{brlDeDecimal(s.totalPorBase[baseDe(s)][c])}</Num>
               ))}
             </tr>
           ))}
@@ -927,8 +996,9 @@ function ACadeia({ simulacao, todas }: {
               {`Total dos ${cadeia.length} atos`}
             </Txt>
             <Num>{TRACO}</Num>
+            <Num>{TRACO}</Num>
             {CENARIOS.map((c) => (
-              <Num key={c}>{brlDeDecimal(totalDaCadeia(cadeia, c))}</Num>
+              <Num key={c}>{brlDeDecimal(totalDaCadeia(cadeia, c, baseDe))}</Num>
             ))}
           </tr>
         </tbody>

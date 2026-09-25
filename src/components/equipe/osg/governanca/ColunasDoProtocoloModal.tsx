@@ -33,6 +33,7 @@ export function ColunasDoProtocoloModal({
   open,
   onOpenChange,
   colunas,
+  regrasPorColuna,
   salvando,
   onAcrescentar,
   onRenomear,
@@ -41,6 +42,8 @@ export function ColunasDoProtocoloModal({
   open: boolean;
   onOpenChange: (aberto: boolean) => void;
   colunas: BeneficiarioDoProtocolo[];
+  /** Regras escritas em cada coluna, pelo id do beneficiário. */
+  regrasPorColuna: ReadonlyMap<string, number>;
   salvando: boolean;
   onAcrescentar: (nome: string) => Promise<unknown>;
   onRenomear: (id: string, de: string, para: string) => Promise<unknown>;
@@ -49,6 +52,13 @@ export function ColunasDoProtocoloModal({
   const [nomes, setNomes] = useState<Record<string, string>>({});
   const [nova, setNova] = useState('');
   const [aTirar, setATirar] = useState<BeneficiarioDoProtocolo | null>(null);
+  const regrasATirar = aTirar ? (regrasPorColuna.get(aTirar.id) ?? 0) : 0;
+  const perda =
+    regrasATirar === 0
+      ? 'Nenhuma regra foi escrita nesta coluna ainda.'
+      : regrasATirar === 1
+        ? 'A regra escrita nesta coluna se perde, e não há como desfazer.'
+        : `As ${regrasATirar} regras escritas nesta coluna, somando todos os itens do protocolo, se perdem, e não há como desfazer.`;
 
   useEffect(() => {
     if (open) {
@@ -167,9 +177,7 @@ export function ColunasDoProtocoloModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Tirar a coluna {aTirar?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tudo o que foi escrito nesta coluna se perde, em todos os itens do protocolo, e não
-              há como desfazer. Se a ideia é só mudar o nome do grupo, edite o nome aqui mesmo em
-              vez de tirar.
+              {perda} Se a ideia é só mudar o nome do grupo, edite o nome aqui mesmo em vez de tirar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

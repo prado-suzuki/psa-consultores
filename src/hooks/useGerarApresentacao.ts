@@ -3,9 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 
-// Decks da apresentação PSA (segue a separação do pptx original).
-export type DeckDaApresentacao = 'patrimonial' | 'societaria';
-export type DeckTipo = 'ambas' | DeckDaApresentacao;
+/** Os decks que a `gerar-apresentacao` monta: capítulos 01, 02 e 04. O 03, tributário, sai por outra função. */
+export type DeckDaApresentacao = 'patrimonial' | 'societaria' | 'sucessoria';
 
 /**
  * Um deck que o servidor gerou, gravou e devolveu por URL assinada.
@@ -25,9 +24,8 @@ export interface ArquivoGerado {
   versao: number;
 }
 
-// Contrato com a Edge Function `gerar-apresentacao` (Deno):
-//   body → { clienteId: string; tipo: DeckTipo }
-//   resp → { arquivos: ArquivoGerado[], erros?, problemas? }
+// Contrato com a `gerar-apresentacao`: body { clienteId, tipos, simulacaoIds? } → { arquivos, erros?,
+// problemas? }; 500 { error, detalhes: ErroDeDeck[] } quando nenhum deck saiu.
 const EDGE_FN = 'gerar-apresentacao';
 
 /**
@@ -57,7 +55,10 @@ export interface ResultadoDosDecks {
 }
 
 export interface ProblemaDoDeck {
-  tipo: 'origem' | 'formatacao';
+  /** `sistema` é falha nossa: o analista só avisa o suporte da PSA Digital. */
+  tipo: 'origem' | 'formatacao' | 'sistema';
+  /** A parte do arquivo ("Organograma", "Quadro Societário"), pela qual a tela agrupa. */
+  onde: string;
   detalhe: string;
 }
 
@@ -69,6 +70,27 @@ export interface ErroDeDeck {
 /** O 404 do `invoke` é função não publicada no ambiente, e vale dizer isso. */
 const statusDoErro = (erro: unknown): number | undefined =>
   (erro as { context?: { status?: number } } | null)?.context?.status;
+
+/** O texto genérico que o `supabase-js` põe no `message` quando a função devolve erro HTTP. */
+const MENSAGEM_CRUA_DO_INVOKE = /Edge Function returned a non-2xx status code/i;
+
+/**
+ * O motivo de cada deck quando todos falharam: a função manda `detalhes` no 500, e o `supabase-js` descarta
+ * o corpo e fica com "Edge Function returned a non-2xx status code".
+ */
+async function errosDoCorpo(erro: unknown): Promise<ErroDeDeck[]> {
+  const contexto = (erro as { context?: unknown } | null)?.context;
+  if (!(contexto instanceof Response)) return [];
+  try {
+    const corpo = await contexto.clone().json();
+    return Array.isArray(corpo?.detalhes)
+      ? corpo.detalhes.filter((d: unknown): d is ErroDeDeck =>
+        typeof (d as ErroDeDeck)?.tipo === 'string' && typeof (d as ErroDeDeck)?.message === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Dispara a geração dos decks .pptx no servidor e baixa o resultado.
@@ -102,24 +124,35 @@ const statusDoErro = (erro: unknown): number | undefined =>
  * Por isso o resultado sai sempre preenchido e o `erro` é o campo que responde;
  * é o `conferirDecksGerados` que confronta o pedido com o que voltou.
  */
-export function useGerarApresentacao(clienteId: string | null) {
+/** `simulacaoIds` é do capítulo 04 (o último ato de cada cenário) e só vai quando o `sucessoria` foi pedido. */
+export function useGerarApresentacao(clienteId: string | null, simulacaoIds: readonly string[] = []) {
   const { logAction } = useAuditLog();
 
   const mutation = useMutation({
-    mutationFn: async (tipo: DeckTipo): Promise<ResultadoDosDecks> => {
+    /* A lista do que foi marcado: com três decks, um `tipo` só mandaria um. */
+    mutationFn: async (tipos: readonly DeckDaApresentacao[]): Promise<ResultadoDosDecks> => {
       if (!clienteId) return { arquivos: [], erro: 'nenhum cliente selecionado' };
       const { data, error } = await supabase.functions.invoke<{
         arquivos: ArquivoGerado[];
         erros?: ErroDeDeck[];
         problemas?: ProblemaDoDeck[];
-      }>(EDGE_FN, { body: { clienteId, tipo } });
+      }>(EDGE_FN, {
+        body: tipos.includes('sucessoria') ? { clienteId, tipos, simulacaoIds } : { clienteId, tipos },
+      });
       if (error) {
+        /* A mensagem crua do `supabase-js` ("Edge Function returned a non-2xx
+           status code") é de máquina e não diz nada ao consultor: vai para o
+           console, e a tela recebe o texto fixo (AP-E04). */
+        console.error('gerar-apresentacao:', error);
         return {
           arquivos: [],
           erro:
             statusDoErro(error) === 404
               ? 'a geração ainda não está publicada no servidor'
-              : error.message || 'a geração falhou no servidor',
+              : MENSAGEM_CRUA_DO_INVOKE.test(error.message || '')
+                ? 'não foi possível gerar esta apresentação'
+                : error.message || 'não foi possível gerar esta apresentação',
+          errosPorDeck: await errosDoCorpo(error),
         };
       }
       const arquivos = data?.arquivos ?? [];
@@ -139,7 +172,7 @@ export function useGerarApresentacao(clienteId: string | null) {
       const falhasAoBaixar: ErroDeDeck[] = [];
       for (const f of arquivos) {
         if (!f.url) {
-          falhasAoBaixar.push({ tipo: f.tipo, message: 'o arquivo foi gravado, mas o link não foi assinado' });
+          falhasAoBaixar.push({ tipo: f.tipo, message: 'a apresentação ficou guardada, mas o link para baixar não veio' });
           continue;
         }
         try {

@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   agruparPorGrupo,
   contarPorProduto,
+  dataComHora,
+  dataCurta,
   encontrarItemDoCatalogo,
+  estadoDaSolicitacao,
   filtrarPorProduto,
   FILTRO_TODOS,
+  geracaoTemOQueTrazer,
   graoSugeridoParaGrupo,
   GRAOS_DE_BENS_IMOVEIS,
   montarAtualizacaoItem,
@@ -15,6 +19,8 @@ import {
   MODULO_AVULSO,
   ordenarItens,
   paraGranularidade,
+  removerPedeConfirmacao,
+  resumoPorGrupo,
   resolverItem,
   type CatalogoDocumento,
   type SolicitacaoItemRow,
@@ -384,5 +390,117 @@ describe('montarAtualizacaoItem', () => {
       grupo: 'outros',
       granularidade: 'cliente',
     })).toEqual({ grupo: 'outros', granularidade: 'cliente' });
+  });
+});
+
+describe('geracaoTemOQueTrazer', () => {
+  // A resposta decide se o botão de gerar fica no corpo da tela vazia ou no topo.
+  // Mora em `lib` porque as DUAS pontas perguntam — a página e o estado vazio — e
+  // duas cópias divergiriam no primeiro ajuste, deixando a tela sem botão nenhum.
+  it('só é não quando a OS é única e não tem documento vinculado', () => {
+    expect(geracaoTemOQueTrazer(0, 1)).toBe(false);
+  });
+
+  it('com documento vinculado, tem o que trazer', () => {
+    expect(geracaoTemOQueTrazer(1, 1)).toBe(true);
+    expect(geracaoTemOQueTrazer(58, 1)).toBe(true);
+  });
+
+  it('com mais de uma OS, zero é "ainda não escolheu", não "não tem"', () => {
+    // O total depende de qual OS o consultor escolher. Dizer que não há o que
+    // trazer seria mentira — e era esse o caso que a condição antiga confundia.
+    expect(geracaoTemOQueTrazer(0, 2)).toBe(true);
+    expect(geracaoTemOQueTrazer(0, 7)).toBe(true);
+  });
+
+  it('não é ela que guarda o caso de nenhuma OS', () => {
+    // Sem OS nenhuma a pergunta não chega aqui: quem filtra é a página, no
+    // `ordensServico.length > 0`. Registrado para ninguém ler o `true` como
+    // permissão de gerar sem OS.
+    expect(geracaoTemOQueTrazer(0, 0)).toBe(true);
+  });
+});
+
+describe('removerPedeConfirmacao', () => {
+  it('pede quando o cliente já vê a lista no portal', () => {
+    expect(removerPedeConfirmacao('enviada')).toBe(true);
+    expect(removerPedeConfirmacao('em_checklist')).toBe(true);
+  });
+
+  it('não pede em rascunho, que o cliente ainda não vê', () => {
+    expect(removerPedeConfirmacao('rascunho')).toBe(false);
+  });
+
+  it('não pede em encerrada nem sem solicitação, onde não há o que remover', () => {
+    expect(removerPedeConfirmacao('encerrada')).toBe(false);
+    expect(removerPedeConfirmacao(null)).toBe(false);
+  });
+});
+
+describe('estadoDaSolicitacao', () => {
+  // A data é construída no horário local e volta por ISO: o formato depende do
+  // fuso da máquina, e o round-trip local mantém o dia em qualquer um deles.
+  const enviadaEm = new Date(2026, 8, 10, 12).toISOString();
+  const semData = null;
+
+  it('cruza os três estados que o enum já diz', () => {
+    expect(estadoDaSolicitacao({ status: 'rascunho', enviadaEm: semData })).toBe('rascunho');
+    expect(estadoDaSolicitacao({ status: 'enviada', enviadaEm })).toBe('enviada');
+    expect(estadoDaSolicitacao({ status: 'em_checklist', enviadaEm })).toBe('em_checklist');
+  });
+
+  it('encerrada com envio é finalizada', () => {
+    expect(estadoDaSolicitacao({ status: 'encerrada', enviadaEm })).toBe('finalizada');
+  });
+
+  it('encerrada que nunca foi enviada é cancelada — nunca finalizada', () => {
+    expect(estadoDaSolicitacao({ status: 'encerrada', enviadaEm: semData })).toBe('cancelada');
+  });
+
+  it('sem solicitação não há estado', () => {
+    expect(estadoDaSolicitacao(null)).toBeNull();
+  });
+});
+
+describe('resumoPorGrupo', () => {
+  const item = (grupo: string, documento: string) => ({ grupo, documento }) as never;
+
+  it('quebra pelas gavetas na ordem fixa dos grupos e sem gaveta vazia', () => {
+    const resumo = resumoPorGrupo([
+      item('bens_imoveis', 'Matrícula do imóvel'),
+      item('pf', 'RG do sócio'),
+      item('pf', 'CPF do sócio'),
+    ]);
+
+    expect(resumo.map((g) => g.grupo)).toEqual(['pf', 'bens_imoveis']);
+    expect(resumo[0]).toMatchObject({
+      titulo: 'Pessoas Físicas',
+      contagem: 2,
+      documentos: ['RG do sócio', 'CPF do sócio'],
+    });
+    expect(resumo[1]).toMatchObject({
+      titulo: 'Bens e Imóveis',
+      contagem: 1,
+      documentos: ['Matrícula do imóvel'],
+    });
+  });
+
+  it('lista vazia, resumo vazio', () => {
+    expect(resumoPorGrupo([])).toEqual([]);
+  });
+});
+
+describe('dataCurta e dataComHora', () => {
+  // Mesmo round-trip local de estadoDaSolicitacao: constrói local, formata local.
+  const iso = new Date(2026, 8, 24, 14, 35).toISOString();
+
+  it('dataCurta sem data devolve vazio, e com data devolve DD/MM/AAAA', () => {
+    expect(dataCurta(null)).toBe('');
+    expect(dataCurta(iso)).toBe('24/09/2026');
+  });
+
+  it('dataComHora junta a data e o HHhMM', () => {
+    expect(dataComHora(iso)).toBe('24/09/2026 às 14h35');
+    expect(dataComHora(null)).toBe('');
   });
 });

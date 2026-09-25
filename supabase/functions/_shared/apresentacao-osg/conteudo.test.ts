@@ -11,16 +11,26 @@ import { describe, expect, it } from 'vitest';
 
 import {
   dedupTitulares,
+  emHectares,
+  ehImovel,
+  exploracaoDoOrganograma,
   fmtBRL,
   fmtPct,
   MATRICULA_NAO_SE_APLICA,
+  momentoDoBem,
+  montaForaDaEstrutura,
+  montaOutrosBens,
   montaPatrimonial,
+  SEM_MOTIVO_DECLARADO,
+  situacaoDaMatricula,
   montaQuadroDerivado,
   nomesTitulares,
   rateioDaMatricula,
   SOCIEDADE_A_DEFINIR,
+  totaisPorSociedade,
   type BemCru,
   type BemParaQuadro,
+  type ExploracaoRuralCrua,
   type Titular,
 } from './conteudo.ts';
 import type { ProblemaDoDeck } from '../apresentacao/problema.ts';
@@ -152,6 +162,7 @@ describe('nomesTitulares', () => {
 
 describe('montaPatrimonial', () => {
   const bem = (over: Partial<BemCru> = {}): BemCru => ({
+    tipo_bem: 'IR',
     denominacao: 'Fazenda A',
     vlr_contabil: 1000,
     participa_estruturacao: true,
@@ -209,11 +220,13 @@ describe('montaPatrimonial', () => {
     expect(probs.some((p) => p.detalhe.includes(SOCIEDADE_A_DEFINIR))).toBe(true);
   });
 
-  it('fora da estruturacao nao entra, e o aviso diz quantos', () => {
+  it('fora da estruturação nao entra na tabela das sociedades, e nao vira aviso aqui', () => {
+    // Eles saem na pagina propria do capitulo 01; quem avisa quando o molde nao tem a pagina e o
+    // `gerarPatrimonial`.
     const probs: ProblemaDoDeck[] = [];
     const r = montaPatrimonial([bem(), bem({ participa_estruturacao: false })], probs);
     expect(r[0].linhas).toHaveLength(1);
-    expect(probs.some((p) => p.detalhe.includes('1 bem esta fora da estruturacao'))).toBe(true);
+    expect(probs.some((p) => p.detalhe.includes('fora da estruturação'))).toBe(false);
   });
 
   it('sem bem nenhum, devolve vazio e nao inventa sociedade', () => {
@@ -269,11 +282,11 @@ describe('montaQuadroDerivado', () => {
     expect(r.linhas.map((l) => l.socio)).toEqual(['BRUNO', 'ANA']);
   });
 
-  it('so bem aprovado vira quota, e o resto vira aviso', () => {
+  it('so bem aprovado vira quota, e o resto nao vira aviso: e regra, nao dado faltando', () => {
     const probs: ProblemaDoDeck[] = [];
     const r = montaQuadroDerivado([bemPR(), bemPR({ status_integralizacao: 'Pendente' })], 'Fazenda X', probs);
     expect(r.totalValor).toBe(1000);
-    expect(probs.some((p) => p.detalhe.includes('status de integralizacao'))).toBe(true);
+    expect(probs).toEqual([]);
   });
 
   // O caso que o `return` antecipado engolia: tudo descartado, quadro vazio, e o
@@ -288,15 +301,17 @@ describe('montaQuadroDerivado', () => {
       ],
     })], 'Fazenda X', probs);
     expect(r.linhas).toEqual([]);
-    expect(probs.map((p) => p.detalhe).join(' ')).toContain('sem valor contabil');
+    expect(probs.map((p) => p.detalhe).join(' ')).toContain('sem valor contábil');
     expect(probs.map((p) => p.detalhe).join(' ')).toContain('nenhum titular vinculado');
   });
 
-  it('impedimento ativo tira a matricula; cancelado nao', () => {
+  it('impedimento ativo tira a matricula, sem aviso (o impedimento e real); cancelado nao', () => {
+    const probs: ProblemaDoDeck[] = [];
     const ativo = montaQuadroDerivado([bemPR({
       matricula: [{ vlr_contabil: 100, titularidade: [comTitular(100)], impedimento: [{ cancelado: false }] }],
-    })]);
+    })], 'Fazenda X', probs);
     expect(ativo.linhas).toEqual([]);
+    expect(probs.some((p) => p.detalhe.includes('impedimento'))).toBe(false);
 
     const cancelado = montaQuadroDerivado([bemPR({
       matricula: [{ vlr_contabil: 100, titularidade: [comTitular(100)], impedimento: [{ cancelado: true }] }],
@@ -310,5 +325,323 @@ describe('montaQuadroDerivado', () => {
       matricula: [{ vlr_contabil: null, titularidade: [comTitular(100)], impedimento: [] }],
     })]);
     expect(r.totalValor).toBe(250);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// As colunas que o modelo da consultoria pede
+// ---------------------------------------------------------------------------
+
+describe('emHectares', () => {
+  it('deixa hectare como esta, com duas casas', () => {
+    expect(emHectares(180, 'ha')).toBe('180,00');
+  });
+
+  it('converte m2 para hectare', () => {
+    expect(emHectares(25_000, 'm2')).toBe('2,50');
+  });
+
+  it('trata "ha e m2" como hectare: e a MESMA grandeza, so muda a leitura', () => {
+    // 123,1234 = 123 ha e 1.234 m², que sao 123,1234 ha. O fator e o mesmo.
+    expect(emHectares(123.1234, 'ha_m2')).toBe(emHectares(123.1234, 'ha'));
+  });
+
+  it('sem area, imprime travessao em vez de zero', () => {
+    expect(emHectares(null, 'ha')).toBe('—');
+    expect(emHectares('', 'ha')).toBe('—');
+  });
+});
+
+describe('momentoDoBem', () => {
+  it('o que ja foi a uma peca registrada e 1o momento', () => {
+    expect(momentoDoBem('Integralizado')).toBe('1º');
+  });
+
+  it('o aprovado que ainda nao foi e 2o momento, nas duas instancias', () => {
+    expect(momentoDoBem('Aprovado')).toBe('2º');
+    expect(momentoDoBem('Aprovado para 2ª Instancia')).toBe('2º');
+  });
+
+  it('o resto nao inventa momento', () => {
+    for (const s of ['Pendente', 'Em análise', 'Recusado', 'Não se aplica', null, undefined]) {
+      expect(momentoDoBem(s)).toBe('—');
+    }
+  });
+});
+
+describe('situacaoDaMatricula', () => {
+  const base = { numero: '1.234', georref_prejudica_transferencia: false, impedimento: [] };
+
+  it('matricula limpa e Regular', () => {
+    expect(situacaoDaMatricula(base)).toBe('Regular');
+  });
+
+  it('sem matricula nenhuma, diz isso — e nao "Regular"', () => {
+    expect(situacaoDaMatricula(null)).toBe('Sem matrícula');
+    expect(situacaoDaMatricula({ ...base, numero: null })).toBe('Sem matrícula');
+  });
+
+  it('impedimento que TRAVA a transferencia deixa Pendente', () => {
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: false, impede_transferencia: true }],
+    })).toBe('Pendente');
+  });
+
+  it('impedimento que NAO trava — servidao, APP — nao muda a situacao', () => {
+    // O gravame existe e importa, mas nao impede a transferencia: dizer "Pendente"
+    // aqui faria o consultor procurar um problema que nao existe.
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: false, impede_transferencia: false }],
+    })).toBe('Regular');
+  });
+
+  it('impedimento CANCELADO nao conta', () => {
+    expect(situacaoDaMatricula({
+      ...base, impedimento: [{ cancelado: true, impede_transferencia: true }],
+    })).toBe('Regular');
+  });
+
+  it('georreferenciamento que prejudica a transferencia tambem deixa Pendente', () => {
+    expect(situacaoDaMatricula({ ...base, georref_prejudica_transferencia: true })).toBe('Pendente');
+  });
+});
+
+describe('nomesTitulares por especie', () => {
+  const ts = [
+    { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+    { tipo: 'FATO', titular: { denominacao: 'Bruno' } },
+    { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+  ];
+
+  it('separa a propriedade de direito da de fato', () => {
+    expect(nomesTitulares(ts, 'DIREITO')).toBe('Ana');
+    expect(nomesTitulares(ts, 'FATO')).toBe('Bruno');
+  });
+
+  it('sem especie, soma as duas — que e o comportamento antigo', () => {
+    expect(nomesTitulares(ts)).toBe('Ana, Bruno');
+  });
+});
+
+describe('montaForaDaEstrutura', () => {
+  const bemFora = {
+    denominacao: 'Chácara da Sede',
+    participa_estruturacao: false,
+    motivo_nao_integralizacao: 'Uso da família',
+    matricula: [{
+      numero: '3.140', municipio_imovel: 'Sorriso', uf_imovel: 'MT',
+      titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Casal' } }],
+    }],
+  };
+
+  it('so entra quem esta fora: o recorte e o inverso do slide principal', () => {
+    const r = montaForaDaEstrutura([
+      bemFora,
+      { denominacao: 'Fazenda A', participa_estruturacao: true, matricula: [] },
+      { denominacao: 'Fazenda B', matricula: [] }, // nulo conta como DENTRO
+    ]);
+    expect(r).toHaveLength(1);
+    expect(r[0].referencia).toBe('Chácara da Sede');
+  });
+
+  it('traz as cinco colunas da tabela do modelo', () => {
+    const [linha] = montaForaDaEstrutura([bemFora]);
+    expect(linha).toEqual({
+      referencia: 'Chácara da Sede',
+      matriculaLabel: 'Mat. 3.140',
+      municipioUf: 'Sorriso/MT',
+      titular: 'Casal',
+      motivo: 'Uso da família',
+    });
+  });
+
+  it('bem sem matricula vira UMA linha, e nao some', () => {
+    const r = montaForaDaEstrutura([{
+      denominacao: 'Quotas da Alfa', participa_estruturacao: false,
+      motivo_nao_integralizacao: 'Negociação em curso',
+      titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }],
+    }]);
+    expect(r).toHaveLength(1);
+    expect(r[0].matriculaLabel).toBe(MATRICULA_NAO_SE_APLICA);
+    expect(r[0].titular).toBe('Ana');
+  });
+
+  it('motivo em branco vira texto declarado E aviso: a coluna nao pode sair vazia', () => {
+    const probs: Array<{ onde: string; detalhe: string }> = [];
+    const r = montaForaDaEstrutura([{ ...bemFora, motivo_nao_integralizacao: '  ' }], probs);
+    expect(r[0].motivo).toBe(SEM_MOTIVO_DECLARADO);
+    expect(probs).toHaveLength(1);
+    expect(probs[0].detalhe).toContain('sem motivo declarado');
+  });
+});
+
+describe('montaPatrimonial — as colunas novas', () => {
+  it('separa titular de direito de titular de fato na mesma matricula', () => {
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda X', vlr_contabil: 100, participa_estruturacao: true,
+      status_integralizacao: 'Aprovado',
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '1', municipio_imovel: 'Sorriso', uf_imovel: 'MT', vlr_contabil: 100,
+        area_documento: 500, area_unidade: 'ha', impedimento: [],
+        titularidade: [
+          { tipo: 'DIREITO', titular: { denominacao: 'Ana' } },
+          { tipo: 'FATO', titular: { denominacao: 'Grupo' } },
+        ],
+      }],
+    }]);
+    expect(soc.linhas[0].propriedade).toBe('Ana');
+    expect(soc.linhas[0].deFato).toBe('Grupo');
+    expect(soc.linhas[0].area).toBe('500,00');
+    expect(soc.linhas[0].momento).toBe('2º');
+    expect(soc.linhas[0].situacao).toBe('Regular');
+  });
+
+  it('sem titular de fato, a coluna sai com travessao e nao repete o de direito', () => {
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda Y', participa_estruturacao: true,
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '2', impedimento: [],
+        titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }],
+      }],
+    }]);
+    expect(soc.linhas[0].deFato).toBe('—');
+  });
+
+  it('matricula travada por impedimento vira Pendente, sem aviso: e o estado real do imovel', () => {
+    const probs: Array<{ onde: string; detalhe: string }> = [];
+    const [soc] = montaPatrimonial([{
+      tipo_bem: 'IR', denominacao: 'Fazenda Z', participa_estruturacao: true,
+      empresa_destino: { denominacao: 'Alfa Ltda' },
+      matricula: [{
+        numero: '3', impedimento: [{ cancelado: false, impede_transferencia: true }], titularidade: [],
+      }],
+    }], probs);
+    expect(soc.linhas[0].situacao).toBe('Pendente');
+    expect(probs.some((p) => p.detalhe.includes('Pendente'))).toBe(false);
+  });
+});
+
+describe('totaisPorSociedade', () => {
+  const imovel = (denominacao: string, destino: string, extra: Partial<BemCru> = {}): BemCru => ({
+    tipo_bem: 'IR',
+    denominacao,
+    vlr_contabil: 999,
+    participa_estruturacao: true,
+    empresa_destino: { denominacao: destino },
+    matricula: [{ numero: `${denominacao}-0`, area_documento: 100, area_unidade: 'ha', vlr_contabil: 10 }],
+    ...extra,
+  });
+
+  // O TOTAL soma a coluna que está em cima dele: só imóvel. Quota e moeda saem na página de outros bens.
+  it('soma os imóveis da sociedade; outro bem e o que está fora da estrutura não entram', () => {
+    const t = totaisPorSociedade([
+      imovel('Faz A', 'Soc'),
+      imovel('Casa', 'Soc', { tipo_bem: 'IB' }),
+      { tipo_bem: 'PS', denominacao: 'Quotas', vlr_contabil: 500, participa_estruturacao: true, empresa_destino: { denominacao: 'Soc' }, matricula: [] },
+      imovel('Chácara', 'Soc', { participa_estruturacao: false }),
+    ]);
+    expect(t.get('Soc')).toEqual({ area: '200,00', valor: fmtBRL(10 + 10) });
+  });
+});
+
+describe('exploracaoDoOrganograma', () => {
+  const parte = (papel: string, nome: string, fracao: number | null = null) =>
+    ({ papel, fracao, pessoa: { denominacao: nome } });
+
+  /* O MMS do sandbox: uma composse meio a meio, com o José também administrador
+     nomeado, e uma parceria em que os dois são os exploradores. */
+  const mms: ExploracaoRuralCrua[] = [
+    { tipo_exploracao: 'composse', partes: [
+      parte('administrador_nomeado', 'José Eduardo'),
+      parte('compossuidor', 'José Eduardo', 50),
+      parte('compossuidor', 'Maria Auxiliadora', 50),
+    ] },
+    { tipo_exploracao: 'parceria', partes: [
+      parte('explorador', 'José Eduardo'),
+      parte('explorador', 'Maria Auxiliadora'),
+    ] },
+  ];
+
+  it('a faixa traz quem explora, uma vez cada, e o empate de fração vai para o administrador nomeado', () => {
+    expect(exploracaoDoOrganograma(mms)).toEqual({
+      rural: ['José Eduardo', 'Maria Auxiliadora'],
+      titular: 'José Eduardo',
+    });
+  });
+
+  it('sem exploração cadastrada: faixa vazia e sem titular — não cai para outra fonte', () => {
+    expect(exploracaoDoOrganograma([])).toEqual({ rural: [], titular: null });
+  });
+
+  it('o titular é o compossuidor de maior fração, e sem composse não há titular', () => {
+    expect(exploracaoDoOrganograma([{ tipo_exploracao: 'composse', partes: [
+      parte('compossuidor', 'Ana', 30), parte('compossuidor', 'Bruno', 70),
+    ] }]).titular).toBe('Bruno');
+    expect(exploracaoDoOrganograma([mms[1]])).toEqual({
+      rural: ['José Eduardo', 'Maria Auxiliadora'], titular: null,
+    });
+  });
+
+  it('o administrador nomeado que não é compossuidor não entra na faixa', () => {
+    const r = exploracaoDoOrganograma([{ tipo_exploracao: 'composse', partes: [
+      parte('administrador_nomeado', 'Contador'), parte('compossuidor', 'Ana', 100),
+    ] }]);
+    expect(r).toEqual({ rural: ['Ana'], titular: 'Ana' });
+  });
+});
+
+describe('montaOutrosBens — o que não é imóvel sai da tabela de imóveis', () => {
+  /* A Agro Aliança do sandbox: a moeda integralizada é "Outros", sem matrícula e sem sociedade de destino. */
+  const moeda: BemCru = {
+    tipo_bem: 'OU', denominacao: 'Moeda corrente integralizada no capital', vlr_contabil: '40983.60',
+    participa_estruturacao: true, empresa_destino: null, titularidade: [], matricula: [],
+  };
+  const fazenda: BemCru = {
+    tipo_bem: 'IR', denominacao: 'Fazenda A', vlr_contabil: 100, participa_estruturacao: true,
+    empresa_destino: { denominacao: 'Soc' }, matricula: [{ numero: '1', area_documento: 10, area_unidade: 'ha', vlr_contabil: 100 }],
+  };
+
+  it('só rural e urbano são imóvel', () => {
+    expect(['IR', 'IB', 'AP', 'PS', 'OU'].map((t) => ehImovel({ tipo_bem: t }))).toEqual([true, true, false, false, false]);
+  });
+
+  it('a moeda sai da tabela de imóveis e entra na de outros bens, em "Sociedade a definir" e com aviso', () => {
+    expect(montaPatrimonial([fazenda, moeda]).map((s) => s.nome)).toEqual(['Soc']);
+    const probs: ProblemaDoDeck[] = [];
+    const r = montaOutrosBens([fazenda, moeda], probs);
+    expect(r.linhas).toEqual([{
+      referencia: 'Moeda corrente integralizada no capital', tipo: 'Outros',
+      sociedade: SOCIEDADE_A_DEFINIR, propriedade: '—', valor: fmtBRL(40983.6),
+    }]);
+    expect(r.total).toBe(fmtBRL(40983.6));
+    expect(probs.some((p) => p.detalhe.includes('outro bem sai') && p.detalhe.includes(SOCIEDADE_A_DEFINIR))).toBe(true);
+    // A moeda não conta mais como "bem sem matrícula" da tabela de imóveis.
+    const probsImoveis: ProblemaDoDeck[] = [];
+    montaPatrimonial([fazenda, moeda], probsImoveis);
+    expect(probsImoveis.some((p) => p.detalhe.includes(MATRICULA_NAO_SE_APLICA))).toBe(false);
+  });
+
+  it('o tipo diz o que o bem é, "Outros" usa a descrição, e fora da estrutura não entra', () => {
+    const r = montaOutrosBens([
+      { tipo_bem: 'PS', denominacao: 'Quotas da Alfa', vlr_contabil: 10, empresa_destino: { denominacao: 'Beta' },
+        titularidade: [{ tipo: 'DIREITO', titular: { denominacao: 'Ana' } }] },
+      { tipo_bem: 'OU', descricao_outros: 'Camionete Hilux', denominacao: 'Veículo', vlr_contabil: 5, empresa_destino: { denominacao: 'Alfa' } },
+      { tipo_bem: 'AP', denominacao: 'Arrendamento Faz B', vlr_contabil: 1, empresa_destino: { denominacao: 'Alfa' } },
+      { tipo_bem: 'OU', denominacao: 'Trator', vlr_contabil: 99, participa_estruturacao: false, empresa_destino: { denominacao: 'Alfa' } },
+    ]);
+    expect(r.linhas.map((l) => [l.sociedade, l.referencia, l.tipo, l.propriedade])).toEqual([
+      ['Alfa', 'Arrendamento Faz B', 'Arrendamento e/ou parceria', '—'],
+      ['Alfa', 'Veículo', 'Camionete Hilux', '—'],
+      ['Beta', 'Quotas da Alfa', 'Participação societária', 'Ana'],
+    ]);
+    expect(r.total).toBe(fmtBRL(16));
+  });
+
+  it('sem outro bem, a tabela vem vazia e não avisa nada', () => {
+    const probs: ProblemaDoDeck[] = [];
+    expect(montaOutrosBens([fazenda], probs)).toEqual({ linhas: [], total: fmtBRL(0) });
+    expect(probs).toEqual([]);
   });
 });

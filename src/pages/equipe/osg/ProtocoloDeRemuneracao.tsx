@@ -96,6 +96,14 @@ const ProtocoloDeRemuneracao = () => {
 
   const totalDeLinhas = useMemo(() => grade.reduce((n, s) => n + s.linhas.length, 0), [grade]);
 
+  const regrasPorColuna = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const c of grade.flatMap((s) => s.linhas).flatMap((l) => l.celulas)) {
+      if (c.texto) contagem.set(c.beneficiario_id, (contagem.get(c.beneficiario_id) ?? 0) + 1);
+    }
+    return contagem;
+  }, [grade]);
+
   const foraDoProtocolo = useMemo(() => {
     const dentro = new Set((protocolo?.linhas ?? []).map((l) => l.item.id));
     return itens.filter((i) => !dentro.has(i.id));
@@ -339,6 +347,7 @@ const ProtocoloDeRemuneracao = () => {
         open={gerindoColunas}
         onOpenChange={setGerindoColunas}
         colunas={colunas}
+        regrasPorColuna={regrasPorColuna}
         salvando={
           adicionarBeneficiario.isPending ||
           renomearBeneficiario.isPending ||

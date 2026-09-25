@@ -34,9 +34,15 @@ const saida: SaidaSimulacao = {
   cenariosIndisponiveis: ['itr', 'mercado'],
 };
 
+/** O ato nas duas bases, como o controlador entrega. Sem usufruto, as duas são a mesma. */
+const nasDuas = (s: SaidaSimulacao, em70: SaidaSimulacao = s) => ({
+  100: { doacao: s, instituicao: null, total: s.totaisPorCenario },
+  70: { doacao: em70, instituicao: null, total: em70.totaisPorCenario },
+});
+
 describe('CenariosEmColunas', () => {
   it('um quadro por cenário, com o total no pé', () => {
-    render(<CenariosEmColunas saida={saida} />);
+    render(<CenariosEmColunas porBase={nasDuas(saida)} comAlternativa={[]} />);
 
     expect(screen.getByText('Valor contábil')).toBeInTheDocument();
     expect(screen.getByText('Valor de ITR')).toBeInTheDocument();
@@ -56,7 +62,8 @@ describe('CenariosEmColunas', () => {
     // não havia nenhum, com 9 das 12 matrículas preenchidas.
     render(
       <CenariosEmColunas
-        saida={saida}
+        porBase={nasDuas(saida)}
+        comAlternativa={[]}
         falta={{
           contabil: null,
           itr: '3 de 13 bens sem valor de ITR',
@@ -75,16 +82,34 @@ describe('CenariosEmColunas', () => {
 
   it('sem a frase de fora, o quadro nao inventa a causa', () => {
     // Fallback: diz que o cadastro está incompleto, que é o que se sabe sem os números.
-    render(<CenariosEmColunas saida={saida} />);
-    expect(screen.getAllByText(/Cadastro incompleto neste cenário/)).toHaveLength(2);
+    render(<CenariosEmColunas porBase={nasDuas(saida)} comAlternativa={[]} />);
+    expect(screen.getAllByText(/Cadastro incompleto neste valor/)).toHaveLength(2);
   });
 
-  it('doação anterior declarada aparece ao lado do imposto', () => {
+  it('doação anterior NÃO aparece: o campo saiu do banco e o ramo é morto (CI-E05)', () => {
+    // A doação anterior saiu do banco na s01 da SUC-02 — as duas chamadas do motor
+    // passam `doacaoAnterior: null`. Se um dia voltar, este teste reabre.
     const comAnterior: SaidaSimulacao = {
       ...saida,
       linhas: [{ ...saida.linhas[0], doacaoAnterior: '831175.00' }],
     };
-    render(<CenariosEmColunas saida={comAnterior} />);
-    expect(screen.getByText(/já recebeu R\$ 831\.175,00/)).toBeInTheDocument();
+    render(<CenariosEmColunas porBase={nasDuas(comAnterior)} comAlternativa={[]} />);
+    expect(screen.queryByText(/já recebeu/)).not.toBeInTheDocument();
+  });
+
+  it('SEM USUFRUTO não há seletor: a doação só existe na base integral', () => {
+    render(<CenariosEmColunas porBase={nasDuas(saida)} comAlternativa={[]} />);
+    expect(screen.queryByText('Ver na base de')).not.toBeInTheDocument();
+  });
+
+  it('COM RESERVA o seletor aparece, e o quadro abre na base integral', () => {
+    const em70: SaidaSimulacao = {
+      ...saida,
+      totaisPorCenario: { contabil: '261609.60', itr: null, mercado: null },
+    };
+    render(<CenariosEmColunas porBase={nasDuas(saida, em70)} comAlternativa={['reserva']} />);
+    expect(screen.getByRole('combobox', { name: 'Ver na base de' })).toHaveTextContent('100%');
+    expect(screen.getByText('R$ 373.728,00')).toBeInTheDocument();
+    expect(screen.queryByText('R$ 261.609,60')).not.toBeInTheDocument();
   });
 });

@@ -19,7 +19,6 @@ import {
   ComSinalDePorcento, Ctrl, DICA_DA_CONTA, DICA_NOME_CURTO, DicaDoControle,
   linhaCls, linhaDeTotalCls, molduraDaTabelaCls, Num, NumCampo, Q, Th, Txt,
 } from './itcmdKit';
-import { AvisoDeParcelaDiferida, CampoDaBase } from './SelecaoDaBase';
 import { Campo, fieldCls, switchBoxCls } from '@/components/equipe/osg/formKit';
 import {
   brlDeDecimal, pctDeDecimal, pctSemSinal, quotasDeBigint, TRACO,
@@ -29,19 +28,8 @@ import type { CalculadoraItcmd } from '@/hooks/useCalculadoraItcmdController';
 import type { LinhaDoQuadro } from '@/lib/osg/quadroSimulacaoItcmd';
 
 /**
- * Onde o analista monta a simulação.
- *
- * É UMA tabela com todos os sócios e todos os herdeiros, nesta ordem:
- * Sócio · Papel · Quotas · % · Legítima · Doação anterior · Disponível · Recebido ·
- * Participação final · %.
- *
- * O que mudou e por quê: antes isto eram quatro blocos (quem doa, quem recebe,
- * doações anteriores, parte disponível) e cada um repetia a lista de nomes. A OSG já
- * lê e preenche a apuração neste formato — não havia o que inventar. O PAPEL é a
- * única coluna que o formato original não tem, porque ali ele é implícito; em tela
- * precisa de um botão, e é só isso que se acrescenta.
- *
- * A UPF fica no FIM: ela não muda quem recebe o quê, só converte a base em imposto.
+ * Onde o analista monta a simulação: uma tabela com sócios e herdeiros (Pessoa · Papel · Emissão GIA ·
+ * Aporte · Quotas · Part. atual · Legítima · Disponível · Quotas final · Part. final), com a UPF no fim.
  */
 export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
   /**
@@ -165,7 +153,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 <Campo
                   className="ml-auto w-24"
                   rotulo={(
-                    <ComDica dica="O estado decide a lei: faixa, dedução e a própria UPF são de Mato Grosso. Um item na lista é honesto, só o ITCMD de MT tem motor aqui.">
+                    <ComDica dica="O estado decide a lei: faixa, dedução e UPF. Por enquanto, só Mato Grosso.">
                       Estado
                     </ComDica>
                   )}
@@ -202,8 +190,8 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 <Campo
                   className="w-40"
                   rotulo={(
-                    <ComDica dica="A competência do ato, que é o que decide qual UPF vale. Trocar o mês troca a UPF sugerida.">
-                      Mês de referência
+                    <ComDica dica="O mês da UPF que vale para o ato. Trocar a competência troca a UPF sugerida.">
+                      Competência
                     </ComDica>
                   )}
                 >
@@ -244,7 +232,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                 {calc.upf.trim() !== '' && !calc.upfValida
                   ? 'Informe a UPF em reais, com até duas casas.'
                   : calc.upfVeioDaSerie
-                    ? 'UPF conhecida deste mês. Confira no DOE.'
+                    ? 'UPF conhecida deste mês. Confira no Diário Oficial do Estado.'
                     : 'Informe a UPF publicada pela SEFAZ/MT. O sistema não consulta.'}
               </p>
             </div>
@@ -336,38 +324,17 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                     aria-label="Doação com reserva de usufruto"
                   />
                   <ComDica
-                    dica={'A guia sai como DOAÇÃO COM RESERVA DE USUFRUTO. As quotas '
-                      + 'doadas continuam as mesmas: o que muda é que o voto fica com '
-                      + 'quem doa, e a base do imposto pode ser reduzida. Sem reserva, '
-                      + 'quem recebe passa a votar.'}
+                    dica={'Não muda as quotas doadas: o voto fica com quem doa, e a guia sai '
+                      + 'em 100% e em 70%, para o cliente escolher.'}
                   >
                     <span className="text-foreground">Com reserva de usufruto</span>
                   </ComDica>
                 </label>
 
-                <CampoDaBase
-                  rotulo="Base da doação"
-                  valor={calc.pctBaseDaDoacao}
-                  aoTrocar={calc.setPctBaseDaDoacao}
-                  ativo={calc.comReserva}
-                  // A guia da doação existe de todo jeito, e sem reserva a base dela é
-                  // integral: 100% é o que vai ser apurado, não um valor de espera.
-                  semAto="100%"
-                  porQueTravado={'Sem reserva, a doação é tributada integralmente: a '
-                    + 'redução a 70% do art. 11, §2º I é do usufruto, e aqui não há '
-                    + 'usufruto. Marque "com reserva de usufruto" para escolher.'}
-                />
-
                 <ContadorDeGias n={calc.numeroDeGias} />
               </div>
 
             </div>
-
-            {/* A consequência da base reduzida merece linha própria: ela cria uma
-                parcela devida ANOS depois, e ninguém lembra de um `title`. */}
-            {calc.comReserva && calc.pctBaseDaDoacao === '70' && (
-              <AvisoDeParcelaDiferida onde="reserva" />
-            )}
 
             {calc.linhasDoQuadro.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
@@ -393,15 +360,14 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
                       </Th>
                       <Th
                         alinhar="esquerda"
-                        dica={'Em quantas guias este doador emite, e no nome de quem. '
-                          + 'Cônjuge que doa em conjunto é doador fiscal próprio, pela '
-                          + 'meação, e cada guia tem a sua isenção de 500 UPF.'}
+                        dica={'Em conjunto, o casal é um doador só e emite uma GIA. '
+                          + 'O número de guias de cada forma aparece na lista.'}
                       >
                         Emissão GIA
                       </Th>
                       {/* O APORTE vem ANTES de Quotas porque e ele que as forma: R$ X
                           integralizados viram quotas novas ao preco da quota. */}
-                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra nos três cenários pelo valor de face. Não recolhe ITCMD: a pessoa não recebeu de ninguém, ela pagou.">
+                      <Th dica="Dinheiro integralizado no capital. Vira quotas novas ao preço da quota e entra pelo valor de face nos três valores de avaliação. Não recolhe ITCMD: a pessoa não recebeu de ninguém, ela pagou.">
                         Aporte (R$)
                       </Th>
                       <Th dica="O que a pessoa tem hoje, do quadro societário, mais as quotas que o aporte comprou.">
@@ -500,13 +466,23 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
               Continuar
             </Button>
           ) : (
-            <Button
-              onClick={calc.gerar}
-              disabled={!calc.podeGerar}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Gerar simulação
-            </Button>
+            <span className="flex items-center gap-3">
+              {/* O MOTIVO OUTRA ABA (CI-E02): `podeGerar` olha também o quadro da
+                  doação, cujos avisos só existem na outra aba. Sem isto, o botão
+                  trava calado para quem está no Usufruto. */}
+              {aba === 'usufruto' && !calc.podeGerar && calc.problemasDoQuadro.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Resolva a pendência da aba Doação para gerar.
+                </span>
+              )}
+              <Button
+                onClick={calc.gerar}
+                disabled={!calc.podeGerar}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Gerar simulação
+              </Button>
+            </span>
           )}
         </DialogFooter>
         </ComoDicas>
@@ -660,8 +636,9 @@ function LinhaDaTabela({ linha, calc }: {
       <NumCampo>
         <DicaDoControle
           dica={'Dinheiro integralizado no capital. Vira quotas novas ao preço da '
-            + 'quota do acervo e entra nos três cenários pelo valor de face, sem '
-            + 'multiplicar. Não recolhe ITCMD: a pessoa pagou por essas quotas.'}
+            + 'quota do acervo e entra pelo valor de face nos três valores de '
+            + 'avaliação, sem multiplicar. Não recolhe ITCMD: a pessoa pagou por '
+            + 'essas quotas.'}
         >
           <Input
             aria-label={`Aporte em moeda de ${linha.nome}, em reais`}
@@ -810,10 +787,8 @@ function ContadorDeGias({ n }: { n: number }) {
   return (
     <div className="flex h-9 items-center">
       <ComDica
-        dica={'Uma GIA por par doador × donatário, que é a unidade de apuração. '
-          + 'Dividir a doação entre dois doadores muda o imposto: cada par tem a '
-          + 'própria isenção de 500 UPF e a própria faixa de alíquota. Cônjuge que doa '
-          + 'em conjunto conta como doador próprio, pela meação.'}
+        dica={'Uma GIA por doador. Cada par doador × donatário tem isenção de 500 '
+          + 'UPF e faixa próprias: dividir entre dois doadores muda o imposto.'}
       >
         <span className="text-xs tabular-nums text-muted-foreground">
           {n === 0

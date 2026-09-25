@@ -10,7 +10,19 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const avisos = vi.hoisted(() => ({ toast: vi.fn() }));
-const osg = vi.hoisted(() => ({ gerar: vi.fn(), tributaria: vi.fn(), baixar: vi.fn() }));
+const osg = vi.hoisted(() => ({
+  gerar: vi.fn(), tributaria: vi.fn(), baixar: vi.fn(),
+  /* O que a tela entregou ao hook da `gerar-apresentacao` como simulações do capítulo 04. */
+  simulacaoIds: [] as readonly string[],
+}));
+/* Os cenários do capítulo 04, vazios por padrão: só entram nos casos que marcam a peça. */
+const cenarios = vi.hoisted(() => ({
+  valor: { simulacaoIds: [] as string[], slides: 0, carregando: false, conflitoDeUpf: null as string | null, erro: false, tentarDeNovo: () => {}, opcoes: [] as unknown[] },
+}));
+/* A contagem por peça: cada caso parte daqui e muda o que precisar. */
+const contagem = vi.hoisted(() => ({
+  valor: { patrimonial: 3, societaria: 2, carregando: false, erro: false, tentarDeNovo: () => {} },
+}));
 
 vi.mock('@/hooks/use-toast', () => ({ toast: avisos.toast }));
 vi.mock('@/contexts/OsgWorkContext', () => ({ useOsgWork: () => ({ clienteId: 'cli-1' }) }));
@@ -21,17 +33,26 @@ vi.mock('@/components/equipe/osg/relatorios/EscolhaDaRevisao', () => ({
   EscolhaDaRevisao: () => <span>revisão</span>,
 }));
 vi.mock('@/components/equipe/osg/relatorios/useContagemDeSlides', () => ({
-  useContagemDeSlides: () => ({ patrimonial: 3, societaria: 2, carregando: false }),
+  useContagemDeSlides: () => contagem.valor,
   SLIDES_DO_TRIBUTARIO: 5,
 }));
 vi.mock('@/components/equipe/osg/relatorios/useRevisaoParaSlides', () => ({
-  useRevisaoParaSlides: () => ({ revisaoId: 'rev-1', carregando: false }),
+  useRevisaoParaSlides: () => ({ revisaoId: 'rev-1', carregando: false, erro: false, tentarDeNovo: () => {} }),
 }));
 vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
   useGerarApresentacaoTributaria: () => ({ mutateAsync: osg.tributaria, isPending: false }),
 }));
+vi.mock('@/components/equipe/osg/relatorios/EscolhaDosCenarios', () => ({
+  EscolhaDosCenarios: () => <span>cenários</span>,
+}));
+vi.mock('@/components/equipe/osg/relatorios/useCenariosParaSlides', () => ({
+  useCenariosParaSlides: () => cenarios.valor,
+}));
 vi.mock('@/hooks/useGerarApresentacao', () => ({
-  useGerarApresentacao: () => ({ mutateAsync: osg.gerar, isPending: false }),
+  useGerarApresentacao: (_clienteId: string | null, simulacaoIds: readonly string[] = []) => {
+    osg.simulacaoIds = simulacaoIds;
+    return { mutateAsync: osg.gerar, isPending: false };
+  },
 }));
 vi.mock('@/lib/osg/baixarArquivoPorUrl', () => ({ baixarArquivoPorUrl: osg.baixar }));
 
@@ -48,6 +69,12 @@ const doisDecks = {
   errosPorDeck: [],
 };
 
+/** Os três decks da `gerar-apresentacao`, com o capítulo 04. */
+const tresDecks = {
+  ...doisDecks,
+  arquivos: [...doisDecks.arquivos, { tipo: 'sucessoria' as const, nome: 'SUC.pptx' }],
+};
+
 /** O texto de todos os toasts disparados, junto. */
 const ditoAoUsuario = () =>
   avisos.toast.mock.calls.map((c) => `${c[0].title} ${c[0].description ?? ''}`).join(' | ');
@@ -60,6 +87,9 @@ async function gerar() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  contagem.valor = { patrimonial: 3, societaria: 2, carregando: false, erro: false, tentarDeNovo: () => {} };
+  cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [] as unknown[] };
+  osg.simulacaoIds = [];
   osg.gerar.mockResolvedValue(doisDecks);
   osg.tributaria.mockResolvedValue({
     url: 'https://x/deck.pptx', nomeArquivo: 'PT.pptx', versao: 1, problemas: [],
@@ -80,13 +110,13 @@ describe('um aviso só, sempre', () => {
 
   it('os dois geradores falhando também dão UM toast, e destrutivo', async () => {
     osg.gerar.mockResolvedValue({ arquivos: [], erro: 'servidor fora', problemas: [], errosPorDeck: [] });
-    osg.tributaria.mockRejectedValue(new Error('revisão sumiu'));
+    osg.tributaria.mockRejectedValue(new Error('revisão sumiu')); // crua fica no console
     await gerar();
 
     expect(avisos.toast).toHaveBeenCalledTimes(1);
     expect(avisos.toast.mock.calls[0][0].variant).toBe('destructive');
     expect(ditoAoUsuario()).toContain('servidor fora');
-    expect(ditoAoUsuario()).toContain('revisão sumiu');
+    expect(ditoAoUsuario()).toContain('Planejamento Tributário: não foi possível gerar esta apresentação.');
   });
 
   // O sucesso parcial é o que o defeito escondia: o toast verde do tributário
@@ -107,17 +137,16 @@ describe('o motivo que chega ao usuário', () => {
       arquivos: [{ tipo: 'patrimonial' as const, nome: 'DP.pptx' }],
       erro: null,
       problemas: [],
-      errosPorDeck: [{ tipo: 'societaria' as const, message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' }],
+      errosPorDeck: [{ tipo: 'societaria' as const, message: 'Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx' }],
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('Template ausente: TEMPLATE_SOCIETARIA.pptx');
+    expect(ditoAoUsuario()).toContain('Template ausente: TEMPLATE_CAP02_SOCIETARIA.pptx');
     expect(ditoAoUsuario()).not.toContain('não devolveu o arquivo');
   });
 
-  // O conserto da OSG é no cadastro; o do tributário é no PowerPoint. Textos
-  // diferentes de propósito — um manda ao lugar errado se copiar o outro.
-  it('problema de cadastro manda ao cadastro, e cita os pontos', async () => {
+  /* Todos os pontos vão para o quadro; o toast só conta. */
+  it('os pontos vão para o quadro, pela parte do arquivo e dizendo onde se corrigem', async () => {
     osg.gerar.mockResolvedValue({
       ...doisDecks,
       problemas: [
@@ -127,11 +156,15 @@ describe('o motivo que chega ao usuário', () => {
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('Confira no cadastro');
-    expect(ditoAoUsuario()).toContain('Sinop Sementes');
+    const quadro = await screen.findByRole('region', { name: '2 pontos para conferir' });
+    expect(quadro).toHaveTextContent('Quadro Societário');
+    expect(quadro).toHaveTextContent('Cadastro:"Sinop Sementes" ficou fora.');
+    expect(quadro).toHaveTextContent('Organograma');
+    expect(ditoAoUsuario()).toContain('2 pontos para conferir, listados abaixo da tabela.');
+    expect(ditoAoUsuario()).not.toContain('Sinop Sementes');
   });
 
-  it('acima de dois pontos, resume o resto em vez de despejar', async () => {
+  it('o quadro lista todos, sem resumir, e o toast só conta', async () => {
     osg.gerar.mockResolvedValue({
       ...doisDecks,
       problemas: [1, 2, 3, 4, 5].map((n) => ({
@@ -140,14 +173,112 @@ describe('o motivo que chega ao usuário', () => {
     });
     await gerar();
 
-    expect(ditoAoUsuario()).toContain('ponto 1');
-    expect(ditoAoUsuario()).toContain('+3 pontos');
-    expect(ditoAoUsuario()).not.toContain('ponto 5');
+    const quadro = await screen.findByRole('region', { name: '5 pontos para conferir' });
+    expect(quadro).toHaveTextContent('ponto 1.');
+    expect(quadro).toHaveTextContent('ponto 5.');
+    expect(ditoAoUsuario()).toContain('5 pontos para conferir');
+    expect(ditoAoUsuario()).not.toContain('ponto 1');
   });
 
-  it('sem problema nenhum, nada de "confira no cadastro"', async () => {
+  // O conserto da OSG é no cadastro; o do tributário é na planilha ou no PowerPoint.
+  it('o ponto do tributário diz a parte dele e se corrige na planilha ou no PowerPoint', async () => {
+    osg.tributaria.mockResolvedValue({
+      url: 'https://x/deck.pptx', nomeArquivo: 'PT.pptx', versao: 1,
+      problemas: [
+        { tipo: 'formatacao', onde: '3.1 Premissas', detalhe: 'A DRE não coube.' },
+        { tipo: 'origem', onde: 'caixa de IRPF', detalhe: 'Célula sem valor.' },
+      ],
+    });
     await gerar();
-    expect(ditoAoUsuario()).not.toContain('Confira no cadastro');
+
+    const quadro = await screen.findByRole('region', { name: '2 pontos para conferir' });
+    expect(quadro).toHaveTextContent('Planejamento Tributário · 3.1 Premissas');
+    expect(quadro).toHaveTextContent('PowerPoint:A DRE não coube.');
+    expect(quadro).toHaveTextContent('Planilha:Célula sem valor.');
+  });
+
+  it('falha nossa sai como Sistema, que manda avisar o suporte', async () => {
+    osg.gerar.mockResolvedValue({
+      ...doisDecks,
+      problemas: [{ tipo: 'sistema', onde: 'Diagnóstico Patrimonial', detalhe: 'O modelo está desatualizado. Entre em contato com o suporte da PSA Digital.' }],
+    });
+    await gerar();
+
+    const quadro = await screen.findByRole('region', { name: 'Um ponto para conferir' });
+    expect(quadro).toHaveTextContent('Sistema:O modelo está desatualizado.');
+  });
+
+  it('sem ponto nenhum, nem quadro nem menção no toast', async () => {
+    await gerar();
+    expect(screen.queryByRole('region', { name: /para conferir/ })).toBeNull();
+    expect(ditoAoUsuario()).not.toContain('para conferir');
+  });
+});
+
+describe('o que vai para o servidor', () => {
+  // Vai a lista do que foi marcado, e não um `tipo` só.
+  it('manda só o que foi marcado', async () => {
+    render(<BibliotecaApresentacoes />);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Quadro Societário e Organograma' }));
+    await userEvent.click(screen.getByRole('button', { name: /Gerar apresentações/i }));
+    await waitFor(() => expect(osg.gerar).toHaveBeenCalled());
+
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial']);
+  });
+
+  it('as duas peças da OSG marcadas vão juntas, numa chamada só', async () => {
+    await gerar();
+    expect(osg.gerar).toHaveBeenCalledTimes(1);
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial', 'societaria']);
+  });
+});
+
+/* O CAPÍTULO 04 É DECK DA `gerar-apresentacao`, como o 01 e o 02: vai na MESMA chamada,
+   e o que ele tem a mais — as simulações escolhidas — chega ao hook, não à chamada. */
+describe('o capítulo 04 — Organização Sucessória', () => {
+  it('sem simulação aprovada marcada, a peça fica sem dados e não vai ao servidor', async () => {
+    await gerar();
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial', 'societaria']);
+    expect(screen.getAllByText('sem dados')).toHaveLength(1);
+  });
+
+  it('COM APROVADAS e nenhuma marcada, a linha fica de pé: "0" na coluna, caixa travada (AP-E02)', () => {
+    // "sem dados" é para quando não há simulação aprovada nenhuma. Aqui há dado —
+    // falta a escolha —, e a linha diz "0" com a caixa travada até alguém marcar.
+    cenarios.valor = { simulacaoIds: [], slides: 0, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
+    render(<BibliotecaApresentacoes />);
+
+    expect(screen.queryByText('sem dados')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Organização Sucessória' })).toBeDisabled();
+    const colunaDaLinha = screen.getAllByText('0').length;
+    expect(colunaDaLinha).toBeGreaterThanOrEqual(1);
+  });
+
+  it('com cenários, vai na mesma chamada dos outros decks, com os ids na ordem dos cenários', async () => {
+    cenarios.valor = { simulacaoIds: ['V2', 'V4', 'V6'], slides: 19, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
+    osg.gerar.mockResolvedValue(tresDecks);
+    await gerar();
+
+    expect(osg.gerar).toHaveBeenCalledTimes(1);
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial', 'societaria', 'sucessoria']);
+    expect(osg.simulacaoIds).toEqual(['V2', 'V4', 'V6']);
+    expect(avisos.toast).toHaveBeenCalledTimes(1);
+    expect(ditoAoUsuario()).toContain('SUC.pptx');
+    expect(ditoAoUsuario()).toContain('PT.pptx');
+    expect(screen.getByText('19')).toBeInTheDocument();
+  });
+
+  it('o motivo do servidor para o capítulo chega ao usuário, e o resto sai', async () => {
+    cenarios.valor = { simulacaoIds: ['V6'], slides: 12, carregando: false, conflitoDeUpf: null, erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[] };
+    osg.gerar.mockResolvedValue({
+      ...doisDecks,
+      errosPorDeck: [{ tipo: 'sucessoria' as const, message: '"Cenário III" não está aprovada.' }],
+    });
+    await gerar();
+
+    expect(avisos.toast.mock.calls[0][0].variant).toBe('destructive');
+    expect(ditoAoUsuario()).toContain('Organização Sucessória: "Cenário III" não está aprovada.');
+    expect(ditoAoUsuario()).toContain('DP.pptx');
   });
 });
 
@@ -160,5 +291,24 @@ describe('sem cliente na barra', () => {
 
     expect(screen.getByText(/Selecione um cliente/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Gerar apresentações/i })).toBeNull();
+  });
+});
+
+describe('o capítulo 04 com UPFs diferentes', () => {
+  /* Erro de preenchimento: a tela recusa antes do clique e diz o que fazer. */
+  it('a peça não se marca, diz por quê, e não vai para o servidor', async () => {
+    cenarios.valor = {
+      simulacaoIds: ['V2', 'V6'], slides: 20, carregando: false,
+      conflitoDeUpf: 'As simulações marcadas usam UPFs diferentes. Gere uma nova simulação na Calculadora de ITCMD com a mesma UPF das outras e aprove-a.',
+      erro: false, tentarDeNovo: () => {}, opcoes: [{}] as unknown[],
+    };
+    osg.gerar.mockResolvedValue(doisDecks);
+    render(<BibliotecaApresentacoes />);
+
+    expect(screen.getByRole('checkbox', { name: 'Organização Sucessória' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Gere uma nova simulação');
+    await userEvent.click(screen.getByRole('button', { name: /Gerar apresentações/i }));
+    await waitFor(() => expect(osg.gerar).toHaveBeenCalled());
+    expect(osg.gerar).toHaveBeenCalledWith(['patrimonial', 'societaria']);
   });
 });

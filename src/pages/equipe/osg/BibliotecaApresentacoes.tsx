@@ -6,19 +6,30 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { useGerarApresentacao, type DeckTipo } from '@/hooks/useGerarApresentacao';
+import { useGerarApresentacao, type DeckDaApresentacao } from '@/hooks/useGerarApresentacao';
 import {
   useContagemDeSlides,
   SLIDES_DO_TRIBUTARIO,
 } from '@/components/equipe/osg/relatorios/useContagemDeSlides';
 import { EscolhaDaRevisao } from '@/components/equipe/osg/relatorios/EscolhaDaRevisao';
 import { useRevisaoParaSlides } from '@/components/equipe/osg/relatorios/useRevisaoParaSlides';
+import { EscolhaDosCenarios } from '@/components/equipe/osg/relatorios/EscolhaDosCenarios';
+import { useCenariosParaSlides } from '@/components/equipe/osg/relatorios/useCenariosParaSlides';
 import { useGerarApresentacaoTributaria } from '@/hooks/useDomainPapelDeTrabalho';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
 import { toast } from '@/hooks/use-toast';
-import { PECAS_COM_DECK, PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+import { PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
 import { EstadoVazio } from '@/components/shared/EstadoVazio';
+import {
+  PontosParaConferir,
+  type OndeCorrige,
+  type PontoParaConferir,
+} from '@/components/equipe/osg/relatorios/PontosParaConferir';
+
+/** Onde cada aviso se corrige. A `origem` muda de lugar: cadastro na OSG, planilha no tributário. */
+const ondeCorrige = (tipo: string, origem: 'Cadastro' | 'Planilha'): OndeCorrige =>
+  tipo === 'formatacao' ? 'PowerPoint' : tipo === 'sistema' ? 'Sistema' : origem;
 
 /**
  * Apresentações: escolher e gerar, em segundos.
@@ -39,7 +50,9 @@ import { EstadoVazio } from '@/components/shared/EstadoVazio';
  */
 const BibliotecaApresentacoes = () => {
   const { clienteId } = useOsgWork();
-  const gerarDecks = useGerarApresentacao(clienteId ?? null);
+  const cenarios = useCenariosParaSlides(clienteId || null);
+  /* As simulações escolhidas vão junto: o capítulo 04 é deck desta mesma função. */
+  const gerarDecks = useGerarApresentacao(clienteId ?? null, cenarios.simulacaoIds);
   const contagem = useContagemDeSlides(clienteId || null);
   const revisao = useRevisaoParaSlides(clienteId || null);
   const gerarTributaria = useGerarApresentacaoTributaria();
@@ -51,11 +64,54 @@ const BibliotecaApresentacoes = () => {
         ? contagem.societaria
         : id === 'papeis' && revisao.revisaoId
           ? SLIDES_DO_TRIBUTARIO
-          : 0;
+          : id === 'sucessoria'
+            ? cenarios.slides
+            : 0;
 
-  /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão. */
+  /* A FALHA NÃO SE VESTE DE VAZIO (AP-E01): consulta que quebra não pode ler como
+     "Nenhuma simulação aprovada" nem "sem dados" — quem lê aprova ou importa de
+     novo. Cada linha diz o que não carregou e oferece tentar de novo. */
+  type FalhaDeCarga = 'simulacoes' | 'revisoes' | 'slides';
+  const TEXTO_DA_FALHA: Record<FalhaDeCarga, string> = {
+    simulacoes: 'Não foi possível carregar as simulações.',
+    revisoes: 'Não foi possível carregar as revisões.',
+    slides: 'Não foi possível contar os slides.',
+  };
+  const falhaDeCarga = (id: string): FalhaDeCarga | null =>
+    id === 'sucessoria'
+      ? cenarios.erro ? 'simulacoes' : null
+      : id === 'papeis'
+        ? revisao.erro ? 'revisoes' : null
+        : contagem.erro ? 'slides' : null;
+  const tentarDeNovo = (falha: FalhaDeCarga) => () => {
+    if (falha === 'simulacoes') cenarios.tentarDeNovo();
+    else if (falha === 'revisoes') revisao.tentarDeNovo();
+    else contagem.tentarDeNovo();
+  };
+
+  /* AP-E02: HÁ DADO e FALTA A ESCOLHA são estados diferentes. Com simulações
+     aprovadas e nenhuma marcada, a linha não some nem lê "sem dados": o nome
+     fica em cor de texto, a coluna diz "0" e a caixa trava com o motivo já
+     escrito ("Nenhuma simulação marcada."). "sem dados" só sem aprovação nenhuma. */
+  const semDadoNaLinha = (id: string): boolean =>
+    id === 'sucessoria'
+      ? cenarios.opcoes.length === 0
+      : !temConteudo(id);
+  const semEscolhaDoCenario = (id: string): boolean =>
+    id === 'sucessoria' && cenarios.opcoes.length > 0 && cenarios.simulacaoIds.length === 0;
+
+  /** A peça tem conteúdo para gerar? Os decks pela contagem; o tributário, pela revisão;
+      o sucessório, pelas simulações aprovadas marcadas. */
   const temConteudo = (id: string): boolean =>
-    id === 'papeis' ? revisao.revisaoId !== null : slidesDaPeca(id) > 0;
+    id === 'papeis'
+      ? revisao.revisaoId !== null
+      : id === 'sucessoria'
+        ? cenarios.simulacaoIds.length > 0
+        : slidesDaPeca(id) > 0;
+
+  /* Os pontos da última geração, presos ao cliente em que ela rodou: trocar de
+     cliente tira o quadro, e gerar de novo o substitui. */
+  const [ultimaGeracao, setUltimaGeracao] = useState<{ clienteId: string; pontos: PontoParaConferir[] } | null>(null);
 
   // Começa com tudo marcado: gerar a apresentação inteira é o caso comum.
   const [marcados, setMarcados] = useState<string[]>(PECAS_DE_SLIDE.map((p) => p.id));
@@ -63,8 +119,11 @@ const BibliotecaApresentacoes = () => {
   const alternar = (id: string) =>
     setMarcados((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]));
 
+  /** Por que a peça tem conteúdo e mesmo assim não gera: hoje só o sucessório com UPFs diferentes. */
+  const bloqueio = (id: string): string | null => (id === 'sucessoria' ? cenarios.conflitoDeUpf : null);
+
   // Peça sem conteúdo não se marca: geraria um .pptx com o molde vazio.
-  const geraveis = PECAS_DE_SLIDE.filter((p) => temConteudo(p.id));
+  const geraveis = PECAS_DE_SLIDE.filter((p) => temConteudo(p.id) && !bloqueio(p.id));
   const marcadosValidos = geraveis.filter((p) => marcados.includes(p.id));
   const todos = geraveis.length > 0 && marcadosValidos.length === geraveis.length;
   const totalDeSlides = marcadosValidos.reduce((s, p) => s + slidesDaPeca(p.id), 0);
@@ -87,18 +146,17 @@ const BibliotecaApresentacoes = () => {
    * com um arquivo de três na mão. Revisão de 18/09/2026.
    */
   const disparar = async () => {
-    const decks = marcadosValidos.filter((p) => p.deck !== null).map((p) => p.deck as DeckTipo);
+    const decks = marcadosValidos.filter((p) => p.deck !== null).map((p) => p.deck as DeckDaApresentacao);
     const comTributaria = marcadosValidos.some((p) => p.id === 'papeis');
 
     const gerados: string[] = [];
     const falhas: string[] = [];
-    const avisos: string[] = [];
+    const pontos: PontoParaConferir[] = [];
+    setUltimaGeracao(null);
 
     if (decks.length > 0) {
-      // `ambas` não é um terceiro deck: é o atalho do servidor para o conjunto.
-      const r = await gerarDecks.mutateAsync(
-        decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0],
-      );
+      // A lista do que foi marcado: com três decks, um `tipo` só mandaria um.
+      const r = await gerarDecks.mutateAsync(decks);
       const resultado = conferirDecksGerados(
         marcadosValidos
           .filter((p) => p.deck !== null)
@@ -108,23 +166,10 @@ const BibliotecaApresentacoes = () => {
       gerados.push(...resultado.gerados);
       falhas.push(...resultado.falhas);
 
-      /*
-        O QUE FALTOU NO CADASTRO, e não no PowerPoint.
-
-        A peça tributária avisa "ponto(s) para ajustar no PowerPoint", porque lá o
-        que sobra é diagramação. Aqui o arquivo saiu faltando DADO — empresa fora
-        do quadro, bem sem sociedade de destino —, e o conserto é no cadastro,
-        antes de gerar de novo. Por isso o texto diz onde ir, e os dois primeiros
-        pontos vêm escritos: "3 pontos" sem dizer quais não conserta nada.
-      */
-      const p = r.problemas ?? [];
-      if (p.length) {
-        const primeiros = p.slice(0, 2).map((x) => x.detalhe).join(' ');
-        avisos.push(
-          p.length <= 2
-            ? `Confira no cadastro: ${primeiros}`
-            : `Confira no cadastro: ${primeiros} (+${p.length - 2} ponto${p.length - 2 === 1 ? '' : 's'}).`,
-        );
+      /* O que faltou vai para o quadro "Pontos para conferir": nos decks da OSG, `origem` é dado que falta no
+         cadastro e `formatacao` é o que não coube. */
+      for (const x of r.problemas ?? []) {
+        pontos.push({ parte: x.onde, detalhe: x.detalhe, corrige: ondeCorrige(x.tipo, 'Cadastro') });
       }
     }
 
@@ -137,23 +182,33 @@ const BibliotecaApresentacoes = () => {
           await baixarArquivoPorUrl(r.url, r.nomeArquivo);
           gerados.push(r.nomeArquivo);
         }
-        if (r.problemas.length) {
-          avisos.push(
-            `Planejamento Tributário: ${r.problemas.length} ponto(s) para ajustar no PowerPoint.`,
-          );
+        /* No tributário, a origem é a planilha do papel de trabalho, não o cadastro. */
+        for (const x of r.problemas) {
+          pontos.push({
+            parte: `Planejamento Tributário · ${x.onde}`,
+            detalhe: x.detalhe,
+            corrige: ondeCorrige(x.tipo, 'Planilha'),
+          });
         }
       } catch (e) {
-        falhas.push(
-          `Planejamento Tributário: ${e instanceof Error ? e.message : 'a geração falhou'}`,
-        );
+        /* A mensagem crua é de máquina e vai para o console; a tela recebe o
+           texto fixo, no molde dos decks da OSG (AP-E04). */
+        console.error('gerar-slides-tributarios:', e);
+        falhas.push('Planejamento Tributário: não foi possível gerar esta apresentação.');
       }
     }
+
+    if (pontos.length > 0 && clienteId) setUltimaGeracao({ clienteId, pontos });
+    /* O toast só conta e aponta para o quadro: a lista inteira fica na tela. */
+    const avisos = pontos.length === 0
+      ? []
+      : [`${pontos.length === 1 ? 'Um ponto para conferir, listado' : `${pontos.length} pontos para conferir, listados`} abaixo da tabela.`];
 
     const quantos = `${gerados.length} de ${marcadosValidos.length}`;
     if (falhas.length === 0) {
       toast({
         title: gerados.length === 1 ? 'Apresentação gerada' : 'Apresentações geradas',
-        description: [`Baixou: ${gerados.join(', ')}.`, ...avisos].join(' '),
+        description: [`Baixados: ${gerados.join(', ')}.`, ...avisos].join(' '),
       });
       return;
     }
@@ -161,11 +216,11 @@ const BibliotecaApresentacoes = () => {
     toast({
       title:
         gerados.length === 0
-          ? 'Não consegui gerar as apresentações'
-          : `${quantos} apresentações foram geradas`,
+          ? 'Não foi possível gerar as apresentações'
+          : `${quantos} apresentações geradas`,
       description: [
-        ...(gerados.length ? [`Baixou: ${gerados.join(', ')}.`] : []),
-        `Não veio — ${falhas.join('; ')}.`,
+        ...(gerados.length ? [`Baixados: ${gerados.join(', ')}.`] : []),
+        `Não geradas: ${falhas.join('; ')}.`,
         ...avisos,
         'Entre em contato com o suporte da PSA Digital.',
       ].join(' '),
@@ -210,13 +265,17 @@ const BibliotecaApresentacoes = () => {
 
               {PECAS_DE_SLIDE.map((peca) => {
                 const tributaria = peca.id === 'papeis';
-                const vazio = !temConteudo(peca.id);
+                const sucessoria = peca.id === 'sucessoria';
+                const vazio = semDadoNaLinha(peca.id);
+                const semEscolha = semEscolhaDoCenario(peca.id);
+                const recusa = bloqueio(peca.id);
+                const falha = falhaDeCarga(peca.id);
 
                 return (
                   <div key={peca.id} className="flex items-center gap-3 border-b border-osg-100 px-4 py-2.5">
                     <Checkbox
-                      checked={marcados.includes(peca.id) && !vazio}
-                      disabled={vazio || ocupado}
+                      checked={marcados.includes(peca.id) && !vazio && !recusa && !falha}
+                      disabled={vazio || semEscolha || !!recusa || !!falha || ocupado}
                       onCheckedChange={() => alternar(peca.id)}
                       aria-label={peca.nome}
                     />
@@ -231,15 +290,34 @@ const BibliotecaApresentacoes = () => {
                           a dizer: o que vai no arquivo, como as outras, e QUAL
                           revisão vai, que é a escolha que só ela tem. */}
                       <span className="block truncate text-[11px] text-muted-foreground">{peca.origem}</span>
-                      {tributaria && <EscolhaDaRevisao estado={revisao} />}
+                      {falha ? (
+                        <span role="alert" className="mt-0.5 flex items-center gap-2 text-[11px] text-destructive">
+                          {TEXTO_DA_FALHA[falha]}
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-[11px]"
+                            onClick={tentarDeNovo(falha)}
+                          >
+                            Tentar de novo
+                          </Button>
+                        </span>
+                      ) : (
+                        <>
+                          {tributaria && <EscolhaDaRevisao estado={revisao} />}
+                          {sucessoria && <EscolhaDosCenarios estado={cenarios} />}
+                        </>
+                      )}
+                      {recusa && <span role="alert" className="mt-0.5 block text-[11px] text-destructive">{recusa}</span>}
                     </span>
 
                     <span className={cn('shrink-0 text-sm tabular-nums', vazio ? 'text-muted-foreground' : 'font-semibold text-osg-700')}>
-                      {(tributaria ? revisao.carregando : contagem.carregando)
+                      {(tributaria ? revisao.carregando : sucessoria ? cenarios.carregando : contagem.carregando)
                         ? '…'
-                        : vazio
-                          ? 'sem dados'
-                          : slidesDaPeca(peca.id)}
+                        : falha
+                          ? '—'
+                          : vazio
+                            ? 'sem dados'
+                            : slidesDaPeca(peca.id)}
                     </span>
                   </div>
                 );
@@ -250,7 +328,7 @@ const BibliotecaApresentacoes = () => {
                 <span className="text-xs text-muted-foreground">
                   {marcadosValidos.length === 0
                     ? 'Nada marcado.'
-                    : `${marcadosValidos.length} de ${geraveis.length} · ${totalDeSlides} slide${totalDeSlides === 1 ? '' : 's'}`}
+                    : `${marcadosValidos.length} marcada${marcadosValidos.length === 1 ? '' : 's'} · ${totalDeSlides} slide${totalDeSlides === 1 ? '' : 's'}`}
                 </span>
                 <Button size="sm" onClick={() => void disparar()} disabled={marcadosValidos.length === 0 || ocupado}>
                   {ocupado ? (
@@ -264,9 +342,12 @@ const BibliotecaApresentacoes = () => {
               </div>
             </div>
 
+            {ultimaGeracao?.clienteId === clienteId && <PontosParaConferir pontos={ultimaGeracao.pontos} />}
+
             <p className="text-xs text-muted-foreground">
-              Cada peça marcada baixa o .pptx dela. O histórico dos arquivos do planejamento
-              tributário fica no Gerador de Slides, no Digital Dev.
+              Cada apresentação marcada é baixada num arquivo próprio e fica guardada
+              com número de versão. As versões do planejamento tributário ficam no
+              Gerador de Slides, no Tax Work.
             </p>
           </>
         </div>
