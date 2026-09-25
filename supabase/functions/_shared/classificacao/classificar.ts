@@ -21,12 +21,12 @@ function ehModeloSystemOne(modelo: string): boolean {
   return modelo.startsWith('typesafe/');
 }
 
-// A confiança do Jev resume a concentração da distribuição; os cortes abaixo
-// preservam o contrato de certeza usado pelo restante do sistema.
-function certezaDaConfianca(confianca: number | null): CertezaClassificacao {
-  if (confianca === null) return 'baixa';
-  if (confianca >= 0.75) return 'alta';
-  if (confianca >= 0.4) return 'media';
+// A certeza vem da probabilidade da classe vencedora: a confidence do Jev
+// mede concentração da distribuição e subestima vitórias claras com 3+ opções.
+function certezaDaProbabilidade(probabilidade: number | null): CertezaClassificacao {
+  if (probabilidade === null) return 'baixa';
+  if (probabilidade >= 0.75) return 'alta';
+  if (probabilidade >= 0.5) return 'media';
   return 'baixa';
 }
 
