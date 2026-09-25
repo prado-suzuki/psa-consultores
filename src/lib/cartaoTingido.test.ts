@@ -293,7 +293,8 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ImoveisPanel.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/PartesPanel.tsx': 1,
     'src/components/equipe/osg/quadro-societario/AtosSocietarios.tsx': 1,
-    'src/components/equipe/osg/montagem/BibliotecaPalette.tsx': 1,
+    // A Biblioteca saiu da fila: o bloco é arrastável e clicável, então virou
+    // `bg-field` — a superfície de quem a mão opera, não a do cromo.
   },
   'folha-de-papel': {
     'src/components/equipe/osg/gerar/FolhaDocumento.tsx': 2,

@@ -22,7 +22,7 @@ também são importáveis um a um e a pasta inteira traria cada tarefa duas veze
 
 ---
 
-## As 30 tarefas
+## As 31 tarefas
 
 Ordenadas por idade. A coluna **Produção** diz o que depende do passo humano no chat do Lovable;
 traço quer dizer que a tarefa não toca o banco.
@@ -57,7 +57,7 @@ traço quer dizer que a tarefa não toca o banco.
 | [2026_09_23 · As exclusões apagam mais do que dizem](2026_09_23_exclusoes-que-apagam-mais-do-que-dizem.md) | Excluir um bem reescreve o capital social registrado; 4 defeitos, 8 subtarefas | — |
 | [2026_09_23 · O histórico de solicitações de um cliente](2026_09_23_historico-de-solicitacoes-do-cliente.md) | **Bloqueada na D1**. A T0 mede e pode encerrar a tarefa | — |
 | [2026_09_23 · A lista geral de solicitações de documentos](2026_09_23_lista-geral-de-solicitacoes.md) | Não existe tela que mostre todas as solicitações | — |
-| [2026_09_23 · Nomenclaturas e tooltips do OSG Work](2026_09_23_nomenclaturas-e-tooltips-conferencia.md) | 34 a fazer, 6 já no código (medidos em 23/09, contra a TIP-03 que se dava por executada); 6 decisões dela travam itens específicos | Só B-14, que é `tmpl_documento.descricao` |
+| [2026_09_23 · Nomenclaturas e tooltips do OSG Work](2026_09_23_nomenclaturas-e-tooltips-conferencia.md) | 35 a fazer, 6 já no código, **5** decisões dela; remedido em 24/09: A-02 são 15 telas e não dez, E-09 são 13 pontos e não sete, P-06 deixou de ser decisão. **63,5 h de execução + 14 h de varredura**. Tem roteiro de validação em tela por sessão de cliente, medido por SELECT em 24/09 | Só B-14, que é `tmpl_documento.descricao` |
 
 ### Ordem de serviço, faturamento e cadastro
 
@@ -81,6 +81,7 @@ traço quer dizer que a tarefa não toca o banco.
 | [2026_09_23 · A IA não responde no sandbox](2026_09_23_chave-de-ia-no-sandbox.md) | **Com o Bernardo**: 4 opções, 3 decisões | Configuração de ambiente |
 | [2026_09_24 · O acesso por papel na área de Projetos](2026_09_24_acessos-por-papel-na-area-de-projetos.md) | Ser responsável por um projeto não concede acesso: `rls_projects_select` lê papel e criador, e `leader_id` não entra em policy nenhuma. Daí a promoção a Líder Geral. **T3 é decisão dela** | — |
 | [2026_09_24 · Varredura de acesso por papel no banco](2026_09_24_varredura-de-acesso-por-papel-em-todo-o-banco.md) | 130 tabelas com policy por papel, de 532 policies. Depende do método da tarefa acima. Não é a dívida de `USING (true)` de julho, é o problema inverso | — |
+| [2026_09_24 · A âncora da Auditoria e do Jurídico](2026_09_24_ancora-da-auditoria-e-do-juridico.md) | `ancorasDeArea.test.ts` está **vermelho na `develop`** desde `03332a09`: as duas áreas ancoram num tom da paleta de pontinhos, e casa × auditoria dá ΔE 8,7 contra um piso de 10. **T1 é decisão dela** — as duas não têm cor de marca escrita em lugar nenhum | — |
 
 ---
 

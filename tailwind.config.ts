@@ -68,6 +68,9 @@ export default {
         canvas: 'hsl(var(--canvas) / <alpha-value>)',
         /* Fundo dos cartões escuros: o par vai do mais escuro (início do
            gradiente) ao intermediário; o fim é o `--primary` da área. */
+        /* Superfície do que FLUTUA (modal, sheet, gaveta). Separada do `--card`
+           porque o `--card` é o branco do cromo: tingir um arrasta o outro. */
+        'surface-elevada': 'hsl(var(--surface-elevada) / <alpha-value>)',
         'surface-escura': 'hsl(var(--surface-escura) / <alpha-value>)',
         'surface-escura-2': 'hsl(var(--surface-escura-2) / <alpha-value>)',
         'tool-icon': 'hsl(var(--tool-icon) / <alpha-value>)',
@@ -132,6 +135,9 @@ export default {
           DEFAULT: 'hsl(var(--card) / <alpha-value>)',
           foreground: 'hsl(var(--card-foreground) / <alpha-value>)',
         },
+        /* Miolo do controle de formulário. `border-input` é o contorno dele; os
+           dois são medidos um contra o outro pela catraca da WCAG 1.4.11. */
+        field: 'hsl(var(--field) / <alpha-value>)',
         /* A superfície do CARTÃO, desde 12/09/2026 — e ela deixou de ser o
            `--card`. A página virou branca no mesmo dia, e com isso página,
            cartão e campo passaram a ter o MESMO valor: o que separava os três

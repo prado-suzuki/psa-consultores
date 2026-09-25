@@ -38,10 +38,13 @@ escreve "03 (três)", com número e extenso na mesma frase.
 | `mandatoAnosExtenso` | derivado | de `mandatoAnos` | "(três) anos" |
 | `cargos` | texto | `cargos_do_orgao` já concatenado | "sendo Diretor de Mercado e Finanças, Diretor Operações e Diretor de Sistema de Irrigação" |
 | `semCargos` | condicional | derivado: lista vazia | dispara "com denominação atribuída no momento da composição", a redação do Mattei |
-| `representaSozinhoAte` | moeda | `representa_sozinho_ate` | "cujo valor não exceda R$ 2.000.000,00" |
-| `representaSozinhoAteExtenso` | derivado | de `representaSozinhoAte` | "(dois milhões de reais)" |
-| `representaAssinantesAcima` | inteiro | `representa_assinantes_acima` | "deverão ser assinados por 02 (dois) representantes". A Patricia definiu em 10/09 que o número fica aberto: o cliente decide quantos, e o campo guarda o número em vez de uma marcação de "dois" |
-| `representaAssinantesAcimaExtenso` | derivado | de `representaAssinantesAcima` | "(dois)" |
+
+**Representação da sociedade não tem campo.** `representa_sozinho_ate` e
+`representa_assinantes_acima` foram propostas aqui e não existem: a migration GOV-01
+(`20260911201231_gov01_parametrizacao_do_orgao.sql`) as tirou porque o limite de valor
+aparece em um dos sete contratos (Perci). A cláusula de representação se escreve à mão
+até a consultoria dizer que a regra é padrão. Conferido em produção em 24/09/2026:
+`orgao_governanca` tem 18 colunas e nenhuma delas é de representação.
 
 `vigencia_inicio` e `vigencia_fim` **não entram**: nos sete contratos lidos a
 vigência do órgão não vira cláusula nenhuma. São histórico do sistema.

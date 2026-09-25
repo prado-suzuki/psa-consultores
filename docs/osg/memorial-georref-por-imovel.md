@@ -2,7 +2,7 @@
 
 **Estado:** lacuna registrada, não corrigida. A metade que faltava é de **conteúdo de bloco**
 (migration), fora da raia de quem escreveu isto (tela Gerar / controller).
-**Origem:** `docs/sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md`, B15 —
+**Origem:** `docs/tarefas-executadas/2026_08_11_correcoes-e2e-de-geracao-de-contrato.md`, B15 —
 "O georref, que é por matrícula, precisa seguir a matrícula de cada item do laço, não um binding único".
 
 ## O sintoma

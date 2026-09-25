@@ -404,7 +404,7 @@ const BibliotecaModelos = () => {
                             <span className="text-[10px] text-muted-foreground">{blocosDaCategoria.length}</span>
                           </div>
                         )}
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        <div className="rounded-2xl border border-osg-300/60 bg-superficie-cartao p-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                           {blocosDaCategoria.map((b) => (
                             <FichaBloco
                               key={b.id}
