@@ -169,9 +169,14 @@ const RE_PLACEHOLDER_FORA_DO_CANONE =
  * governança não contam aqui, porque a regra só pega placeholder que COMEÇA por
  * Selecion, Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rótulo
  * disfarçado (`Nome do item`) ou exemplo sem forma (`Conselho de Administração`).
+ *
+ * **214 em 25/09/2026**, e não é conversão: o `Selecione um grupo...` do
+ * `ServicoFormDialog` foi embora com o campo inteiro, quando a numeração do serviço
+ * passou a ser automática. Placeholder que some com o campo conta igual — a fila mede
+ * o que existe na tela, não o que foi convertido.
  */
 // A TIP-03 corrigiu dez placeholders de escolha/busca nas rotas OSG Work.
-const PLACEHOLDER_LEGADO = 215;
+const PLACEHOLDER_LEGADO = 214;
 
 /** O teto de caracteres da explicação contextual (§3). Acima disso é nota de leitura. */
 const TETO_DO_TOOLTIP = 140;
