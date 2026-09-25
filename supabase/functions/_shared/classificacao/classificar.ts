@@ -198,8 +198,9 @@ export async function classificar<Classes extends Record<string, DefinicaoClasse
   entrada: Record<string, unknown>,
 ): Promise<ResultadoClassificacao<Extract<keyof Classes, string>>> {
   const inicio = Date.now();
-  const resposta = await chamarChat(prepararClassificacao(definicao, entrada));
-  const resultado = interpretarClassificacao(definicao, resposta);
+  const resultado = ehModeloSystemOne(definicao.modelo)
+    ? await classificarComSystemOne(definicao, entrada)
+    : interpretarClassificacao(definicao, await chamarChat(prepararClassificacao(definicao, entrada)));
   return {
     ...resultado,
     classificador: definicao.nome,
