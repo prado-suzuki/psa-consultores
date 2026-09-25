@@ -3236,6 +3236,66 @@ export type Database = {
         }
         Relationships: []
       }
+      enriquecimento_perfil: {
+        Row: {
+          ativo: boolean
+          contrato_saida: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          instrucoes: string
+          modelo: string
+          nome: string
+          rotulo: string
+          temperatura: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          contrato_saida?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instrucoes: string
+          modelo?: string
+          nome: string
+          rotulo: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          contrato_saida?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instrucoes?: string
+          modelo?: string
+          nome?: string
+          rotulo?: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enriquecimento_perfil_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enriquecimento_perfil_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estrutura_areas: {
         Row: {
           cluster_id: string
@@ -11854,6 +11914,10 @@ export type Database = {
           telefone: string
           user_id: string
         }[]
+      }
+      enriquecimento_contrato_saida_valido: {
+        Args: { contrato: Json }
+        Returns: boolean
       }
       fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
       feed_atividade_por_cliente: {
