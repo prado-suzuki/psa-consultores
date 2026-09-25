@@ -11915,6 +11915,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      enriquecimento_contrato_saida_valido: {
+        Args: { contrato: Json }
+        Returns: boolean
+      }
       fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
       feed_atividade_por_cliente: {
         Args: { _janela_dias?: number }
