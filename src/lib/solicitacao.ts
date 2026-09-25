@@ -11,6 +11,7 @@
 // puras e testadas, em vez de espalhadas no hook.
 
 import type { Database } from '@/integrations/supabase/types';
+import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 
 export type OsgDocGrupo = Database['public']['Enums']['osg_doc_grupo'];
 /**
@@ -645,6 +646,79 @@ export function geracaoTemOQueTrazer(documentosDaOs: number, ordensServico: numb
 /** Remover um documento pede confirmação quando o cliente já vê a lista no portal. */
 export function removerPedeConfirmacao(status: SolicitacaoStatus | null): boolean {
   return status === 'enviada' || status === 'em_checklist';
+}
+
+/**
+ * O estado do ciclo já resolvido, e não o valor do enum.
+ *
+ * `encerrada` são duas coisas (plano da Solicitação §0): a solicitação que
+ * CHEGOU ao cliente e terminou é `finalizada`; o rascunho encerrado sem nunca
+ * ter sido enviado é `cancelada`. É estado derivado, não valor novo de enum —
+ * o banco continua com `encerrada`, e quem separa os dois é esta função. Sem
+ * migration, sem borda, sem notificação.
+ */
+export type EstadoSolicitacao =
+  | 'rascunho'
+  | 'enviada'
+  | 'em_checklist'
+  | 'finalizada'
+  | 'cancelada';
+
+export function estadoDaSolicitacao(
+  solicitacao: { status: SolicitacaoStatus; enviadaEm: string | null } | null,
+): EstadoSolicitacao | null {
+  if (!solicitacao) return null;
+  if (solicitacao.status === 'encerrada') {
+    return solicitacao.enviadaEm ? 'finalizada' : 'cancelada';
+  }
+  return solicitacao.status;
+}
+
+/** O resumo de uma gaveta da solicitação, para a leitura só-consulta. */
+export interface ResumoDoGrupo {
+  grupo: OsgDocGrupo;
+  titulo: string;
+  contagem: number;
+  /** Os nomes, na ordem em que a lista os tem. */
+  documentos: string[];
+}
+
+/**
+ * Quebra os itens por gaveta, na ordem fixa dos grupos e sem gaveta vazia.
+ *
+ * O título vem de `GRUPOS_DOCUMENTO`, a única fonte da definição dos grupos —
+ * uma cópia aqui divergiria do que o cliente vê no portal, e foi cópia que
+ * produziu o drift de texto medido em 31/07/2026 que este arquivo documenta
+ * no cabeçalho.
+ */
+export function resumoPorGrupo(
+  itens: ReadonlyArray<{ grupo: OsgDocGrupo; documento: string }>,
+): ResumoDoGrupo[] {
+  return GRUPOS_DOCUMENTO
+    .map(({ key, titulo }) => {
+      const doGrupo = itens.filter((item) => item.grupo === key);
+      return {
+        grupo: key,
+        titulo,
+        contagem: doGrupo.length,
+        documentos: doGrupo.map((item) => item.documento),
+      };
+    })
+    .filter((resumo) => resumo.contagem > 0);
+}
+
+/** DD/MM/AAAA — o formato que as faixas de estado já usavam. */
+export function dataCurta(iso: string | null | undefined): string {
+  return iso ? new Date(iso).toLocaleDateString('pt-BR') : '';
+}
+
+/** DD/MM/AAAA às HHhMM — o formato do tooltip do selo de estado. */
+export function dataComHora(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const data = new Date(iso);
+  const hh = String(data.getHours()).padStart(2, '0');
+  const mm = String(data.getMinutes()).padStart(2, '0');
+  return `${data.toLocaleDateString('pt-BR')} às ${hh}h${mm}`;
 }
 
 /** Campos que a auditoria compara em `solicitacao_item`. */

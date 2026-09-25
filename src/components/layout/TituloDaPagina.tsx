@@ -64,6 +64,15 @@ export interface TituloDaPaginaProps {
    * bloco novo — se virar bloco, some do lugar onde faz sentido.
    */
   apendiceDoSubtitulo?: ReactNode;
+  /**
+   * Selo ao lado do título, na mesma linha (plano da Solicitação §1.7).
+   *
+   * Nasce com um consumidor: o selo de estado da Solicitação de documentos,
+   * que tem de continuar visível quando a página rola. Aditivo e opcional —
+   * nenhuma das outras seis áreas muda. Quem pinta é quem passa: cor sai de
+   * um mapa `*StatusColors`, nunca daqui.
+   */
+  selo?: ReactNode;
   className?: string;
 }
 
@@ -72,6 +81,7 @@ export function TituloDaPagina({
   subtitulo,
   sobretitulo,
   apendiceDoSubtitulo,
+  selo,
   className,
 }: TituloDaPaginaProps) {
   return (
@@ -81,7 +91,10 @@ export function TituloDaPagina({
           {sobretitulo}
         </p>
       )}
-      <h1 className="break-words text-3xl font-bold tracking-tight text-foreground">{titulo}</h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="break-words text-3xl font-bold tracking-tight text-foreground">{titulo}</h1>
+        {selo}
+      </div>
       {subtitulo && (
         // TETO DE MEDIDA: sem ele, subtítulo longo ocupa a largura da página
         // inteira e vira parágrafo de ~190 caracteres por linha embaixo do

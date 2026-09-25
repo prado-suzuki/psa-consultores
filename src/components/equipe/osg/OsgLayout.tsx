@@ -141,6 +141,11 @@ type OsgLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   /**
+   * Selo ao lado do título do cabeçalho, repassado ao `TituloDaPagina`.
+   * Plano da Solicitação §1.7 — aditivo, e as outras telas da área não passam.
+   */
+  selo?: React.ReactNode;
+  /**
    * A tela é dona da própria rolagem: a área de conteúdo ganha a altura da
    * janela e não rola, e o filho decide qual pedaço dele rola (no Feed, só a
    * lista). O padrão da casa é a janela rolar, com a moldura subindo junto.
@@ -152,7 +157,7 @@ type OsgLayoutProps = {
 } & TextoDoCabecalho;
 
 export const OsgLayout = (props: OsgLayoutProps) => {
-  const { children, headerActions, rolagemNoConteudo = false } = props;
+  const { children, headerActions, selo, rolagemNoConteudo = false } = props;
   // A ÁREA É DO LAYOUT (ver a mesma nota no `FiscalLayout`), e é `osg` fixo —
   // NÃO a apresentação da rota que o `areaLabel` resolve mais abaixo. As três
   // caras da OSG existem para o sobretítulo e para a barra; quem escreve "na
@@ -583,7 +588,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} selo={selo} />
             </div>
           </div>
           <div className="flex items-center gap-3">

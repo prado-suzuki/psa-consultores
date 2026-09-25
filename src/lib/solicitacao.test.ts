@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   agruparPorGrupo,
   contarPorProduto,
+  dataComHora,
+  dataCurta,
   encontrarItemDoCatalogo,
+  estadoDaSolicitacao,
   filtrarPorProduto,
   FILTRO_TODOS,
   geracaoTemOQueTrazer,
@@ -17,6 +20,7 @@ import {
   ordenarItens,
   paraGranularidade,
   removerPedeConfirmacao,
+  resumoPorGrupo,
   resolverItem,
   type CatalogoDocumento,
   type SolicitacaoItemRow,
@@ -430,5 +434,73 @@ describe('removerPedeConfirmacao', () => {
   it('não pede em encerrada nem sem solicitação, onde não há o que remover', () => {
     expect(removerPedeConfirmacao('encerrada')).toBe(false);
     expect(removerPedeConfirmacao(null)).toBe(false);
+  });
+});
+
+describe('estadoDaSolicitacao', () => {
+  // A data é construída no horário local e volta por ISO: o formato depende do
+  // fuso da máquina, e o round-trip local mantém o dia em qualquer um deles.
+  const enviadaEm = new Date(2026, 8, 10, 12).toISOString();
+  const semData = null;
+
+  it('cruza os três estados que o enum já diz', () => {
+    expect(estadoDaSolicitacao({ status: 'rascunho', enviadaEm: semData })).toBe('rascunho');
+    expect(estadoDaSolicitacao({ status: 'enviada', enviadaEm })).toBe('enviada');
+    expect(estadoDaSolicitacao({ status: 'em_checklist', enviadaEm })).toBe('em_checklist');
+  });
+
+  it('encerrada com envio é finalizada', () => {
+    expect(estadoDaSolicitacao({ status: 'encerrada', enviadaEm })).toBe('finalizada');
+  });
+
+  it('encerrada que nunca foi enviada é cancelada — nunca finalizada', () => {
+    expect(estadoDaSolicitacao({ status: 'encerrada', enviadaEm: semData })).toBe('cancelada');
+  });
+
+  it('sem solicitação não há estado', () => {
+    expect(estadoDaSolicitacao(null)).toBeNull();
+  });
+});
+
+describe('resumoPorGrupo', () => {
+  const item = (grupo: string, documento: string) => ({ grupo, documento }) as never;
+
+  it('quebra pelas gavetas na ordem fixa dos grupos e sem gaveta vazia', () => {
+    const resumo = resumoPorGrupo([
+      item('bens_imoveis', 'Matrícula do imóvel'),
+      item('pf', 'RG do sócio'),
+      item('pf', 'CPF do sócio'),
+    ]);
+
+    expect(resumo.map((g) => g.grupo)).toEqual(['pf', 'bens_imoveis']);
+    expect(resumo[0]).toMatchObject({
+      titulo: 'Pessoas Físicas',
+      contagem: 2,
+      documentos: ['RG do sócio', 'CPF do sócio'],
+    });
+    expect(resumo[1]).toMatchObject({
+      titulo: 'Bens e Imóveis',
+      contagem: 1,
+      documentos: ['Matrícula do imóvel'],
+    });
+  });
+
+  it('lista vazia, resumo vazio', () => {
+    expect(resumoPorGrupo([])).toEqual([]);
+  });
+});
+
+describe('dataCurta e dataComHora', () => {
+  // Mesmo round-trip local de estadoDaSolicitacao: constrói local, formata local.
+  const iso = new Date(2026, 8, 24, 14, 35).toISOString();
+
+  it('dataCurta sem data devolve vazio, e com data devolve DD/MM/AAAA', () => {
+    expect(dataCurta(null)).toBe('');
+    expect(dataCurta(iso)).toBe('24/09/2026');
+  });
+
+  it('dataComHora junta a data e o HHhMM', () => {
+    expect(dataComHora(iso)).toBe('24/09/2026 às 14h35');
+    expect(dataComHora(null)).toBe('');
   });
 });
