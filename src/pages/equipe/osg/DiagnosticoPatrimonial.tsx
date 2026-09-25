@@ -102,12 +102,10 @@ const DiagnosticoPatrimonial = () => {
     >
       <div className="space-y-4">
         {!clienteId ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Landmark className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para abrir o Cadastro Patrimonial deste cliente.</p>
-            </CardContent>
-          </Card>
+          <EstadoVazio
+            titulo="Selecione um cliente na barra acima para abrir o Cadastro Patrimonial deste cliente."
+            icone={<Landmark className="h-10 w-10 text-muted-foreground opacity-50" />}
+          />
         ) : loadingBens ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">

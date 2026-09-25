@@ -18,7 +18,7 @@ export function OnboardingEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-card/60 px-6 py-16 text-center shadow-sm">
+    <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-12 text-center shadow-sm">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss">
         <Icon className="h-7 w-7" />
       </span>

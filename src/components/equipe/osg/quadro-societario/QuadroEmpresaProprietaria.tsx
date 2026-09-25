@@ -28,6 +28,7 @@ import { GESTOS_DA_PROPRIETARIA, type GestoDaProprietaria } from './gestosSociet
 import { SubirQuotasDialog } from './SubirQuotasDialog';
 import { fmtBRL, fmtInt } from './quadroFmt';
 import { type LinhaSocio } from './TabelaSocios';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 interface QuadroEmpresaProprietariaProps {
   empresa: PessoaRow;
@@ -363,20 +364,25 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
         capital={capital}
         carregando={carregando}
         vazio={
-          <div className="py-8 text-center text-muted-foreground">
-            <p className="text-sm mb-4">
-              {travadoPorLegado
+          <EstadoVazio
+            titulo={
+              travadoPorLegado
                 ? 'A proposta fica em branco enquanto houver titular sem pessoa cadastrada.'
-                : 'Nenhum bem aprovado para integralização com destino a esta empresa.'}
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
-            >
-              Ir para o Cadastro Patrimonial
-            </Button>
-          </div>
+                : 'Nenhum bem aprovado para integralização com destino a esta empresa.'
+            }
+            descricao={
+              travadoPorLegado
+                ? undefined
+                : 'Os bens aprovados no Cadastro Patrimonial entram aqui como aporte de constituição.'
+            }
+            acao={
+              <Button variant="outline" onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}>
+                Ir para Cadastro Patrimonial
+              </Button>
+            }
+          />
         }
+
       />
 
       <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />

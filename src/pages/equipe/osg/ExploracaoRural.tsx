@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,14 +89,10 @@ const ExploracaoRural = () => {
     >
       <div className="space-y-4">
         {!clienteId ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Sprout className="mx-auto mb-3 h-10 w-10 opacity-50" />
-              <p className="text-sm">
-                Selecione um cliente na barra acima para ver e gerenciar as explorações rurais.
-              </p>
-            </CardContent>
-          </Card>
+          <EstadoVazio
+            titulo="Selecione um cliente na barra acima para ver e gerenciar as explorações rurais."
+            icone={<Sprout className="h-10 w-10 text-muted-foreground opacity-50" />}
+          />
         ) : isLoading ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
@@ -154,23 +151,38 @@ const ExploracaoRural = () => {
                 <CardTitle className="text-base">
                   {filtradas.length} instrumento{filtradas.length === 1 ? '' : 's'}
                 </CardTitle>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {totalImoveis} imóve{totalImoveis === 1 ? 'l' : 'is'} ·{' '}
-                    {totalArea.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha cedidos
-                  </span>
-                  <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
-                    <Plus className="h-3.5 w-3.5" /> Nova exploração rural
-                  </Button>
-                </div>
+                {filtradas.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      {totalImoveis} imóve{totalImoveis === 1 ? 'l' : 'is'} ·{' '}
+                      {totalArea.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha cedidos
+                    </span>
+                    <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
+                      <Plus className="h-3.5 w-3.5" /> Nova exploração rural
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {filtradas.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-muted-foreground">
-                    {exploracoes.length === 0
-                      ? 'Nenhuma exploração rural cadastrada para este cliente.'
-                      : 'Nenhum instrumento corresponde ao filtro.'}
-                  </p>
+                  exploracoes.length === 0 && !busca.trim() ? (
+                    <div className="p-4">
+                      <EstadoVazio
+                        titulo="Nenhuma exploração rural cadastrada para este cliente."
+                        descricao="Os instrumentos daqui ligam as matrículas do cliente às pessoas que exploram a terra, com a área cedida de cada uma."
+                        icone={<Sprout className="h-10 w-10 text-muted-foreground opacity-50" />}
+                        acao={
+                          <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
+                            <Plus className="h-4 w-4" /> Nova exploração rural
+                          </Button>
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-12 text-center text-sm text-muted-foreground">
+                      Nenhum instrumento corresponde ao filtro.
+                    </p>
+                  )
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>

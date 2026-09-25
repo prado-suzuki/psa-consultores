@@ -1,8 +1,8 @@
 import { FolderArchive } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
-import { Card, CardContent } from '@/components/ui/card';
 import { OrganizarDocumentos } from '@/components/equipe/osg/documentos/OrganizarDocumentos';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { cn } from '@/lib/utils';
 
@@ -20,12 +20,11 @@ const DocumentosCliente = () => {
       subtitle={TELAS_OSG_WORK.documentosCliente.descricao}
     >
       {!clienteId ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <FolderArchive className="mx-auto mb-3 h-10 w-10 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para navegar pelos documentos.</p>
-          </CardContent>
-        </Card>
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para navegar pelos documentos."
+          icone={<FolderArchive className="h-10 w-10 text-muted-foreground opacity-50" />}
+          acao={<span className="text-xs text-muted-foreground">A árvore de arquivos aparece aqui.</span>}
+        />
       ) : (
         <div
           className={cn(

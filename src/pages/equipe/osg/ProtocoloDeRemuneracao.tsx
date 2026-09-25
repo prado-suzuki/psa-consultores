@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import {
   Columns3, CopyPlus, FileSpreadsheet, MousePointerClick, Plus, ScrollText, Sparkles,
 } from 'lucide-react';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 import { AcrescentarItemModal } from '@/components/equipe/osg/governanca/AcrescentarItemModal';
 import { ColunasDoProtocoloModal } from '@/components/equipe/osg/governanca/ColunasDoProtocoloModal';
@@ -175,51 +176,37 @@ const ProtocoloDeRemuneracao = () => {
     }
   };
 
-  const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
-      {icone}
-      {texto}
-    </div>
-  );
-
   return (
     <OsgLayout
       title={TELAS_OSG_WORK.protocoloRemuneracao.label}
       subtitle={TELAS_OSG_WORK.protocoloRemuneracao.descricao}
     >
-      <div className="mx-auto max-w-[1400px] space-y-5">
-        {!clienteId ? (
-          vazio(
-            <ScrollText className="h-10 w-10 text-muted-foreground opacity-50" />,
-            <p className="max-w-md text-sm text-muted-foreground">
-              Selecione um cliente na barra acima para abrir o protocolo deste cliente.
-            </p>,
-          )
+{!clienteId ? (
+          <EstadoVazio
+            titulo="Selecione um cliente na barra acima para abrir o protocolo deste cliente."
+            icone={<ScrollText className="h-10 w-10 text-muted-foreground opacity-50" />}
+          />
         ) : isLoading ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
+          <p className="py-12 text-center text-sm text-muted-foreground">Carregando.</p>
         ) : !protocolo ? (
-          vazio(
-            <ScrollText className="h-10 w-10 text-muted-foreground opacity-50" />,
-            <>
-              <p className="text-sm font-medium">Este cliente ainda não tem protocolo.</p>
-              <p className="max-w-lg text-sm text-muted-foreground">
-                O protocolo nasce com os {itens.filter((i) => !i.cliente_id).length} itens do
-                modelo da casa, em {temas.filter((t) => !t.cliente_id).length} temas, e você tira
-                os que não se aplicam. As colunas começam em Fundadores, Sócios e Sócios
-                Gestores, e você renomeia para os nomes que a família usa.
-              </p>
+          <EstadoVazio
+            titulo="Este cliente ainda não tem protocolo."
+            descricao={`O protocolo nasce com os ${itens.filter((i) => !i.cliente_id).length} itens do modelo da casa, em ${temas.filter((t) => !t.cliente_id).length} temas, e você tira os que não se aplicam. As colunas começam em Fundadores, Sócios e Sócios Gestores, e você renomeia para os nomes que a família usa.`}
+            icone={<ScrollText className="h-10 w-10 text-muted-foreground opacity-50" />}
+            acao={
               <Button
                 size="sm"
                 disabled={criarProtocolo.isPending}
                 onClick={() => criarProtocolo.mutate()}
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                {criarProtocolo.isPending ? 'Criando…' : 'Criar o protocolo'}
+                {criarProtocolo.isPending ? 'Criando.' : 'Criar o protocolo'}
               </Button>
-            </>,
-          )
+            }
+          />
         ) : (
-          <>
+          <div className="mx-auto max-w-[1400px] space-y-5">
+            {/*
             {/*
               A instrução fica ANTES da grade, e não depois: quem abre isto pela
               primeira vez não sabe que a linha é clicável, e um aviso embaixo de
@@ -300,25 +287,21 @@ const ProtocoloDeRemuneracao = () => {
                 se preenche. O texto manda para o botão que resolve, em vez de
                 deixar a pessoa procurando.
               */
-              vazio(
-                <Columns3 className="h-10 w-10 text-muted-foreground opacity-50" />,
-                <>
-                  <p className="text-sm font-medium">Este protocolo está sem colunas.</p>
-                  <p className="max-w-lg text-sm text-muted-foreground">
-                    As colunas são os grupos que recebem: fundadores, sócios, gestores, o nome
-                    que a família usar. Sem pelo menos uma, não há onde escrever a regra.
-                  </p>
+              <EstadoVazio
+                titulo="Este protocolo está sem colunas."
+                descricao="As colunas são os grupos que recebem: fundadores, sócios, gestores, o nome que a família usar. Sem pelo menos uma, não há onde escrever a regra."
+                icone={<Columns3 className="h-10 w-10 text-muted-foreground opacity-50" />}
+                acao={
                   <Button size="sm" variant="outline" onClick={() => setGerindoColunas(true)}>
                     <Columns3 className="mr-2 h-4 w-4" /> Definir as colunas
                   </Button>
-                </>,
-              )
+                }
+              />
             ) : (
               <GradeDoProtocolo grade={grade} colunas={colunas} onAbrirLinha={setEmEdicao} />
             )}
-          </>
+          </div>
         )}
-      </div>
 
       <ProtocoloLinhaModal
         open={!!emEdicao}

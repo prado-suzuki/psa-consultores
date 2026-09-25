@@ -18,6 +18,7 @@ import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
 import { toast } from '@/hooks/use-toast';
 import { PECAS_COM_DECK, PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 /**
  * Apresentações: escolher e gerar, em segundos.
@@ -177,14 +178,13 @@ const BibliotecaApresentacoes = () => {
       title={TELAS_OSG_WORK.bibliotecaApresentacoes.label}
       subtitle={TELAS_OSG_WORK.bibliotecaApresentacoes.descricao}
     >
-      <div className="mx-auto max-w-3xl space-y-4">
-        {!clienteId ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-            <FolderArchive className="h-10 w-10 opacity-50" />
-            {/* A forma canônica dos estados vazios do OSG Work. */}
-            <p className="text-sm">Selecione um cliente na barra acima para abrir as apresentações deste cliente.</p>
-          </div>
-        ) : (
+      {!clienteId ? (
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para abrir as apresentações deste cliente."
+          icone={<FolderArchive className="h-10 w-10 text-muted-foreground opacity-50" />}
+        />
+      ) : (
+        <div className="mx-auto max-w-3xl space-y-4">
           <>
             {/* UMA TABELA SÓ, E UM BOTÃO SÓ. Os Papéis de Trabalho tinham caixa
                 própria e "Gerar os slides desta revisão" à parte — a tela dizia
@@ -269,8 +269,8 @@ const BibliotecaApresentacoes = () => {
               tributário fica no Gerador de Slides, no Digital Dev.
             </p>
           </>
-        )}
-      </div>
+        </div>
+      )}
     </OsgLayout>
   );
 };

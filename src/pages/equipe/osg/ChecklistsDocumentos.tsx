@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { ChecklistPendentes } from '@/components/equipe/osg/checklists/ChecklistPendentes';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 /**
  * O checklist da solicitação. UMA tela, sem seletor de aba.
@@ -54,16 +55,16 @@ const ChecklistsDocumentos = () => {
         ) : undefined
       }
     >
-      <div className="mx-auto max-w-7xl space-y-6">
-        {!clienteId ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-            <ListChecks className="h-10 w-10 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para ver o checklist de documentos.</p>
-          </div>
-        ) : (
+      {!clienteId ? (
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para ver o checklist de documentos."
+          icone={<ListChecks className="h-10 w-10 text-muted-foreground opacity-50" />}
+        />
+      ) : (
+        <div className="mx-auto max-w-7xl space-y-6">
           <ChecklistPendentes clienteId={clienteId} />
-        )}
-      </div>
+        </div>
+      )}
     </OsgLayout>
   );
 };

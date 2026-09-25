@@ -24,20 +24,21 @@ const TIPOS_EMPRESA_ELEGIVEIS = ['PR', 'CN'] as const;
  * canvas com uma frase solta no meio.
  */
 const CardDeEspera = ({ icone, children }: { icone: ReactNode; children: ReactNode }) => (
-  <Card className={cn(cardDoQuadroCls, 'animate-osg-rise motion-reduce:animate-none')}>
-    <CardContent className="flex flex-col items-center px-6 py-14 text-center text-muted-foreground">
-      <span className="relative mb-4 flex h-16 w-16 items-center justify-center">
-        <span
-          aria-hidden
-          className="absolute inset-0 animate-ping rounded-full bg-osg-100/60 [animation-duration:3.5s] motion-reduce:animate-none"
-        />
-        <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-osg-200/70 bg-osg-50 text-osg-moss">
-          {icone}
-        </span>
+  // Frame padrão do vazio de página (EstadoVazio, decisão da Patrícia de
+  // 25/09): pontilhado, espessura única, largura do card. O disco de ícone
+  // com halo fica, porque é a identidade desta tela.
+  <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-12 text-center text-muted-foreground animate-osg-rise motion-reduce:animate-none">
+    <span className="relative mb-3 flex h-12 w-12 items-center justify-center">
+      <span
+        aria-hidden
+        className="absolute inset-0 animate-ping rounded-full bg-osg-100/60 [animation-duration:3.5s] motion-reduce:animate-none"
+      />
+      <span className="relative flex h-12 w-12 items-center justify-center rounded-full border border-osg-200/70 bg-osg-50 text-osg-moss">
+        {icone}
       </span>
-      {children}
-    </CardContent>
-  </Card>
+    </span>
+    {children}
+  </div>
 );
 
 // Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto, o

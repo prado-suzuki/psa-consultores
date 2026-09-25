@@ -24,6 +24,7 @@ import {
 import { resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
 import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 /**
  * Cadastro do Acordo de Quotistas (GOV-03).
@@ -150,31 +151,27 @@ const AcordoDeQuotistas = () => {
       title={TELAS_OSG_WORK.acordoQuotistas.label}
       subtitle={TELAS_OSG_WORK.acordoQuotistas.descricao}
     >
-      <div className="mx-auto max-w-6xl space-y-5">
-        {!clienteId ? (
-          <Vazio texto="Selecione um cliente na barra acima para abrir o acordo deste cliente." />
+{!clienteId ? (
+        <Vazio titulo="Selecione um cliente na barra acima para abrir o acordo deste cliente." />
         ) : isLoading ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
+          <p className="py-12 text-center text-sm text-muted-foreground">Carregando.</p>
         ) : !data ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
-            <FileSignature className="h-10 w-10 text-muted-foreground opacity-50" />
-            <p className="text-sm font-medium">Este cliente ainda não tem acordo.</p>
-            <p className="max-w-lg text-sm text-muted-foreground">
-              O acordo nasce com os sete quóruns e os mecanismos mais comuns já preenchidos,
-              medidos nos acordos que a OSG já fez. Você corrige o que este cliente tem de
-              diferente, em vez de digitar tudo.
-            </p>
-            <Button
-              size="sm"
-              className="mt-1"
-              disabled={criarAcordo.isPending}
-              onClick={() => criarAcordo.mutate()}
-            >
-              <Sparkles className="mr-2 h-4 w-4" /> Criar o acordo
-            </Button>
-          </div>
+          <Vazio
+            titulo="Este cliente ainda não tem acordo."
+            descricao="O acordo nasce com os sete quóruns e os mecanismos mais comuns já preenchidos, medidos nos acordos que a OSG já fez. Você corrige o que este cliente tem de diferente, em vez de digitar tudo."
+            acao={
+              <Button
+                size="sm"
+                className="mt-1"
+                disabled={criarAcordo.isPending}
+                onClick={() => criarAcordo.mutate()}
+              >
+                <Sparkles className="mr-2 h-4 w-4" /> Criar o acordo
+              </Button>
+            }
+          />
         ) : (
-          <>
+          <div className="mx-auto max-w-6xl space-y-5">
             {/*
               DUAS COLUNAS, e o painel da versão na estreita.
 
@@ -383,9 +380,8 @@ const AcordoDeQuotistas = () => {
                 />
               </aside>
             </div>
-          </>
+          </div>
         )}
-      </div>
 
       {grupoAberto && (
         <AcordoGrupoModal
@@ -412,11 +408,8 @@ const AcordoDeQuotistas = () => {
   );
 };
 
-const Vazio = ({ texto }: { texto: string }) => (
-  <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-    <FileSignature className="h-10 w-10 opacity-50" />
-    <p className="max-w-md text-sm">{texto}</p>
-  </div>
+const Vazio = ({ titulo, descricao, acao }: { titulo: string; descricao?: string; acao?: React.ReactNode }) => (
+  <EstadoVazio titulo={titulo} descricao={descricao} acao={acao} icone={<FileSignature className="h-10 w-10 text-muted-foreground opacity-50" />} />
 );
 
 export default AcordoDeQuotistas;

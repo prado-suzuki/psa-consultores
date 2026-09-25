@@ -20,6 +20,7 @@ import { MovimentoModal } from './MovimentoModal';
 import { fmtBRL, fmtInt } from './quadroFmt';
 import { type LinhaSocio } from './TabelaSocios';
 import { UsufrutoEVotoCard } from './UsufrutoEVoto';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 /**
  * Quadro societário da Controladora (CN) e demais: o saldo, e o gesto de
@@ -166,19 +167,19 @@ export const QuadroEmpresaControladora = ({
         capital={capitalTotal}
         carregando={isLoading}
         vazio={
-          <div className="py-8 text-center text-muted-foreground">
-            <p className="text-sm">
-              O quadro começa com um aporte. Use Registrar movimento para informar quem recebe
-              as quotas.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-              className="mt-2 text-sm font-medium text-osg-700 underline-offset-2 hover:underline"
-            >
-              Ir para Qualificação das Partes
-            </button>
-          </div>
+          <EstadoVazio
+            titulo="Ainda não há sócio no quadro."
+            descricao="O quadro começa com um aporte: use Registrar movimento para informar quem recebe as quotas."
+            acao={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
+              >
+                Ir para Qualificação das Partes
+              </Button>
+            }
+          />
         }
       />
 

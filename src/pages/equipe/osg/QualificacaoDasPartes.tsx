@@ -264,12 +264,10 @@ const QualificacaoDasPartes = () => {
           Os dados cadastrados aqui alimentam o checklist de documentos, a calculadora de ITCMD, o quadro societário e a geração de contratos.
         </p>
         {!clienteId ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para abrir a qualificação das partes deste cliente.</p>
-            </CardContent>
-          </Card>
+          <EstadoVazio
+            titulo="Selecione um cliente na barra acima para abrir a qualificação das partes deste cliente."
+            icone={<Users className="h-10 w-10 text-muted-foreground opacity-50" />}
+          />
         ) : loadingPessoas ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">

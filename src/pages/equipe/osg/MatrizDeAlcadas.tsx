@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useDomainMatrizAlcadas';
 import { diffDaLinha } from '@/lib/matrizAlcadas';
 import { cn } from '@/lib/utils';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 /**
  * A Matriz de Alçadas de um cliente (GOV-02).
@@ -93,65 +94,48 @@ const MatrizDeAlcadas = () => {
     [matriz],
   );
 
-  const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
-      {icone}
-      {texto}
-    </div>
-  );
-
   return (
     <OsgLayout
       title={TELAS_OSG_WORK.matrizDeAlcadas.label}
       subtitle={TELAS_OSG_WORK.matrizDeAlcadas.descricao}
     >
-      <div className="mx-auto max-w-[1400px] space-y-5">
-        {!clienteId ? (
-          vazio(
-            <Grid3x3 className="h-10 w-10 text-muted-foreground opacity-50" />,
-            <p className="max-w-md text-sm text-muted-foreground">
-              Selecione um cliente na barra acima para abrir a matriz deste cliente.
-            </p>,
-          )
-        ) : carregandoOrgaos || carregandoMatriz ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
-        ) : orgaos.length === 0 ? (
-          /*
-            Sem órgão não há coluna, e uma grade de zero colunas não se preenche.
-            O texto manda para a tela que resolve, em vez de deixar a pessoa
-            procurando.
-          */
-          vazio(
-            <Landmark className="h-10 w-10 text-muted-foreground opacity-50" />,
-            <>
-              <p className="text-sm font-medium">Este cliente ainda não tem órgãos cadastrados.</p>
-              <p className="max-w-lg text-sm text-muted-foreground">
-                As colunas da matriz são os órgãos de governança. Cadastre-os primeiro e volte
-                aqui.
-              </p>
-              <Button size="sm" variant="outline" asChild>
-                <Link to="/equipe/osg/work/governanca/orgaos">Ir para Órgãos de Governança</Link>
-              </Button>
-            </>,
-          )
-        ) : !matriz ? (
-          vazio(
-            <Grid3x3 className="h-10 w-10 text-muted-foreground opacity-50" />,
-            <>
-              <p className="text-sm font-medium">Este cliente ainda não tem matriz.</p>
-              <p className="max-w-lg text-sm text-muted-foreground">
-                A matriz nasce com as {atividades.filter((a) => !a.cliente_id).length} atividades
-                padrão da OSG, e você tira as que não se aplicam. Os {orgaos.length} órgãos deste
-                cliente entram como colunas.
-              </p>
-              <Button size="sm" disabled={criarMatriz.isPending} onClick={() => criarMatriz.mutate()}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {criarMatriz.isPending ? 'Criando…' : 'Criar a matriz'}
-              </Button>
-            </>,
-          )
-        ) : (
-          <>
+{!clienteId ? (
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para abrir a matriz deste cliente."
+          icone={<Grid3x3 className="h-10 w-10 text-muted-foreground opacity-50" />}
+        />
+      ) : carregandoOrgaos || carregandoMatriz ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">Carregando.</p>
+      ) : orgaos.length === 0 ? (
+        /*
+          Sem órgão não há coluna, e uma grade de zero colunas não se preenche.
+          O texto manda para a tela que resolve, em vez de deixar a pessoa
+          procurando.
+        */
+        <EstadoVazio
+          titulo="Este cliente ainda não tem órgãos cadastrados."
+          descricao="As colunas da matriz são os órgãos de governança. Cadastre-os primeiro e volte aqui."
+          icone={<Landmark className="h-10 w-10 text-muted-foreground opacity-50" />}
+          acao={
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/equipe/osg/work/governanca/orgaos">Ir para Órgãos de Governança</Link>
+            </Button>
+          }
+        />
+      ) : !matriz ? (
+        <EstadoVazio
+          titulo="Este cliente ainda não tem matriz."
+          descricao={`A matriz nasce com as ${atividades.filter((a) => !a.cliente_id).length} atividades padrão da OSG, e você tira as que não se aplicam. Os ${orgaos.length} órgãos deste cliente entram como colunas.`}
+          icone={<Grid3x3 className="h-10 w-10 text-muted-foreground opacity-50" />}
+          acao={
+            <Button size="sm" disabled={criarMatriz.isPending} onClick={() => criarMatriz.mutate()}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {criarMatriz.isPending ? 'Criando.' : 'Criar a matriz'}
+            </Button>
+          }
+        />
+) : (
+        <div className="mx-auto max-w-[1400px] space-y-5">
             {/*
               A instrução fica ANTES da grade, e não depois. Quem abre isto pela
               primeira vez não sabe que a linha é clicável, e um aviso embaixo de
@@ -303,11 +287,10 @@ const MatrizDeAlcadas = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       <MatrizLinhaModal
         open={!!emEdicao}

@@ -27,6 +27,7 @@ import {
   padroesFaltando,
   resumoDoOrgao,
 } from '@/lib/orgaosGovernancaPadrao';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { cn } from '@/lib/utils';
 
 /**
@@ -72,87 +73,83 @@ const OrgaosGovernanca = () => {
       title={TELAS_OSG_WORK.orgaosGovernanca.label}
       subtitle={TELAS_OSG_WORK.orgaosGovernanca.descricao}
     >
-      <div className="mx-auto max-w-7xl space-y-5">
-        {!clienteId ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-            <Landmark className="h-10 w-10 opacity-50" />
-            <p className="max-w-md text-sm">
-              Selecione um cliente na barra acima para abrir os órgãos deste cliente.
-            </p>
+      {!clienteId ? (
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para abrir os órgãos deste cliente."
+          icone={<Landmark className="h-10 w-10 text-muted-foreground opacity-50" />}
+        />
+      ) : isLoading ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
+      ) : orgaos.length === 0 ? (
+        /*
+          A caixa vazia é o único lugar da orientação enquanto não há órgão:
+          diz o que fazer, oferece os dois caminhos lado a lado e contrasta
+          um com o outro na mesma frase. Explicar a diferença só funciona
+          com os dois à vista, e o destaque do primeiro botão responde
+          "qual eu sigo primeiro" sem precisar de mais texto.
+        */
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-12 text-center">
+          <Landmark className="h-10 w-10 text-muted-foreground opacity-50" />
+          <p className="text-sm font-medium">Nenhum órgão cadastrado para este cliente.</p>
+          <p className="max-w-lg text-sm text-muted-foreground">
+            Comece pelos órgãos padrão da OSG, Reunião de Sócios, Conselho de
+            Administração e Diretor Executivo, e apague os que não se aplicam. Se o
+            cliente tiver uma instância própria, como um comitê ou os gerentes, cadastre
+            manualmente.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <Button
+              size="sm"
+              disabled={semear.isPending}
+              onClick={() => semear.mutate(orgaos)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" /> Adicionar órgãos padrão
+            </Button>
+            <Button size="sm" variant="outline" onClick={abrirNovo}>
+              <Plus className="mr-2 h-4 w-4" /> Cadastrar órgão manualmente
+            </Button>
           </div>
-        ) : (
-          <>
-            {/*
-              O botão dos padrões acrescenta só o que falta, então continua útil
-              depois da primeira vez: quem apagou um por engano traz de volta sem
-              digitar. Some quando os três já estão lá, para não virar ruído.
+        </div>
+      ) : (
+        <div className="mx-auto max-w-7xl space-y-5">
+          {/*
+            O botão dos padrões acrescenta só o que falta, então continua útil
+            depois da primeira vez: quem apagou um por engano traz de volta sem
+            digitar. Some quando os três já estão lá, para não virar ruído.
 
-              Com a lista vazia a faixa também não aparece, porque a caixa do meio
-              já oferece a mesma ação. O caso que a faixa resolve é o outro: o
-              consultor cadastrou um órgão do cliente à mão primeiro e só depois
-              percebe que faltam os padrão. Aí a caixa não existe e é aqui que os
-              dois caminhos convivem, por isso o texto nomeia o outro botão.
-            */}
-            {mostrarBotaoPadroes && orgaos.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-semibold text-osg-700">
-                    {faltamPadroes.length > 0
-                      ? 'Faltam os órgãos padrão da OSG'
-                      : 'Arrumar a hierarquia'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {faltamPadroes.length > 0
-                      ? `Acrescenta ${faltamPadroes.map((o) => o.nome).join(', ')} no topo da hierarquia, acima dos que você já cadastrou. Para uma instância própria do cliente, use Novo órgão.`
-                      : 'Os órgãos padrão estão fora de lugar. No contrato social a ordem deles é fixa e nenhum órgão do cliente fica acima.'}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={semear.isPending}
-                  onClick={() => semear.mutate(orgaos)}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />{' '}
-                  {faltamPadroes.length > 0 ? 'Adicionar órgãos padrão' : 'Arrumar ordem'}
-                </Button>
-              </div>
-            )}
-
-            {isLoading ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
-            ) : orgaos.length === 0 ? (
-              /*
-                A caixa vazia é o único lugar da orientação enquanto não há órgão:
-                diz o que fazer, oferece os dois caminhos lado a lado e contrasta
-                um com o outro na mesma frase. Explicar a diferença só funciona
-                com os dois à vista, e o destaque do primeiro botão responde
-                "qual eu sigo primeiro" sem precisar de mais texto.
-              */
-              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
-                <Landmark className="h-10 w-10 text-muted-foreground opacity-50" />
-                <p className="text-sm font-medium">Nenhum órgão cadastrado para este cliente.</p>
-                <p className="max-w-lg text-sm text-muted-foreground">
-                  Comece pelos órgãos padrão da OSG, Reunião de Sócios, Conselho de
-                  Administração e Diretor Executivo, e apague os que não se aplicam. Se o
-                  cliente tiver uma instância própria, como um comitê ou os gerentes, cadastre
-                  manualmente.
+            Com a lista vazia a faixa também não aparece, porque a caixa do meio
+            já oferece a mesma ação. O caso que a faixa resolve é o outro: o
+            consultor cadastrou um órgão do cliente à mão primeiro e só depois
+            percebe que faltam os padrão. Aí a caixa não existe e é aqui que os
+            dois caminhos convivem, por isso o texto nomeia o outro botão.
+          */}
+          {mostrarBotaoPadroes && orgaos.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-osg-700">
+                  {faltamPadroes.length > 0
+                    ? 'Faltam os órgãos padrão da OSG'
+                    : 'Arrumar a hierarquia'}
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    disabled={semear.isPending}
-                    onClick={() => semear.mutate(orgaos)}
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" /> Adicionar órgãos padrão
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={abrirNovo}>
-                    <Plus className="mr-2 h-4 w-4" /> Cadastrar órgão manualmente
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  {faltamPadroes.length > 0
+                    ? `Acrescenta ${faltamPadroes.map((o) => o.nome).join(', ')} no topo da hierarquia, acima dos que você já cadastrou. Para uma instância própria do cliente, use Novo órgão.`
+                    : 'Os órgãos padrão estão fora de lugar. No contrato social a ordem deles é fixa e nenhum órgão do cliente fica acima.'}
+                </p>
               </div>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-osg-200 bg-background">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={semear.isPending}
+                onClick={() => semear.mutate(orgaos)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />{' '}
+                {faltamPadroes.length > 0 ? 'Adicionar órgãos padrão' : 'Arrumar ordem'}
+              </Button>
+            </div>
+          )}
+
+          <div className="overflow-hidden rounded-xl border border-osg-200 bg-background">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -264,11 +261,9 @@ const OrgaosGovernanca = () => {
                     })}
                   </TableBody>
                 </Table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       <OrgaoGovernancaModal
         open={modalAberto}

@@ -202,9 +202,10 @@ describe('Quadro da Controladora', () => {
   it('o quadro vazio ensina o primeiro movimento sem inventar um segundo comando', () => {
     montar();
     expect(
-      screen.getByText(
-        'O quadro começa com um aporte. Use Registrar movimento para informar quem recebe as quotas.',
-      ),
+      screen.getByText('Ainda não há sócio no quadro.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/O quadro começa com um aporte: use Registrar movimento/),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Registrar movimento' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Ir para Qualificação das Partes' })).toBeInTheDocument();

@@ -191,8 +191,9 @@ function Dado({ rotulo, valor, mono }: { rotulo: string; valor: string; mono?: b
 }
 
 function Vazio({ icone, children }: { icone: React.ReactNode; children: React.ReactNode }) {
+  // Frame padrão do vazio de página (EstadoVazio, decisão da Patrícia de 25/09).
   return (
-    <div className="rounded-lg border border-dashed border-border px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-12 text-center">
       {icone}
       <p className="mx-auto max-w-md text-sm text-muted-foreground">{children}</p>
     </div>

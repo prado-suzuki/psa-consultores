@@ -91,12 +91,10 @@ const ControleMatriculas = () => {
         title={TELAS_OSG_WORK.controleMatriculas.label}
         subtitle={TELAS_OSG_WORK.controleMatriculas.descricao}
       >
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para abrir as matrículas deste cliente.</p>
-          </CardContent>
-        </Card>
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para abrir as matrículas deste cliente."
+          icone={<FileText className="h-10 w-10 text-muted-foreground opacity-50" />}
+        />
       </OsgLayout>
     );
   }

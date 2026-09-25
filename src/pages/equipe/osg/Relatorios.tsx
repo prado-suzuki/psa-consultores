@@ -5,6 +5,7 @@ import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { TerrasExploradas } from '@/components/equipe/osg/relatorios/TerrasExploradas';
 import { EstruturaAtualDoCliente } from '@/components/equipe/osg/relatorios/EstruturaAtualDoCliente';
 import type { OrientacaoDoDesenho } from '@/components/equipe/osg/relatorios/EstruturaAtual';
@@ -97,15 +98,14 @@ const Relatorios = () => {
       title={TELAS_OSG_WORK.relatorios.label}
       subtitle={TELAS_OSG_WORK.relatorios.descricao}
     >
-      <div className="mx-auto max-w-3xl space-y-4">
-        {!clienteId ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-            <FolderArchive className="h-10 w-10 opacity-50" />
-            {/* A forma canônica dos estados vazios do OSG Work: "Selecione um
-                cliente na barra acima para abrir {o quê} deste cliente." */}
-            <p className="text-sm">Selecione um cliente na barra acima para abrir os relatórios deste cliente.</p>
-          </div>
-        ) : (
+      {!clienteId ? (
+        <EstadoVazio
+          titulo="Selecione um cliente na barra acima para abrir os relatórios deste cliente."
+          icone={<FolderArchive className="h-10 w-10 text-muted-foreground opacity-50" />}
+          acao={<span className="text-xs text-muted-foreground">A lista de relatórios aparece aqui.</span>}
+        />
+      ) : (
+        <div className="mx-auto max-w-3xl space-y-4">
           <>
             {/* MARCA-SE o que interessa e age-se no rodapé: a ação é imprimir,
                 que é como estes viram PDF. O "Ver" é outra coisa — abre um por
@@ -185,7 +185,8 @@ const Relatorios = () => {
               ))}
             </div>
           </>
-        )}
+        </div>
+      )}
 
         {clienteId && emPrevia && (
           <PreviaEmModal aberta onFechar={() => setAberta(null)} titulo={nomeDaPeca(emPrevia.id)}>
@@ -198,7 +199,6 @@ const Relatorios = () => {
             />
           </PreviaEmModal>
         )}
-      </div>
     </OsgLayout>
   );
 };
