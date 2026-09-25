@@ -279,6 +279,11 @@ const QualificacaoDasPartes = () => {
                          aoTentarDeNovo={() => recarregarPessoas()} />
         ) : (
           <>
+            {/* Sem pessoa nenhuma (PJ e PF), filtrar é procurar no vazio: o
+                card de Filtros só aparece a partir do primeiro cadastro
+                (EX-37; a Qualificação não estava na lista do card, mas é o
+                mesmo princípio). */}
+            {pessoas.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Filtros</CardTitle>
@@ -299,6 +304,7 @@ const QualificacaoDasPartes = () => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             <PessoasTable
               titulo="Pessoas Jurídicas"
