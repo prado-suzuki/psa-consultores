@@ -68,9 +68,10 @@ async function classificarComSystemOne<Classes extends Record<string, DefinicaoC
   if (!decisao || !Object.prototype.hasOwnProperty.call(definicao.classes, decisao.choice)) {
     throw new Error('A IA devolveu uma classe desconhecida.');
   }
+  const probabilidadeVencedora = decisao.probabilities[decisao.choice] ?? null;
   return {
     classe: decisao.choice as Extract<keyof Classes, string>,
-    certeza: certezaDaConfianca(decisao.confidence),
+    certeza: certezaDaProbabilidade(probabilidadeVencedora),
   };
 }
 
