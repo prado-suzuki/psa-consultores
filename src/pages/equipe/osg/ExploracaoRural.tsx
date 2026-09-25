@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
 import { EstadoVazio } from '@/components/shared/EstadoVazio';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,13 +115,8 @@ const ExploracaoRural = () => {
             {/* Sem instrumento nenhum, filtrar é procurar no vazio: o card de
                 Filtros só aparece a partir do primeiro registro (EX-37). */}
             {exploracoes.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Filtros</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                  <div className="flex-1 space-y-1.5">
+            <FiltroDeBusca titulo="Filtros" colunas={2}>
+                  <div className="space-y-1.5">
                     <Label htmlFor="busca-exploracoes" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -133,7 +129,7 @@ const ExploracaoRural = () => {
                       />
                     </div>
                   </div>
-                  <div className="w-full space-y-1.5 md:w-56">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
                     <Select value={filtroTipo} onValueChange={setFiltroTipo}>
                       <SelectTrigger className="h-9" aria-label="Tipo"><SelectValue /></SelectTrigger>
@@ -145,15 +141,13 @@ const ExploracaoRural = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+            </FiltroDeBusca>
             )}
 
             <Card variant="tabela">
               <CardHeader className="flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base">
-                  {filtradas.length} instrumento{filtradas.length === 1 ? '' : 's'}
+                  Instrumentos ({filtradas.length}{exploracoes.length !== filtradas.length ? ` de ${exploracoes.length}` : ''})
                 </CardTitle>
                 {filtradas.length > 0 && (
                   <div className="flex items-center gap-3">

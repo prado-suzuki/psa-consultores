@@ -25,6 +25,7 @@ import {
 } from '@/hooks/useQualificacaoDasPartes';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
 import { EstadoVazio } from '@/components/shared/EstadoVazio';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 
 // Rótulos de tipo_empresa; PR e CN ganham destaque em verde na coluna "Papel".
 const TIPO_EMPRESA_LABELS: Record<string, string> = {
@@ -284,12 +285,8 @@ const QualificacaoDasPartes = () => {
                 (EX-37; a Qualificação não estava na lista do card, mas é o
                 mesmo princípio). */}
             {pessoas.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Filtros</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1.5">
+            <FiltroDeBusca titulo="Filtros" colunas={1}>
+                  <div className="space-y-1.5">
                   <Label htmlFor="busca-pessoas" className="text-xs font-semibold text-muted-foreground">Buscar pessoa</Label>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -301,9 +298,8 @@ const QualificacaoDasPartes = () => {
                       className="h-9 pl-8"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+            </FiltroDeBusca>
             )}
 
             <PessoasTable

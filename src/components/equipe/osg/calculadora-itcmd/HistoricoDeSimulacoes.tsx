@@ -75,12 +75,9 @@ export function HistoricoDeSimulacoes({
     <section className="rounded-lg border border-border bg-superficie-cartao">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
-          Simulações
-          <span className="ml-2 font-normal text-muted-foreground">
-            {visiveis.length === simulacoes.length
-              ? `${simulacoes.length}`
-              : `${visiveis.length} de ${simulacoes.length}`}
-          </span>
+          Simulações ({visiveis.length === simulacoes.length
+            ? `${simulacoes.length}`
+            : `${visiveis.length} de ${simulacoes.length}`})
         </h2>
 
         {/* FILTRO DE STATUS da lista: é como se pergunta "quais estão aprovadas".
@@ -91,7 +88,7 @@ export function HistoricoDeSimulacoes({
           {acoes}
           {simulacoes.length > 0 && (
           <>
-          <span className={rotuloCls}>
+          <span className="text-sm text-muted-foreground">
             <ComDica dica="Filtra a lista. Trocar o status de uma simulação é na tela dela.">
               Status
             </ComDica>

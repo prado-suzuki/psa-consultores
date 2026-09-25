@@ -102,7 +102,7 @@ describe('HistoricoDeSimulacoes', () => {
       statusFiltrado: 'aprovada',
     });
     // Duas gravadas, uma visível: a contagem diz as duas coisas.
-    expect(screen.getByText('1 de 2')).toBeInTheDocument();
+    expect(screen.getByText('Simulações (1 de 2)')).toBeInTheDocument();
     unmount();
 
     montar({ simulacoes: [simulacaoSalva()], statusFiltrado: 'aprovada' });

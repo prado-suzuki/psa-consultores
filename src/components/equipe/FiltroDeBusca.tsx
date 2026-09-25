@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
  * com as outras e mais confusa de usar.
  */
 export function FiltroDeBusca({
-  titulo = 'Filtros de Busca',
+  titulo = 'Filtros',
   descricao,
   colunas = 4,
   acoes,
@@ -33,7 +33,7 @@ export function FiltroDeBusca({
   /** Uma linha abaixo do título, quando a tela precisa explicar a escolha. */
   descricao?: string;
   /** Quantas colunas a grade tem na tela larga. Sempre uma no celular. */
-  colunas?: 2 | 3 | 4;
+  colunas?: 2 | 3 | 4 | 1;
   /** Botões da direita. Ausente quando a tela não é de busca. */
   acoes?: ReactNode;
   children: ReactNode;
@@ -49,6 +49,7 @@ export function FiltroDeBusca({
           className={cn(
             'grid grid-cols-1 gap-4 md:grid-cols-2',
             colunas === 3 && 'lg:grid-cols-3',
+            colunas === 1 && 'lg:grid-cols-1',
             colunas === 4 && 'lg:grid-cols-4',
           )}
         >

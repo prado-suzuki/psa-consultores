@@ -31,6 +31,7 @@ import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemMod
 // tooltip para saber de onde ele veio (e por que não há campo editável no bem
 // com matrícula), inclusive quando a soma é parcial.
 import { origemDoValor, totalizarValoresDosBens } from '@/lib/osg/valoresDoBem';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 
 const formatBrl = (v: number | null | undefined) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -117,56 +118,49 @@ const DiagnosticoPatrimonial = () => {
             {/* Sem bem nenhum, filtrar é procurar no vazio: o card de
                 Filtros só aparece a partir do primeiro registro (EX-37). */}
             {bens.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Filtros</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col md:flex-row gap-3 md:items-end">
-                  <div className="flex-1 space-y-1.5">
-                    <Label htmlFor="busca-bens" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="busca-bens"
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder="Referência, nome, CCIR ou inscrição"
-                        className="h-9 pl-8"
-                      />
-                    </div>
-                  </div>
-                  <div className="w-full md:w-56 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
-                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="h-9" aria-label="Tipo"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__todos__">Todos</SelectItem>
-                        {TIPO_BEM_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>
-                            <span className="font-mono mr-2">{o.value}</span>{o.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-full md:w-56 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Participa da estruturação</Label>
-                    <Select
-                      value={filtroEstruturacao}
-                      onValueChange={(v) => setFiltroEstruturacao(v as typeof filtroEstruturacao)}
-                    >
-                      <SelectTrigger className="h-9" aria-label="Participa da estruturação"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__todos__">Todos</SelectItem>
-                        <SelectItem value="dentro">Participa</SelectItem>
-                        <SelectItem value="fora">Não participa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <FiltroDeBusca titulo="Filtros" colunas={3}>
+              <div className="space-y-1.5">
+                <Label htmlFor="busca-bens" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="busca-bens"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Referência, nome, CCIR ou inscrição"
+                    className="h-9 pl-8"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
+                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                  <SelectTrigger className="h-9" aria-label="Tipo"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__todos__">Todos</SelectItem>
+                    {TIPO_BEM_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <span className="font-mono mr-2">{o.value}</span>{o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Participa da estruturação</Label>
+                <Select
+                  value={filtroEstruturacao}
+                  onValueChange={(v) => setFiltroEstruturacao(v as typeof filtroEstruturacao)}
+                >
+                  <SelectTrigger className="h-9" aria-label="Participa da estruturação"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__todos__">Todos</SelectItem>
+                    <SelectItem value="dentro">Participa</SelectItem>
+                    <SelectItem value="fora">Não participa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </FiltroDeBusca>
             )}
 
             <Card variant="tabela">

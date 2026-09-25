@@ -36,6 +36,7 @@ import {
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
 import { formatArea } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
 import { ElementTooltip } from '@/components/ui/button-tooltip';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 
 type FiltroVinculo = '__todas__' | 'orfas' | 'vinculadas';
 
@@ -108,13 +109,8 @@ const ControleMatriculas = () => {
         {/* Sem matrícula nenhuma, filtrar é procurar no vazio: o card de
             Filtros só aparece a partir do primeiro registro (EX-37). */}
         {matriculasDoCliente.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Filtros</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-3 md:items-end">
-              <div className="flex-1 space-y-1.5">
+          <FiltroDeBusca titulo="Filtros" colunas={2}>
+              <div className="space-y-1.5">
                 <Label htmlFor="busca-matriculas" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -127,7 +123,7 @@ const ControleMatriculas = () => {
                   />
                 </div>
               </div>
-              <div className="w-full md:w-56 space-y-1.5">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
                 <Select value={filtro} onValueChange={(v: FiltroVinculo) => setFiltro(v)}>
                   <SelectTrigger className="h-9" aria-label="Status"><SelectValue /></SelectTrigger>
@@ -138,9 +134,7 @@ const ControleMatriculas = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+          </FiltroDeBusca>
         )}
 
         <Card variant="tabela">
