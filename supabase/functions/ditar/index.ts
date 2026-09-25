@@ -19,10 +19,15 @@ import { obterClassificador } from '../_shared/classificacao/classificadores/ind
 import { classificacaoPedeTarefa } from '../_shared/classificacao/classificadores/intencaoDitado.ts';
 import { chamarChat, ErroIA, ErroTranscricaoVazia, transcrever } from '../_shared/ia.ts';
 
-const json = (body: unknown, status: number, cors: Record<string, string>) =>
+const json = (
+  body: unknown,
+  status: number,
+  cors: Record<string, string>,
+  headers: Record<string, string> = {},
+) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, 'Content-Type': 'application/json' },
+    headers: { ...cors, ...headers, 'Content-Type': 'application/json' },
   });
 
 function extensaoDoAudio(mime: string): string {
@@ -36,6 +41,27 @@ serve(async (req) => {
   const preflight = handleCorsPreflightRequest(req);
   if (preflight) return preflight;
   const cors = buildCorsHeaders(req);
+  const inicioTotal = performance.now();
+  const tempos: Record<string, number> = {};
+  const medir = async <Resultado>(nome: string, operacao: () => Promise<Resultado>) => {
+    const inicio = performance.now();
+    try {
+      return await operacao();
+    } finally {
+      tempos[nome] = performance.now() - inicio;
+    }
+  };
+  const headersDeTiming = () => {
+    const metricas = { ...tempos, total: performance.now() - inicioTotal };
+    console.info('ditar timing:', JSON.stringify(metricas));
+    return {
+      'Server-Timing': Object.entries(metricas)
+        .map(([nome, duracao]) => `${nome};dur=${duracao.toFixed(1)}`)
+        .join(', '),
+      'Timing-Allow-Origin': req.headers.get('origin') ?? '*',
+      'Access-Control-Expose-Headers': 'Server-Timing',
+    };
+  };
 
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405, cors);
 
@@ -87,23 +113,24 @@ serve(async (req) => {
         idioma: 'pt-BR',
         timeoutMs: 45_000,
       });
-    let transcricao;
-    try {
-      transcricao = await executarTranscricao(configuracao.modelo);
-    } catch (erro) {
-      const modeloAlternativo = configuracao.modeloAlternativo;
-      const tentarAlternativo =
-        modeloAlternativo &&
-        erro instanceof ErroIA &&
-        (erro.status === 400 || erro instanceof ErroTranscricaoVazia);
-      if (!tentarAlternativo) throw erro;
-      console.warn(
-        'primary transcription failed, retrying alternate model:',
-        configuracao.modelo,
-        erro.status,
-      );
-      transcricao = await executarTranscricao(modeloAlternativo);
-    }
+    const transcricao = await medir('transcricao', async () => {
+      try {
+        return await executarTranscricao(configuracao.modelo);
+      } catch (erro) {
+        const modeloAlternativo = configuracao.modeloAlternativo;
+        const tentarAlternativo =
+          modeloAlternativo &&
+          erro instanceof ErroIA &&
+          (erro.status === 400 || erro instanceof ErroTranscricaoVazia);
+        if (!tentarAlternativo) throw erro;
+        console.warn(
+          'primary transcription failed, retrying alternate model:',
+          configuracao.modelo,
+          erro.status,
+        );
+        return executarTranscricao(modeloAlternativo);
+      }
+    });
 
     const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const carregarPerfil = async (nome: string) => {
@@ -120,50 +147,65 @@ serve(async (req) => {
       return interpretarPerfilEnriquecimento(data);
     };
 
-    const perfilLimpeza = await carregarPerfil('transcricao-fiel');
-    const pedidoLimpeza = validarPedidoEnriquecimento(
-      perfilLimpeza,
-      transcricao.texto,
-      'simples',
-      undefined,
-    );
-    const limpeza = prepararEnriquecimento(perfilLimpeza, pedidoLimpeza);
-    const respostaLimpeza = await chamarChat({
-      modelo: limpeza.modelo,
-      temperatura: limpeza.temperatura,
-      mensagens: limpeza.mensagens,
-      maxTokens: 4096,
-      timeoutMs: 40_000,
+    const resultado = await medir('limpeza', async () => {
+      const perfilLimpeza = await carregarPerfil('transcricao-fiel');
+      const pedidoLimpeza = validarPedidoEnriquecimento(
+        perfilLimpeza,
+        transcricao.texto,
+        'simples',
+        undefined,
+      );
+      const limpeza = prepararEnriquecimento(perfilLimpeza, pedidoLimpeza);
+      const respostaLimpeza = await chamarChat({
+        modelo: limpeza.modelo,
+        temperatura: limpeza.temperatura,
+        mensagens: limpeza.mensagens,
+        maxTokens: 4096,
+        timeoutMs: 40_000,
+      });
+      const enriquecido = interpretarEnriquecimento(perfilLimpeza, pedidoLimpeza, respostaLimpeza);
+      if (enriquecido.estruturado) {
+        throw new Error('A limpeza da transcrição devolveu um formato inesperado.');
+      }
+      return enriquecido;
     });
-    const resultado = interpretarEnriquecimento(perfilLimpeza, pedidoLimpeza, respostaLimpeza);
-    if (resultado.estruturado) {
-      throw new Error('A limpeza da transcrição devolveu um formato inesperado.');
-    }
 
-    const classificacao = await classificarComFallback(obterClassificador('intencao-ditado'), {
-      texto: resultado.texto,
-    });
+    const classificacao = await medir('classificacao', () =>
+      classificarComFallback(obterClassificador('intencao-ditado'), {
+        texto: resultado.texto,
+      }),
+    );
     const perfilForcado = configuracao.enriquecimento?.perfil === 'comentario-para-tarefa';
 
     if (perfilForcado || classificacaoPedeTarefa(classificacao)) {
       try {
-        const perfilTarefa = await carregarPerfil('comentario-para-tarefa');
-        const pedidoTarefa = validarPedidoEnriquecimento(perfilTarefa, resultado.texto, undefined, {
-          titulo: 'simples',
-          descricao: 'rico',
+        const tarefa = await medir('tarefa', async () => {
+          const perfilTarefa = await carregarPerfil('comentario-para-tarefa');
+          const pedidoTarefa = validarPedidoEnriquecimento(
+            perfilTarefa,
+            resultado.texto,
+            undefined,
+            {
+              titulo: 'simples',
+              descricao: 'rico',
+            },
+          );
+          const chamadaTarefa = prepararEnriquecimento(perfilTarefa, pedidoTarefa);
+          const respostaTarefa = await chamarChat({
+            modelo: chamadaTarefa.modelo,
+            temperatura: chamadaTarefa.temperatura,
+            mensagens: chamadaTarefa.mensagens,
+            ferramentas: chamadaTarefa.ferramentas,
+            escolhaDeFerramenta: chamadaTarefa.escolhaDeFerramenta,
+            maxTokens: 4096,
+            timeoutMs: 40_000,
+          });
+          const enriquecida = interpretarEnriquecimento(perfilTarefa, pedidoTarefa, respostaTarefa);
+          if (!enriquecida.estruturado) {
+            throw new Error('O perfil de tarefa devolveu texto simples.');
+          }
+          return enriquecida;
         });
-        const chamadaTarefa = prepararEnriquecimento(perfilTarefa, pedidoTarefa);
-        const respostaTarefa = await chamarChat({
-          modelo: chamadaTarefa.modelo,
-          temperatura: chamadaTarefa.temperatura,
-          mensagens: chamadaTarefa.mensagens,
-          ferramentas: chamadaTarefa.ferramentas,
-          escolhaDeFerramenta: chamadaTarefa.escolhaDeFerramenta,
-          maxTokens: 4096,
-          timeoutMs: 40_000,
-        });
-        const tarefa = interpretarEnriquecimento(perfilTarefa, pedidoTarefa, respostaTarefa);
-        if (!tarefa.estruturado) throw new Error('O perfil de tarefa devolveu texto simples.');
 
         return json(
           {
@@ -182,6 +224,7 @@ serve(async (req) => {
           },
           200,
           cors,
+          headersDeTiming(),
         );
       } catch (erro) {
         console.warn(
@@ -191,10 +234,17 @@ serve(async (req) => {
       }
     }
 
-    return json({ texto: resultado.texto, acao: { tipo: 'inserir_texto' } }, 200, cors);
+    return json(
+      { texto: resultado.texto, acao: { tipo: 'inserir_texto' } },
+      200,
+      cors,
+      headersDeTiming(),
+    );
   } catch (erro) {
-    if (erro instanceof ErroIA) return json({ error: erro.message }, erro.status, cors);
+    if (erro instanceof ErroIA) {
+      return json({ error: erro.message }, erro.status, cors, headersDeTiming());
+    }
     console.error('ditar error:', erro instanceof Error ? erro.message : 'erro desconhecido');
-    return json({ error: 'Erro inesperado ao transcrever áudio.' }, 502, cors);
+    return json({ error: 'Erro inesperado ao transcrever áudio.' }, 502, cors, headersDeTiming());
   }
 });
