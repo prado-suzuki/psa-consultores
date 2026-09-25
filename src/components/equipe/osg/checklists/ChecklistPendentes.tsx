@@ -26,6 +26,7 @@ import {
 } from '@/lib/checklistDerivado';
 import { contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento } from '@/lib/estadoDocumento';
 import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
+import { EstadoVazio as EstadoVazioPadrao } from '@/components/shared/EstadoVazio';
 
 /**
  * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
@@ -207,7 +208,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
   if (!checklistLiberado) {
     return (
-      <div className="space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <ResumoHero clienteNome={clienteNome} {...resumo} />
 
         {solicitacao.status === 'enviada' && (
@@ -230,7 +231,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-7xl space-y-8">
       <ResumoHero clienteNome={clienteNome} {...resumo} />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -428,15 +429,15 @@ function EstadoVazio({ titulo, descricao, acao }: {
   descricao: string;
   acao: { para: string; rotulo: string };
 }) {
+  // O frame é o padrão do módulo (EstadoVazio compartilhado); o disco de
+  // ícone quadrado fica, é a identidade desta tela.
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-card/60 px-6 py-16 text-center shadow-sm">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>
-      <div>
-        <p className="font-semibold text-osg-700">{titulo}</p>
-        <p className="mt-1 max-w-xl text-sm text-osg-500">{descricao}</p>
-      </div>
-      <Button asChild variant="outline"><Link to={acao.para}>{acao.rotulo}</Link></Button>
-    </div>
+    <EstadoVazioPadrao
+      titulo={titulo}
+      descricao={descricao}
+      icone={<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>}
+      acao={<Button asChild variant="outline"><Link to={acao.para}>{acao.rotulo}</Link></Button>}
+    />
   );
 }
 
