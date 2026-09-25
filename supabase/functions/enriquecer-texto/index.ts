@@ -3,12 +3,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { buildCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 import {
-  ehNomeDePerfil,
+  ErroPedidoEnriquecimento,
+  interpretarPerfilEnriquecimento,
   interpretarEnriquecimento,
   prepararEnriquecimento,
   TAMANHO_MAXIMO_ENTRADA,
-  type DestinoEnriquecimento,
-  type PedidoEnriquecimento,
+  validarPedidoEnriquecimento,
 } from '../_shared/enriquecimentoTexto.ts';
 import { chamarChat, ErroIA } from '../_shared/ia.ts';
 
@@ -31,11 +31,10 @@ serve(async (req) => {
       return json({ error: 'Não autenticado.' }, 401, cors);
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const { data: claims, error: claimsError } = await supabase.auth.getClaims(
       authHeader.slice('Bearer '.length),
     );
@@ -47,9 +46,9 @@ serve(async (req) => {
     const perfil = typeof body?.perfil === 'string' ? body.perfil : '';
     const texto = typeof body?.texto === 'string' ? body.texto.trim() : '';
     const destino = body?.destino;
+    const destinos = body?.destinos;
 
-    if (!ehNomeDePerfil(perfil))
-      return json({ error: 'Perfil de enriquecimento inválido.' }, 400, cors);
+    if (!perfil) return json({ error: 'Perfil de enriquecimento inválido.' }, 400, cors);
     if (!texto) return json({ error: 'Texto vazio.' }, 400, cors);
     if (texto.length > TAMANHO_MAXIMO_ENTRADA) {
       return json(
@@ -58,16 +57,22 @@ serve(async (req) => {
         cors,
       );
     }
-    if (destino !== undefined && destino !== 'simples' && destino !== 'rico') {
-      return json({ error: 'Destino de enriquecimento inválido.' }, 400, cors);
+    const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: perfilData, error: perfilError } = await admin
+      .from('enriquecimento_perfil')
+      .select('nome, rotulo, instrucoes, modelo, temperatura, contrato_saida, ativo')
+      .eq('nome', perfil)
+      .eq('ativo', true)
+      .maybeSingle();
+    if (perfilError) {
+      console.error('enriquecer-texto profile error:', perfilError.message);
+      throw new Error('Não foi possível carregar o perfil de enriquecimento.');
     }
+    if (!perfilData) return json({ error: 'Perfil de enriquecimento inválido.' }, 400, cors);
 
-    const pedido: PedidoEnriquecimento = {
-      perfil,
-      texto,
-      ...(destino ? { destino: destino as DestinoEnriquecimento } : {}),
-    };
-    const chamada = prepararEnriquecimento(pedido);
+    const perfilCarregado = interpretarPerfilEnriquecimento(perfilData);
+    const pedido = validarPedidoEnriquecimento(perfilCarregado, texto, destino, destinos);
+    const chamada = prepararEnriquecimento(perfilCarregado, pedido);
     const resposta = await chamarChat({
       modelo: chamada.modelo,
       temperatura: chamada.temperatura,
@@ -76,8 +81,9 @@ serve(async (req) => {
       escolhaDeFerramenta: chamada.escolhaDeFerramenta,
       maxTokens: 4096,
     });
-    return json(interpretarEnriquecimento(pedido, resposta), 200, cors);
+    return json(interpretarEnriquecimento(perfilCarregado, pedido, resposta), 200, cors);
   } catch (erro) {
+    if (erro instanceof ErroPedidoEnriquecimento) return json({ error: erro.message }, 400, cors);
     if (erro instanceof ErroIA) return json({ error: erro.message }, erro.status, cors);
     console.error('enriquecer-texto error:', erro);
     return json(

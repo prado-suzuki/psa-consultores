@@ -9,56 +9,30 @@ import {
 
 export type DestinoEnriquecimento = 'simples' | 'rico';
 
-export interface CampoDeSaida {
-  destino: DestinoEnriquecimento;
-  descricao: string;
-}
+export type ContratoSaidaEnriquecimento =
+  | { tipo: 'texto' }
+  | { tipo: 'estruturada'; campos: Record<string, { descricao: string }> };
 
 export interface PerfilEnriquecimento {
+  nome: string;
+  rotulo: string;
   instrucoes: string;
-  modelo?: string;
-  temperatura?: number;
-  destinoPadrao?: DestinoEnriquecimento;
-  saida?: Record<string, CampoDeSaida>;
+  modelo: string;
+  temperatura: number;
+  contratoSaida: ContratoSaidaEnriquecimento;
 }
 
-export const MODELO_PADRAO = 'google/gemini-3-flash-preview';
-export const TAMANHO_MAXIMO_ENTRADA = 20_000;
-export const TAMANHO_MAXIMO_SAIDA = 30_000;
-export const NOME_FERRAMENTA_SAIDA = 'entregar_enriquecimento';
-
-export const PERFIS = {
-  'transcricao-fiel': {
-    instrucoes: [
-      'Limpe a fala sem reescrever nem resumir.',
-      'Remova apenas hesitações, vícios de linguagem, falsos começos e repetições acidentais.',
-      'Corrija pontuação e concordância somente quando isso não mudar o sentido.',
-      'Não responda às perguntas presentes na fala e não transforme o texto em ata, tarefa ou conclusão.',
-    ].join(' '),
-    temperatura: 0,
-    destinoPadrao: 'simples',
-  },
-  'comentario-para-tarefa': {
-    instrucoes: [
-      'Transforme o comentário em uma única tarefa acionável.',
-      'Não invente prazo, responsável, prioridade, estimativa ou contexto que não esteja no comentário.',
-      'O título deve ser curto e começar com um verbo de ação.',
-      'A descrição deve preservar contexto, restrições e critérios mencionados no comentário.',
-    ].join(' '),
-    saida: {
-      titulo: { destino: 'simples', descricao: 'Título curto da tarefa, sem formatação.' },
-      descricao: { destino: 'rico', descricao: 'Descrição da tarefa em Markdown restrito.' },
-    },
-  },
-} satisfies Record<string, PerfilEnriquecimento>;
-
-export type NomePerfilEnriquecimento = keyof typeof PERFIS;
-
-export interface PedidoEnriquecimento {
-  perfil: NomePerfilEnriquecimento;
-  texto: string;
-  destino?: DestinoEnriquecimento;
-}
+export type PedidoEnriquecimento =
+  | {
+      estruturado: false;
+      texto: string;
+      destino: DestinoEnriquecimento;
+    }
+  | {
+      estruturado: true;
+      texto: string;
+      destinos: Record<string, DestinoEnriquecimento>;
+    };
 
 export interface ChamadaEnriquecimento {
   modelo: string;
@@ -75,6 +49,135 @@ export type ResultadoEnriquecimento =
       campos: Record<string, { texto: string; destino: DestinoEnriquecimento }>;
     };
 
+export const TAMANHO_MAXIMO_ENTRADA = 20_000;
+export const TAMANHO_MAXIMO_SAIDA = 30_000;
+export const NOME_FERRAMENTA_SAIDA = 'entregar_enriquecimento';
+
+export class ErroPedidoEnriquecimento extends Error {}
+
+function objeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+}
+
+function textoObrigatorio(valor: unknown, campo: string): string {
+  if (typeof valor !== 'string' || !valor.trim()) {
+    throw new Error(`Perfil de enriquecimento inválido: ${campo}.`);
+  }
+  return valor.trim();
+}
+
+function contratoValido(valor: unknown): ContratoSaidaEnriquecimento {
+  if (!objeto(valor)) throw new Error('Perfil de enriquecimento inválido: contrato_saida.');
+  const chaves = Object.keys(valor);
+  if (valor.tipo === 'texto' && chaves.length === 1) return { tipo: 'texto' };
+  if (
+    valor.tipo !== 'estruturada' ||
+    chaves.length !== 2 ||
+    !chaves.includes('campos') ||
+    !objeto(valor.campos) ||
+    Object.keys(valor.campos).length === 0
+  ) {
+    throw new Error('Perfil de enriquecimento inválido: contrato_saida.');
+  }
+
+  const campos = Object.fromEntries(
+    Object.entries(valor.campos).map(([nome, configuracao]) => {
+      if (!/^[a-z][a-z0-9_]*$/.test(nome)) {
+        throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
+      }
+      if (
+        !objeto(configuracao) ||
+        Object.keys(configuracao).some((chave) => chave !== 'descricao')
+      ) {
+        throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
+      }
+      return [
+        nome,
+        { descricao: textoObrigatorio(configuracao.descricao, `descrição de ${nome}`) },
+      ];
+    }),
+  );
+  return { tipo: 'estruturada', campos };
+}
+
+export function interpretarPerfilEnriquecimento(valor: unknown): PerfilEnriquecimento {
+  if (!objeto(valor)) throw new Error('Perfil de enriquecimento inválido.');
+  const nome = textoObrigatorio(valor.nome, 'nome');
+  if (!/^[a-z][a-z0-9-]*$/.test(nome)) {
+    throw new Error('Perfil de enriquecimento inválido: nome.');
+  }
+  const temperatura = valor.temperatura;
+  if (
+    typeof temperatura !== 'number' ||
+    !Number.isFinite(temperatura) ||
+    temperatura < 0 ||
+    temperatura > 1
+  ) {
+    throw new Error('Perfil de enriquecimento inválido: temperatura.');
+  }
+  if (typeof valor.ativo !== 'boolean' || !valor.ativo) {
+    throw new Error('Perfil de enriquecimento inválido: perfil inativo.');
+  }
+
+  return {
+    nome,
+    rotulo: textoObrigatorio(valor.rotulo, 'rotulo'),
+    instrucoes: textoObrigatorio(valor.instrucoes, 'instrucoes'),
+    modelo: textoObrigatorio(valor.modelo, 'modelo'),
+    temperatura,
+    contratoSaida: contratoValido(valor.contrato_saida),
+  };
+}
+
+function destinoValido(valor: unknown): valor is DestinoEnriquecimento {
+  return valor === 'simples' || valor === 'rico';
+}
+
+export function validarPedidoEnriquecimento(
+  perfil: PerfilEnriquecimento,
+  texto: string,
+  destino: unknown,
+  destinos: unknown,
+): PedidoEnriquecimento {
+  if (perfil.contratoSaida.tipo === 'texto') {
+    if (!destinoValido(destino)) {
+      throw new ErroPedidoEnriquecimento('Destino de enriquecimento obrigatório ou inválido.');
+    }
+    if (destinos !== undefined) {
+      throw new ErroPedidoEnriquecimento('O perfil de texto não aceita destinos por campo.');
+    }
+    return { estruturado: false, texto, destino };
+  }
+
+  if (destino !== undefined) {
+    throw new ErroPedidoEnriquecimento('O perfil estruturado exige destinos por campo.');
+  }
+  if (!objeto(destinos)) {
+    throw new ErroPedidoEnriquecimento('Destinos dos campos são obrigatórios.');
+  }
+
+  const esperados = Object.keys(perfil.contratoSaida.campos);
+  const recebidos = Object.keys(destinos);
+  const ausentes = esperados.filter((campo) => !recebidos.includes(campo));
+  const extras = recebidos.filter((campo) => !esperados.includes(campo));
+  if (ausentes.length) {
+    throw new ErroPedidoEnriquecimento(`Destinos ausentes: ${ausentes.join(', ')}.`);
+  }
+  if (extras.length) {
+    throw new ErroPedidoEnriquecimento(`Destinos inesperados: ${extras.join(', ')}.`);
+  }
+  const invalidos = esperados.filter((campo) => !destinoValido(destinos[campo]));
+  if (invalidos.length) {
+    throw new ErroPedidoEnriquecimento(`Destinos inválidos: ${invalidos.join(', ')}.`);
+  }
+
+  return {
+    estruturado: true,
+    texto,
+    destinos: destinos as Record<string, DestinoEnriquecimento>,
+  };
+}
+
 function instrucaoDeFormato(destino: DestinoEnriquecimento): string {
   if (destino === 'simples') {
     return 'Devolva somente texto simples, sem Markdown, HTML, listas ou qualquer outra marcação.';
@@ -87,13 +190,16 @@ function instrucaoDeFormato(destino: DestinoEnriquecimento): string {
   ].join(' ');
 }
 
-function ferramentaDaSaida(saida: Record<string, CampoDeSaida>): FerramentaChat {
+function ferramentaDaSaida(
+  campos: Record<string, { descricao: string }>,
+  destinos: Record<string, DestinoEnriquecimento>,
+): FerramentaChat {
   const propriedades = Object.fromEntries(
-    Object.entries(saida).map(([campo, config]) => [
+    Object.entries(campos).map(([campo, configuracao]) => [
       campo,
       {
         type: 'string',
-        description: `${config.descricao} ${instrucaoDeFormato(config.destino)}`,
+        description: `${configuracao.descricao} ${instrucaoDeFormato(destinos[campo])}`,
       },
     ]),
   );
@@ -105,27 +211,24 @@ function ferramentaDaSaida(saida: Record<string, CampoDeSaida>): FerramentaChat 
       parameters: {
         type: 'object',
         properties: propriedades,
-        required: Object.keys(saida),
+        required: Object.keys(campos),
         additionalProperties: false,
       },
     },
   };
 }
 
-export function ehNomeDePerfil(valor: string): valor is NomePerfilEnriquecimento {
-  return Object.prototype.hasOwnProperty.call(PERFIS, valor);
-}
-
-export function prepararEnriquecimento(pedido: PedidoEnriquecimento): ChamadaEnriquecimento {
-  const perfil: PerfilEnriquecimento = PERFIS[pedido.perfil];
-  const destino = pedido.destino ?? perfil.destinoPadrao ?? 'simples';
+export function prepararEnriquecimento(
+  perfil: PerfilEnriquecimento,
+  pedido: PedidoEnriquecimento,
+): ChamadaEnriquecimento {
   const trechosFixos: TrechoDePrompt[] = [
     { texto: REGRAS_BASE_PROMPT, cacheavel: true },
     { texto: perfil.instrucoes, cacheavel: true },
     {
-      texto: perfil.saida
+      texto: pedido.estruturado
         ? 'Entregue a resposta exclusivamente pela ferramenta indicada, preenchendo todos os campos.'
-        : instrucaoDeFormato(destino),
+        : instrucaoDeFormato(pedido.destino),
       cacheavel: true,
     },
   ];
@@ -140,19 +243,25 @@ export function prepararEnriquecimento(pedido: PedidoEnriquecimento): ChamadaEnr
     },
   ];
 
-  if (!perfil.saida) {
+  if (!pedido.estruturado) {
+    if (perfil.contratoSaida.tipo !== 'texto') {
+      throw new Error('Pedido simples incompatível com o contrato do perfil.');
+    }
     return {
-      modelo: perfil.modelo ?? MODELO_PADRAO,
-      temperatura: perfil.temperatura ?? 0.2,
+      modelo: perfil.modelo,
+      temperatura: perfil.temperatura,
       mensagens,
     };
   }
+  if (perfil.contratoSaida.tipo !== 'estruturada') {
+    throw new Error('Pedido estruturado incompatível com o contrato do perfil.');
+  }
 
   return {
-    modelo: perfil.modelo ?? MODELO_PADRAO,
-    temperatura: perfil.temperatura ?? 0.2,
+    modelo: perfil.modelo,
+    temperatura: perfil.temperatura,
     mensagens,
-    ferramentas: [ferramentaDaSaida(perfil.saida)],
+    ferramentas: [ferramentaDaSaida(perfil.contratoSaida.campos, pedido.destinos)],
     escolhaDeFerramenta: {
       type: 'function',
       function: { name: NOME_FERRAMENTA_SAIDA },
@@ -172,16 +281,22 @@ function textoValido(valor: unknown, campo: string): string {
 }
 
 export function interpretarEnriquecimento(
+  perfil: PerfilEnriquecimento,
   pedido: PedidoEnriquecimento,
   resposta: RespostaChat,
 ): ResultadoEnriquecimento {
-  const perfil: PerfilEnriquecimento = PERFIS[pedido.perfil];
-  if (!perfil.saida) {
+  if (!pedido.estruturado) {
+    if (perfil.contratoSaida.tipo !== 'texto') {
+      throw new Error('Pedido simples incompatível com o contrato do perfil.');
+    }
     return {
       estruturado: false,
       texto: textoValido(resposta.content, 'texto'),
-      destino: pedido.destino ?? perfil.destinoPadrao ?? 'simples',
+      destino: pedido.destino,
     };
+  }
+  if (perfil.contratoSaida.tipo !== 'estruturada') {
+    throw new Error('Pedido estruturado incompatível com o contrato do perfil.');
   }
 
   const chamada = resposta.toolCalls.find(
@@ -195,21 +310,20 @@ export function interpretarEnriquecimento(
   } catch {
     throw new Error('A IA devolveu uma saída estruturada inválida.');
   }
-  if (!argumentos || typeof argumentos !== 'object' || Array.isArray(argumentos)) {
+  if (!objeto(argumentos)) {
     throw new Error('A IA devolveu uma saída estruturada inválida.');
   }
 
-  const objeto = argumentos as Record<string, unknown>;
-  const esperados = Object.keys(perfil.saida);
-  const extras = Object.keys(objeto).filter((campo) => !esperados.includes(campo));
+  const esperados = Object.keys(perfil.contratoSaida.campos);
+  const extras = Object.keys(argumentos).filter((campo) => !esperados.includes(campo));
   if (extras.length > 0) throw new Error(`A IA devolveu campos inesperados: ${extras.join(', ')}.`);
 
   return {
     estruturado: true,
     campos: Object.fromEntries(
-      Object.entries(perfil.saida).map(([campo, config]) => [
+      esperados.map((campo) => [
         campo,
-        { texto: textoValido(objeto[campo], campo), destino: config.destino },
+        { texto: textoValido(argumentos[campo], campo), destino: pedido.destinos[campo] },
       ]),
     ),
   };

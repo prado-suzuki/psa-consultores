@@ -9,15 +9,12 @@ import {
   TAMANHO_MAXIMO_AUDIO,
 } from '../_shared/ditado.ts';
 import {
+  interpretarPerfilEnriquecimento,
   interpretarEnriquecimento,
   prepararEnriquecimento,
+  validarPedidoEnriquecimento,
 } from '../_shared/enriquecimentoTexto.ts';
-import {
-  chamarChat,
-  ErroIA,
-  ErroTranscricaoVazia,
-  transcrever,
-} from '../_shared/ia.ts';
+import { chamarChat, ErroIA, ErroTranscricaoVazia, transcrever } from '../_shared/ia.ts';
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -45,11 +42,10 @@ serve(async (req) => {
       return json({ error: 'Não autenticado.' }, 401, cors);
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const { data: claims, error: claimsError } = await supabase.auth.getClaims(
       authHeader.slice('Bearer '.length),
     );
@@ -106,12 +102,25 @@ serve(async (req) => {
       transcricao = await executarTranscricao(modeloAlternativo);
     }
 
-    const pedidoLimpeza = {
-      perfil: 'transcricao-fiel' as const,
-      texto: transcricao.texto,
-      destino: 'simples' as const,
-    };
-    const limpeza = prepararEnriquecimento(pedidoLimpeza);
+    const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: perfilData, error: perfilError } = await admin
+      .from('enriquecimento_perfil')
+      .select('nome, rotulo, instrucoes, modelo, temperatura, contrato_saida, ativo')
+      .eq('nome', 'transcricao-fiel')
+      .eq('ativo', true)
+      .maybeSingle();
+    if (perfilError || !perfilData) {
+      console.error('ditar enrichment profile error:', perfilError?.message ?? 'perfil ausente');
+      throw new Error('Não foi possível carregar o perfil de limpeza da transcrição.');
+    }
+    const perfilLimpeza = interpretarPerfilEnriquecimento(perfilData);
+    const pedidoLimpeza = validarPedidoEnriquecimento(
+      perfilLimpeza,
+      transcricao.texto,
+      'simples',
+      undefined,
+    );
+    const limpeza = prepararEnriquecimento(perfilLimpeza, pedidoLimpeza);
     const respostaLimpeza = await chamarChat({
       modelo: limpeza.modelo,
       temperatura: limpeza.temperatura,
@@ -119,7 +128,7 @@ serve(async (req) => {
       maxTokens: 4096,
       timeoutMs: 40_000,
     });
-    const resultado = interpretarEnriquecimento(pedidoLimpeza, respostaLimpeza);
+    const resultado = interpretarEnriquecimento(perfilLimpeza, pedidoLimpeza, respostaLimpeza);
     if (resultado.estruturado) {
       throw new Error('A limpeza da transcrição devolveu um formato inesperado.');
     }

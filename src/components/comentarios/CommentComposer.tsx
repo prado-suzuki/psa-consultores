@@ -85,7 +85,9 @@ export function CommentComposer({
   const [mencaoPendente, setMencaoPendente] = useState(false);
   const [corpoNaSolicitacao, setCorpoNaSolicitacao] = useState<string | null>(null);
   const [ditadoOcupado, setDitadoOcupado] = useState(false);
-  const formatacao = useEnriquecerTexto('comentario-para-tarefa');
+  const formatacao = useEnriquecerTexto('comentario-para-tarefa', {
+    destinos: { titulo: 'simples', descricao: 'rico' } as const,
+  });
 
   /*
     A menção só reabre no render em que os candidatos JÁ ESTÃO aqui. Chamar

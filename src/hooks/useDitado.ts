@@ -22,6 +22,7 @@ interface UseDitadoOptions {
 }
 
 const LIMITE_PADRAO_MS = 120_000;
+const TEMPO_REUSO_MICROFONE_MS = 15_000;
 
 export function escolherMimeTypeDitado(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined;
@@ -74,6 +75,7 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
   const streamRef = useRef<MediaStream | null>(null);
   const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const limiteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liberacaoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const montadoRef = useRef(true);
   const onResultadoRef = useRef(onResultado);
   onResultadoRef.current = onResultado;
@@ -86,8 +88,15 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
   };
 
   const liberarMicrofone = () => {
+    if (liberacaoRef.current) clearTimeout(liberacaoRef.current);
+    liberacaoRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+  };
+
+  const agendarLiberacaoMicrofone = () => {
+    if (liberacaoRef.current) clearTimeout(liberacaoRef.current);
+    liberacaoRef.current = setTimeout(liberarMicrofone, TEMPO_REUSO_MICROFONE_MS);
   };
 
   const parar = () => {
@@ -121,6 +130,7 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
     if (audio.size === 0) {
       setEstado('erro');
       setErro('Nenhum áudio foi capturado.');
+      agendarLiberacaoMicrofone();
       return;
     }
 
@@ -144,6 +154,8 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
       if (!montadoRef.current) return;
       setEstado('erro');
       setErro(falha instanceof Error ? falha.message : 'Não foi possível transcrever o áudio.');
+    } finally {
+      if (montadoRef.current) agendarLiberacaoMicrofone();
     }
   };
 
@@ -162,7 +174,12 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (liberacaoRef.current) clearTimeout(liberacaoRef.current);
+      liberacaoRef.current = null;
+      const streamExistente = streamRef.current;
+      const stream = streamExistente?.getTracks().some((track) => track.readyState === 'live')
+        ? streamExistente
+        : await navigator.mediaDevices.getUserMedia({ audio: true });
       if (!montadoRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -179,7 +196,6 @@ export function useDitado({ ditado, onResultado, limiteMs = LIMITE_PADRAO_MS }: 
       };
       recorder.onstop = () => {
         recorderRef.current = null;
-        liberarMicrofone();
         void enviarAudio(partes, recorder.mimeType || mimeType || 'audio/webm');
       };
       recorder.onerror = () => {

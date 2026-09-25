@@ -44,13 +44,14 @@ class GravadorFalso {
 describe('useDitado', () => {
   const pararFaixa = vi.fn();
   const getUserMedia = vi.fn();
+  const faixa = { stop: pararFaixa, readyState: 'live' as MediaStreamTrackState };
 
   beforeEach(() => {
     mocks.invoke.mockReset();
     pararFaixa.mockReset();
     getUserMedia.mockReset();
     GravadorFalso.ultimo = null;
-    getUserMedia.mockResolvedValue({ getTracks: () => [{ stop: pararFaixa }] });
+    getUserMedia.mockResolvedValue({ getTracks: () => [faixa] });
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia },
@@ -64,7 +65,9 @@ describe('useDitado', () => {
       data: { texto: 'Texto limpo.', enriquecimento: null },
       error: null,
     });
-    const { result } = renderHook(() => useDitado({ ditado: 'comentario', onResultado }));
+    const { result, unmount } = renderHook(() =>
+      useDitado({ ditado: 'comentario', onResultado }),
+    );
 
     await act(async () => result.current.iniciar());
     expect(result.current.estado).toBe('gravando');
@@ -74,12 +77,34 @@ describe('useDitado', () => {
     act(() => GravadorFalso.ultimo?.finalizar());
     await waitFor(() => expect(result.current.estado).toBe('ocioso'));
 
-    expect(pararFaixa).toHaveBeenCalled();
+    expect(pararFaixa).not.toHaveBeenCalled();
     expect(mocks.invoke).toHaveBeenCalledWith('ditar', { body: expect.any(FormData) });
     const formulario = mocks.invoke.mock.calls[0][1].body as FormData;
     expect(formulario.get('ditado')).toBe('comentario');
     expect((formulario.get('file') as File).type).toBe('audio/webm');
     expect(onResultado).toHaveBeenCalledWith({ texto: 'Texto limpo.', enriquecimento: null });
+    unmount();
+    expect(pararFaixa).toHaveBeenCalled();
+  });
+
+  it('reutiliza a faixa viva em gravações consecutivas', async () => {
+    mocks.invoke.mockResolvedValue({
+      data: { texto: 'Texto limpo.', enriquecimento: null },
+      error: null,
+    });
+    const { result, unmount } = renderHook(() =>
+      useDitado({ ditado: 'comentario', onResultado: vi.fn() }),
+    );
+
+    await act(async () => result.current.iniciar());
+    act(() => result.current.parar());
+    act(() => GravadorFalso.ultimo?.finalizar());
+    await waitFor(() => expect(result.current.estado).toBe('ocioso'));
+
+    await act(async () => result.current.iniciar());
+
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    unmount();
   });
 
   it('para automaticamente no limite configurado', async () => {
@@ -99,7 +124,6 @@ describe('useDitado', () => {
     expect(pararFaixa).not.toHaveBeenCalled();
     act(() => GravadorFalso.ultimo?.finalizar());
 
-    expect(pararFaixa).toHaveBeenCalled();
     expect(mocks.invoke).toHaveBeenCalled();
     vi.useRealTimers();
   });

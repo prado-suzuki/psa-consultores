@@ -1,9 +1,7 @@
-import type { NomePerfilEnriquecimento } from './enriquecimentoTexto.ts';
-
 export type ModeloTranscricao = 'google/gemini-3.5-transcribe' | 'openai/gpt-4o-transcribe';
 
 export interface ConfiguracaoEnriquecimentoDitado {
-  perfil: NomePerfilEnriquecimento;
+  perfil: string;
   quando: 'automatico' | 'oferecer';
 }
 

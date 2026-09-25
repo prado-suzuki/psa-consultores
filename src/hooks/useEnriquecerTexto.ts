@@ -9,16 +9,19 @@ import {
   type RespostaEnriquecimentoApi,
 } from '@/lib/enriquecimentoTexto';
 
-interface OpcoesEnriquecimento {
-  destino?: DestinoEnriquecimento;
-  capacidades?: CapacidadesRichText;
-}
+type OpcoesDeSaida =
+  | { destino: DestinoEnriquecimento; destinos?: never }
+  | { destino?: never; destinos: Record<string, DestinoEnriquecimento> };
 
-export function useEnriquecerTexto(perfil: string, opcoes: OpcoesEnriquecimento = {}) {
+type OpcoesEnriquecimento = OpcoesDeSaida & {
+  capacidades?: CapacidadesRichText;
+};
+
+export function useEnriquecerTexto(perfil: string, opcoes: OpcoesEnriquecimento) {
   const capacidades = opcoes.capacidades ?? CAPACIDADES_RICAS_BASICAS;
 
   return useMutation({
-    mutationKey: ['enriquecer-texto', perfil, opcoes.destino],
+    mutationKey: ['enriquecer-texto', perfil, opcoes.destino ?? opcoes.destinos],
     retry: false,
     mutationFn: async (texto: string) => {
       const origem = texto;
@@ -32,6 +35,7 @@ export function useEnriquecerTexto(perfil: string, opcoes: OpcoesEnriquecimento 
             perfil,
             texto: textoLimpo,
             ...(opcoes.destino ? { destino: opcoes.destino } : {}),
+            ...(opcoes.destinos ? { destinos: opcoes.destinos } : {}),
           },
         },
       );
