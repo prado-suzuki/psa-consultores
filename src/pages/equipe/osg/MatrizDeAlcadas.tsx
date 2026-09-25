@@ -104,13 +104,6 @@ const MatrizDeAlcadas = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.matrizDeAlcadas.label}
       subtitle={TELAS_OSG_WORK.matrizDeAlcadas.descricao}
-      headerActions={
-        matriz ? (
-          <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Acrescentar atividade
-          </Button>
-        ) : undefined
-      }
     >
       <div className="mx-auto max-w-[1400px] space-y-5">
         {!clienteId ? (
@@ -165,16 +158,18 @@ const MatrizDeAlcadas = () => {
               23 linhas é um aviso que ninguém lê. Vale a régua da Patricia: qual
               é o primeiro passo tem de estar visível sem rolar.
             */}
-            <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
-              <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
-              <div className="space-y-0.5">
-                <p className="text-sm text-osg-700">
-                  <span className="font-semibold">Clique em uma linha para preencher.</span> A
-                  caixa abre com {orgaos.length === 1 ? 'o órgão' : `os ${orgaos.length} órgãos`}{' '}
-                  deste cliente, e você diz o que cada um faz naquela atividade. Se faltar
-                  alguma atividade nesta lista, use{' '}
-                  <span className="font-semibold">Acrescentar atividade</span>, no alto da tela.
-                </p>
+            <div className="flex items-start justify-between gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
+              <div className="flex items-start gap-2.5">
+                <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
+                <div className="space-y-0.5">
+                  <p className="text-sm text-osg-700">
+                    <span className="font-semibold">Clique em uma linha para preencher.</span> A
+                    caixa abre com {orgaos.length === 1 ? 'o órgão' : `os ${orgaos.length} órgãos`}{' '}
+                    deste cliente, e você diz o que cada um faz naquela atividade. Se faltar
+                    alguma atividade nesta lista, use o botão{' '}
+                    <span className="font-semibold">Acrescentar atividade</span>, ao lado deste
+                    aviso.
+                  </p>
                 {/*
                   O andamento existe porque a grade nasce inteira em branco: sem
                   ele, 24 linhas de traço parecem tela quebrada em vez de trabalho
@@ -187,7 +182,13 @@ const MatrizDeAlcadas = () => {
                     ? ` · de ${new Date(matriz.matriz.data_referencia + 'T12:00:00').toLocaleDateString('pt-BR')}`
                     : ''}
                 </p>
+                </div>
               </div>
+              {matriz && (
+                <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Acrescentar atividade
+                </Button>
+              )}
             </div>
 
             <div className="overflow-hidden rounded-xl border border-osg-200 bg-background">

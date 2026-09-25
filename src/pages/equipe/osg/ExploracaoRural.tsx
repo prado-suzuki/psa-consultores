@@ -85,12 +85,6 @@ const ExploracaoRural = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.exploracaoRural.label}
       subtitle={TELAS_OSG_WORK.exploracaoRural.descricao}
-      headerActions={
-        <Button className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
-          <Plus className="h-4 w-4" />
-          Nova exploração rural
-        </Button>
-      }
     >
       <div className="space-y-4">
         {!clienteId ? (
@@ -160,10 +154,15 @@ const ExploracaoRural = () => {
                 <CardTitle className="text-base">
                   {filtradas.length} instrumento{filtradas.length === 1 ? '' : 's'}
                 </CardTitle>
-                <span className="text-xs text-muted-foreground">
-                  {totalImoveis} imóve{totalImoveis === 1 ? 'l' : 'is'} ·{' '}
-                  {totalArea.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha cedidos
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {totalImoveis} imóve{totalImoveis === 1 ? 'l' : 'is'} ·{' '}
+                    {totalArea.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha cedidos
+                  </span>
+                  <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, exploracao: null })}>
+                    <Plus className="h-3.5 w-3.5" /> Nova exploração rural
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {filtradas.length === 0 ? (

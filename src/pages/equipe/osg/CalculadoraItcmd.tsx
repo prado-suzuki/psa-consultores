@@ -71,7 +71,7 @@ const CalculadoraItcmd = () => {
   );
 
   return (
-    <Molde acoes={acoes}>
+    <Molde>
       <div className="space-y-5">
         {calc.erroDoHistorico && (
           <Aviso tom="erro">{calc.erroDoHistorico.message}</Aviso>
@@ -122,6 +122,7 @@ const CalculadoraItcmd = () => {
           statusFiltrado={statusFiltrado}
           aoFiltrarStatus={setStatusFiltrado}
           aoAbrir={setAbertaId}
+          acoes={acoes}
         />
 
         {naSessao && (

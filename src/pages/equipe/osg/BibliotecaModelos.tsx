@@ -228,18 +228,15 @@ const BibliotecaModelos = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.bibliotecaModelos.label}
       subtitle={TELAS_OSG_WORK.bibliotecaModelos.descricao}
-      headerActions={
-        <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Novo bloco
-        </Button>
-      }
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Novo bloco
+          </Button>
           {/* Prateleiras: um tipo por vez no lugar dos grupos empilhados. */}
-          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
-            {PRATELEIRAS.map(({ valor, label, Icone }) => {
+          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">            {PRATELEIRAS.map(({ valor, label, Icone }) => {
               const ativo = prateleira === valor;
               const total = valor === 'todos' ? blocosFiltrados.length : contagemPorTipo.get(valor) ?? 0;
               return (

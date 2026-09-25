@@ -61,14 +61,6 @@ const MontagemDocumentos = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.montagemDocumentos.label}
       subtitle={TELAS_OSG_WORK.montagemDocumentos.descricao}
-      headerActions={
-        selecionado ? undefined : (
-          <Button size="sm" className="bg-osg-600 hover:bg-osg-700" onClick={() => setModeloDialog({ open: true, form: MODELO_VAZIO })}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Novo modelo
-          </Button>
-        )
-      }
     >
       {selecionado ? (
         <MontadorWorkbench

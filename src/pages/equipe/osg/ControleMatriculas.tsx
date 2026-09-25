@@ -104,11 +104,6 @@ const ControleMatriculas = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.controleMatriculas.label}
       subtitle={TELAS_OSG_WORK.controleMatriculas.descricao}
-      headerActions={
-        <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, matricula: null })}>
-          <Plus className="h-3.5 w-3.5" /> Nova matrícula
-        </Button>
-      }
     >
       <div className="space-y-4">
         <Card>
@@ -146,7 +141,7 @@ const ControleMatriculas = () => {
         </Card>
 
         <Card variant="tabela">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
               Matrículas ({matriculasFiltradas.length}{matriculasDoCliente.length !== matriculasFiltradas.length ? ` de ${matriculasDoCliente.length}` : ''})
@@ -156,6 +151,9 @@ const ControleMatriculas = () => {
                 </Badge>
               )}
             </CardTitle>
+            <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, matricula: null })}>
+              <Plus className="h-3.5 w-3.5" /> Nova matrícula
+            </Button>
           </CardHeader>
           <CardContent>
             {isLoading ? (

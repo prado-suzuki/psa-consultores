@@ -186,71 +186,6 @@ const ProtocoloDeRemuneracao = () => {
     <OsgLayout
       title={TELAS_OSG_WORK.protocoloRemuneracao.label}
       subtitle={TELAS_OSG_WORK.protocoloRemuneracao.descricao}
-      headerActions={
-        protocolo ? (
-          <div className="flex items-center gap-2">
-            {/*
-              O seletor só aparece a partir da segunda versão: com uma só, ele
-              seria um campo que não escolhe nada. A mais nova vem primeiro e é a
-              que abre por padrão.
-
-              O RÓTULO DIZ UM FATO, E NÃO UM STATUS. A primeira versão desta tela
-              marcava a mais nova como "(atual)", e isso prometia uma decisão que
-              o cadastro não tem: não existe aqui nada que diga que uma versão
-              está fechada, nem nada que trave a anterior. "Mais recente" é
-              constatação, e a data diz o resto.
-
-              O Acordo de Quotistas tem o critério que falta, e é `assinado_em`:
-              preenchido, a versão é assinada e fica em leitura; vazio, é minuta
-              e se corrige. Não copiei porque o que se assina é o instrumento em
-              prosa, e o que esta tela gera é planilha. Fica para quando a
-              consultoria disser se o protocolo assinado é o produto final.
-            */}
-            {versoes.length > 1 && (
-              <Select
-                value={protocolo.protocolo.id}
-                onValueChange={(id) => setVersaoAberta(id)}
-              >
-                <SelectTrigger className="h-8 w-[230px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {versoes.map((v, i) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      Versão {v.versao}
-                      {i === 0 ? ' · mais recente' : ''}
-                      {` · ${new Date(v.created_at).toLocaleDateString('pt-BR')}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={novaVersao.isPending}
-              onClick={() => {
-                void novaVersao.mutateAsync({ atual: protocolo }).then(() => setVersaoAberta(null));
-              }}
-            >
-              <CopyPlus className="mr-2 h-4 w-4" /> Nova versão
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setGerindoColunas(true)}>
-              <Columns3 className="mr-2 h-4 w-4" /> Colunas
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Acrescentar item
-            </Button>
-            {/*
-              Gerar fica por último e é o único preenchido: é o fim do trabalho
-              desta tela, e as outras três ações servem para chegar até ele.
-            */}
-            <Button size="sm" onClick={() => void gerarPlanilha()}>
-              <FileSpreadsheet className="mr-2 h-4 w-4" /> Gerar planilha
-            </Button>
-          </div>
-        ) : undefined
-      }
     >
       <div className="mx-auto max-w-[1400px] space-y-5">
         {!clienteId ? (
@@ -290,21 +225,72 @@ const ProtocoloDeRemuneracao = () => {
               primeira vez não sabe que a linha é clicável, e um aviso embaixo de
               52 linhas é um aviso que ninguém lê. Mesma régua da Matriz.
             */}
-            <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
-              <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
-              <div className="space-y-0.5">
-                <p className="text-sm text-osg-700">
-                  <span className="font-semibold">Clique em uma linha para escrever a regra.</span>{' '}
-                  A caixa abre com{' '}
-                  {colunas.length === 1 ? 'a coluna' : `as ${colunas.length} colunas`} deste
-                  protocolo, e você escreve o que vale para cada uma naquele item. Se a família
-                  usa outros nomes de grupo, troque em{' '}
-                  <span className="font-semibold">Colunas</span>, no alto da tela.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {preenchidas} de {totalDeLinhas} itens preenchidos
-                  {` · versão ${protocolo.protocolo.versao}`}
-                </p>
+            {/*
+              A instrução fica ANTES da grade, e não depois: quem abre isto pela
+              primeira vez não sabe que a linha é clicável, e um aviso embaixo de
+              52 linhas é um aviso que ninguém lê. Mesma régua da Matriz.
+
+              As ações da versão (seletor, nova versão, colunas, acrescentar,
+              gerar) voltaram da barra da página para cá: o botão de criar mora
+              no cabeçalho do card da lista, junto do que ele cria (EX-31).
+            */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
+                <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
+                <div className="space-y-0.5">
+                  <p className="text-sm text-osg-700">
+                    <span className="font-semibold">Clique em uma linha para escrever a regra.</span>{' '}
+                    A caixa abre com{' '}
+                    {colunas.length === 1 ? 'a coluna' : `as ${colunas.length} colunas`} deste
+                    protocolo, e você escreve o que vale para cada uma naquele item. Se a família
+                    usa outros nomes de grupo, troque em{' '}
+                    <span className="font-semibold">Colunas</span>, ao lado deste aviso.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {preenchidas} de {totalDeLinhas} itens preenchidos
+                    {` · versão ${protocolo.protocolo.versao}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {versoes.length > 1 && (
+                  <Select
+                    value={protocolo.protocolo.id}
+                    onValueChange={(id) => setVersaoAberta(id)}
+                  >
+                    <SelectTrigger className="h-8 w-[230px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {versoes.map((v, i) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          Versão {v.versao}
+                          {i === 0 ? ' · mais recente' : ''}
+                          {` · ${new Date(v.created_at).toLocaleDateString('pt-BR')}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={novaVersao.isPending}
+                  onClick={() => {
+                    void novaVersao.mutateAsync({ atual: protocolo }).then(() => setVersaoAberta(null));
+                  }}
+                >
+                  <CopyPlus className="mr-2 h-4 w-4" /> Nova versão
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setGerindoColunas(true)}>
+                  <Columns3 className="mr-2 h-4 w-4" /> Colunas
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Acrescentar item
+                </Button>
+                <Button size="sm" onClick={() => void gerarPlanilha()}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Gerar planilha
+                </Button>
               </div>
             </div>
 

@@ -30,7 +30,7 @@ import {
  * passou o olho na lista.
  */
 export function HistoricoDeSimulacoes({
-  simulacoes, carregando, statusFiltrado, aoFiltrarStatus, aoAbrir,
+  simulacoes, carregando, statusFiltrado, aoFiltrarStatus, aoAbrir, acoes,
 }: {
   simulacoes: SimulacaoSalva[];
   carregando: boolean;
@@ -38,6 +38,8 @@ export function HistoricoDeSimulacoes({
   statusFiltrado: StatusDaSimulacao | null;
   aoFiltrarStatus: (s: StatusDaSimulacao | null) => void;
   aoAbrir: (id: string) => void;
+  /** Ação de criar, no cabeçalho do card da lista (EX-31, decisão de 24/09). */
+  acoes?: React.ReactNode;
 }) {
   const visiveis = statusFiltrado == null
     ? simulacoes
@@ -83,6 +85,7 @@ export function HistoricoDeSimulacoes({
 
         {/* FILTRO DE STATUS da lista: é como se pergunta "quais estão aprovadas". */}
         <div className="flex items-center gap-2">
+          {acoes}
           <span className={rotuloCls}>
             <ComDica dica="Filtra a lista. Trocar o status de uma simulação é na tela dela.">
               Status
