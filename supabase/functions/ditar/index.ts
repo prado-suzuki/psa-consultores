@@ -147,6 +147,13 @@ serve(async (req) => {
       return interpretarPerfilEnriquecimento(data);
     };
 
+    // A classificação usa a transcrição crua para rodar em paralelo com a limpeza.
+    const classificacaoPromessa = medir('classificacao', () =>
+      classificarComFallback(obterClassificador('intencao-ditado'), {
+        texto: transcricao.texto,
+      }),
+    );
+
     const resultado = await medir('limpeza', async () => {
       const perfilLimpeza = await carregarPerfil('transcricao-fiel');
       const pedidoLimpeza = validarPedidoEnriquecimento(
@@ -170,11 +177,7 @@ serve(async (req) => {
       return enriquecido;
     });
 
-    const classificacao = await medir('classificacao', () =>
-      classificarComFallback(obterClassificador('intencao-ditado'), {
-        texto: resultado.texto,
-      }),
-    );
+    const classificacao = await classificacaoPromessa;
     const perfilForcado = configuracao.enriquecimento?.perfil === 'comentario-para-tarefa';
 
     if (perfilForcado || classificacaoPedeTarefa(classificacao)) {
