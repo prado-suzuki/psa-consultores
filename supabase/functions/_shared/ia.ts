@@ -244,7 +244,92 @@ export async function chamarChat(params: ParametrosChat): Promise<RespostaChat> 
   }
 }
 
+export interface PerguntaEscolhaSystemOne {
+  type: 'choice';
+  instructions: unknown;
+  criteria: Record<string, unknown>;
+}
+
+export interface ParametrosSystemOne {
+  modelo: string;
+  estado: unknown;
+  perguntas: Record<string, PerguntaEscolhaSystemOne>;
+  timeoutMs?: number;
+}
+
+export interface RespostaEscolhaSystemOne {
+  choice: string;
+  probabilities: Record<string, number>;
+  confidence: number | null;
+}
+
+export async function chamarSystemOne(
+  params: ParametrosSystemOne,
+): Promise<Record<string, RespostaEscolhaSystemOne>> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? TIMEOUT_PADRAO_MS);
+
+  try {
+    const resposta = await fetch(ENDPOINT_SYSTEMONE, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${lerChaveLovable()}`,
+        'Content-Type': 'application/json',
+        'X-Lovable-AIG-SDK': 'fetch',
+      },
+      body: JSON.stringify({
+        model: params.modelo,
+        state: params.estado,
+        questions: params.perguntas,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!resposta.ok) throw erroDoGateway(resposta.status);
+
+    const payload = (await resposta.json()) as { answers?: unknown };
+    if (!payload.answers || typeof payload.answers !== 'object' || Array.isArray(payload.answers)) {
+      throw new ErroIA('Gateway de IA devolveu resposta vazia.', 502);
+    }
+
+    const respostas: Record<string, RespostaEscolhaSystemOne> = {};
+    for (const [id, respostaBruta] of Object.entries(payload.answers as Record<string, unknown>)) {
+      if (!respostaBruta || typeof respostaBruta !== 'object') {
+        throw new ErroIA('Gateway de IA devolveu uma decisão inválida.', 502);
+      }
+      const item = respostaBruta as { choice?: unknown; probabilities?: unknown; confidence?: unknown };
+      if (typeof item.choice !== 'string') {
+        throw new ErroIA('Gateway de IA devolveu uma decisão inválida.', 502);
+      }
+      const probabilidades: Record<string, number> = {};
+      if (item.probabilities && typeof item.probabilities === 'object') {
+        for (const [opcao, valor] of Object.entries(item.probabilities as Record<string, unknown>)) {
+          if (typeof valor === 'number' && Number.isFinite(valor)) probabilidades[opcao] = valor;
+        }
+      }
+      respostas[id] = {
+        choice: item.choice,
+        probabilities: probabilidades,
+        confidence:
+          typeof item.confidence === 'number' && Number.isFinite(item.confidence)
+            ? item.confidence
+            : null,
+      };
+    }
+    return respostas;
+  } catch (erro) {
+    if (erro instanceof ErroIA) throw erro;
+    if (erro instanceof DOMException && erro.name === 'AbortError') {
+      throw new ErroIA('A solicitação de IA excedeu o tempo limite.', 504);
+    }
+    throw new ErroIA('Não foi possível acessar o gateway de IA.', 502);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function transcrever(params: ParametrosTranscricao): Promise<RespostaTranscricao> {
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? TIMEOUT_TRANSCRICAO_MS);
 
