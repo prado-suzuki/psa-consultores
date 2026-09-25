@@ -1,5 +1,6 @@
 const ENDPOINT_LOVABLE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const ENDPOINT_TRANSCRICAO = 'https://ai.gateway.lovable.dev/v1/audio/transcriptions';
+const ENDPOINT_SYSTEMONE = 'https://ai.gateway.lovable.dev/v1/systemone';
 const TIMEOUT_PADRAO_MS = 60_000;
 const TIMEOUT_TRANSCRICAO_MS = 140_000;
 
