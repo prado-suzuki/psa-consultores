@@ -22,8 +22,11 @@ describe('useEnriquecerTexto', () => {
       data: {
         estruturado: true,
         campos: {
-          titulo: { texto: 'Revisar contrato', destino: 'simples' },
-          descricao: { texto: '**Contexto:** contrato.', destino: 'rico' },
+          titulo: { valor: { tipo: 'texto', texto: 'Revisar contrato' }, destino: 'simples' },
+          descricao: {
+            valor: { tipo: 'texto', texto: '**Contexto:** contrato.' },
+            destino: 'rico',
+          },
         },
       },
       error: null,

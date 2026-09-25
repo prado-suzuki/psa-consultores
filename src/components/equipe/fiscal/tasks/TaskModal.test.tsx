@@ -505,6 +505,47 @@ describe('TaskModal — criação', () => {
     expect(mocks.restoreDraft).not.toHaveBeenCalled();
   });
 
+  it('aplica todos os valores iniciais resolvidos: projeto, cliente, responsável e horas', () => {
+    renderModal({
+      initialValues: {
+        title: 'Revisar apuração',
+        description: 'Conferir os valores antes do envio.',
+        project_id: 'PRJ1',
+        client_id: 'CLI1',
+        assigned_to: 'U2',
+        assigned_to_name: 'Ana',
+        estimated_hours: 4,
+      },
+      // defaultProjectId irrelevante agora: o projeto resolvido vem nos valores.
+      defaultProjectId: 'PRJ2',
+    });
+
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Revisar apuração');
+    expect(screen.getByLabelText(/^Descrição/)).toHaveTextContent('Conferir os valores antes do envio.');
+    expect(screen.getByLabelText(/^Projeto/)).toHaveTextContent('Projeto Alfa');
+    expect(screen.getByLabelText(/^Cliente/)).toHaveTextContent('Cliente Um');
+    expect(screen.getByLabelText(/^Responsável/)).toHaveTextContent('Ana');
+    expect(screen.getByLabelText(/^Horas estimadas/)).toHaveValue(4);
+    // Sem horas padrão e sem responsável preenchidos de graça: só o que veio resolvido.
+    expect(screen.getByLabelText(/^Responsável/)).not.toHaveTextContent('Bernardo');
+  });
+
+  it('projeto ausente nos valores iniciais NÃO cai no projeto do contexto da tela', () => {
+    // Menção de projeto ambígua ou inválida resolve para vazio; o modal não pode
+    // reintroduzir o projeto do contexto por conta própria.
+    renderModal({
+      initialValues: {
+        title: 'Revisar apuração',
+        description: 'Descrição.',
+      },
+      defaultProjectId: 'PRJ2',
+    });
+
+    // Ambos os selects renderizam o item "_none" ("Nenhum") quando o valor é vazio.
+    expect(screen.getByLabelText(/^Projeto/)).toHaveTextContent('Nenhum');
+    expect(screen.getByLabelText(/^Cliente/)).toHaveTextContent('Nenhum');
+  });
+
   it('bloqueia o envio e mostra as mensagens de campo obrigatório', async () => {
     const user = userEvent.setup();
     renderModal();

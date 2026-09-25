@@ -40,6 +40,10 @@ export function BotaoDitado({
         onTarefaSugerida({
           titulo: resultado.acao.titulo,
           descricao: resultado.acao.descricao,
+          responsavel_mencionado: resultado.acao.responsavel_mencionado,
+          cliente_mencionado: resultado.acao.cliente_mencionado,
+          projeto_mencionado: resultado.acao.projeto_mencionado,
+          horas_estimadas: resultado.acao.horas_estimadas,
           transcricaoOriginal: resultado.texto,
           classificacao: resultado.acao.classificacao,
         });

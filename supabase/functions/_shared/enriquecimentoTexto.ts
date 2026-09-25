@@ -9,9 +9,22 @@ import {
 
 export type DestinoEnriquecimento = 'simples' | 'rico';
 
+export type TipoDeCampoEnriquecimento = 'texto' | 'numero';
+
+/**
+ * Definição normalizada de um campo estruturado. `tipo` e `nullable` são
+ * opcionais no banco (formato antigo tem só `descricao`) e chegam aqui sempre
+ * presentes: campo antigo é texto obrigatório.
+ */
+export interface CampoDeContratoEnriquecimento {
+  descricao: string;
+  tipo: TipoDeCampoEnriquecimento;
+  nullable: boolean;
+}
+
 export type ContratoSaidaEnriquecimento =
   | { tipo: 'texto' }
-  | { tipo: 'estruturada'; campos: Record<string, { descricao: string }> };
+  | { tipo: 'estruturada'; campos: Record<string, CampoDeContratoEnriquecimento> };
 
 export interface PerfilEnriquecimento {
   nome: string;
@@ -46,8 +59,16 @@ export type ResultadoEnriquecimento =
   | { estruturado: false; texto: string; destino: DestinoEnriquecimento }
   | {
       estruturado: true;
-      campos: Record<string, { texto: string; destino: DestinoEnriquecimento }>;
+      campos: Record<string, { valor: ValorEnriquecido; destino: DestinoEnriquecimento }>;
     };
+
+/**
+ * Valor interpretado de um campo estruturado: a forma depende do `tipo`
+ * declarado no contrato, e `null` só existe em campo `nullable`.
+ */
+export type ValorEnriquecido =
+  | { tipo: 'texto'; texto: string | null }
+  | { tipo: 'numero'; numero: number | null };
 
 export const TAMANHO_MAXIMO_ENTRADA = 20_000;
 export const TAMANHO_MAXIMO_SAIDA = 30_000;
@@ -85,15 +106,27 @@ function contratoValido(valor: unknown): ContratoSaidaEnriquecimento {
       if (!/^[a-z][a-z0-9_]*$/.test(nome)) {
         throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
       }
-      if (
-        !objeto(configuracao) ||
-        Object.keys(configuracao).some((chave) => chave !== 'descricao')
-      ) {
+      if (!objeto(configuracao)) {
+        throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
+      }
+      if (Object.keys(configuracao).some((chave) => !['descricao', 'tipo', 'nullable'].includes(chave))) {
+        throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
+      }
+      const tipo = configuracao.tipo ?? 'texto';
+      if (tipo !== 'texto' && tipo !== 'numero') {
+        throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
+      }
+      const nullable = configuracao.nullable ?? false;
+      if (typeof nullable !== 'boolean') {
         throw new Error(`Perfil de enriquecimento inválido: campo "${nome}".`);
       }
       return [
         nome,
-        { descricao: textoObrigatorio(configuracao.descricao, `descrição de ${nome}`) },
+        {
+          descricao: textoObrigatorio(configuracao.descricao, `descrição de ${nome}`),
+          tipo,
+          nullable,
+        },
       ];
     }),
   );
@@ -191,16 +224,13 @@ function instrucaoDeFormato(destino: DestinoEnriquecimento): string {
 }
 
 function ferramentaDaSaida(
-  campos: Record<string, { descricao: string }>,
+  campos: Record<string, CampoDeContratoEnriquecimento>,
   destinos: Record<string, DestinoEnriquecimento>,
 ): FerramentaChat {
   const propriedades = Object.fromEntries(
     Object.entries(campos).map(([campo, configuracao]) => [
       campo,
-      {
-        type: 'string',
-        description: `${configuracao.descricao} ${instrucaoDeFormato(destinos[campo])}`,
-      },
+      schemaDoCampo(configuracao, destinos[campo]),
     ]),
   );
   return {
@@ -215,6 +245,25 @@ function ferramentaDaSaida(
         additionalProperties: false,
       },
     },
+  };
+}
+
+function schemaDoCampo(
+  campo: CampoDeContratoEnriquecimento,
+  destino: DestinoEnriquecimento,
+): { type: 'string' | 'number' | ('string' | 'null')[] | ('number' | 'null')[]; description: string } {
+  const avisoDeNulo = campo.nullable
+    ? ' Use null quando a informação não estiver presente no texto.'
+    : '';
+  if (campo.tipo === 'numero') {
+    return {
+      type: campo.nullable ? ['number', 'null'] : 'number',
+      description: `${campo.descricao} Devolva apenas um número.${avisoDeNulo}`,
+    };
+  }
+  return {
+    type: campo.nullable ? ['string', 'null'] : 'string',
+    description: `${campo.descricao} ${instrucaoDeFormato(destino)}${avisoDeNulo}`,
   };
 }
 
@@ -323,8 +372,51 @@ export function interpretarEnriquecimento(
     campos: Object.fromEntries(
       esperados.map((campo) => [
         campo,
-        { texto: textoValido(argumentos[campo], campo), destino: pedido.destinos[campo] },
+        {
+          valor: valorValido(argumentos[campo], perfil.contratoSaida.campos[campo], campo),
+          destino: pedido.destinos[campo],
+        },
       ]),
     ),
   };
+}
+
+/**
+ * Valida um campo contra o contrato: tipo declarado, nulabilidade, ausência e
+ * tamanho. Campo `nullable` aceita `null` (e vazio em texto) como ausência;
+ * campo obrigatório recusa os dois.
+ */
+function valorValido(
+  bruto: unknown,
+  definicao: CampoDeContratoEnriquecimento,
+  campo: string,
+): ValorEnriquecido {
+  if (bruto === undefined || bruto === null) {
+    if (!definicao.nullable) {
+      throw new Error(`A IA não devolveu o campo obrigatório "${campo}".`);
+    }
+    return definicao.tipo === 'numero'
+      ? { tipo: 'numero', numero: null }
+      : { tipo: 'texto', texto: null };
+  }
+
+  if (definicao.tipo === 'numero') {
+    if (typeof bruto !== 'number' || !Number.isFinite(bruto)) {
+      throw new Error(`A IA devolveu um número inválido no campo "${campo}".`);
+    }
+    return { tipo: 'numero', numero: bruto };
+  }
+
+  if (typeof bruto !== 'string') {
+    throw new Error(`A IA devolveu um tipo inválido no campo "${campo}".`);
+  }
+  const texto = bruto.trim();
+  if (!texto) {
+    if (definicao.nullable) return { tipo: 'texto', texto: null };
+    throw new Error(`A IA não devolveu o campo obrigatório "${campo}".`);
+  }
+  if (texto.length > TAMANHO_MAXIMO_SAIDA) {
+    throw new Error(`A resposta da IA excedeu o limite no campo "${campo}".`);
+  }
+  return { tipo: 'texto', texto };
 }

@@ -63,9 +63,21 @@ import { TaskEditBody } from '@/components/equipe/fiscal/tasks/task-modal/TaskEd
 import { TaskEditHeader } from '@/components/equipe/fiscal/tasks/task-modal/TaskEditHeader';
 import { TaskPropertyBar } from '@/components/equipe/fiscal/tasks/task-modal/TaskPropertyBar';
 
+/**
+ * Valores iniciais do formulário de criação. Além do título e da descrição
+ * vindos do ditado, os campos opcionais carregam APENAS o que foi resolvido com
+ * segurança (`useTarefaDitadaResolvida`): campo não mencionado, ambíguo ou
+ * inválido chega `undefined` e nasce vazio — sem responsável padrão, sem horas
+ * padrão, e sem projeto emprestado do contexto quando a fala mencionou outro.
+ */
 export interface TaskModalInitialValues {
   title: string;
   description: string;
+  project_id?: string;
+  client_id?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  estimated_hours?: number;
 }
 
 interface TaskModalProps {
@@ -365,6 +377,11 @@ export const TaskModal = ({
       isResettingRef.current = true;
       const draft = initialValues ? null : restoreDraft();
       if (initialValues) {
+        // Sugestão ditada: o rascunho antigo é subordinado aos valores que vieram
+        // da IA (`restoreDraft` nem é chamado) e o projeto NÃO cai no
+        // `defaultProjectId` — menção ambígua ou inválida fica vazia de propósito,
+        // é a revisão do usuário que decide. O cliente derivado do projeto é
+        // reafirmado pelo Effect B; o que veio só da menção permanece.
         form.reset({
           title: initialValues.title,
           description: initialValues.description,
@@ -372,7 +389,13 @@ export const TaskModal = ({
           priority: 'medium',
           reviewer_id: null,
           review_comment: '',
-          project_id: defaultProjectId || '',
+          project_id: initialValues.project_id ?? '',
+          client_id: initialValues.client_id,
+          assigned_to: initialValues.assigned_to,
+          assigned_to_name: initialValues.assigned_to_name,
+          // '' nasce no campo como no reset de edição: o zod coerce barra na
+          // validação ("Esforço estimado é obrigatório"), nunca aqui.
+          estimated_hours: (initialValues.estimated_hours ?? '') as number,
         });
       } else if (draft && draft.title) {
         form.reset(draft);
@@ -403,6 +426,10 @@ export const TaskModal = ({
     defaultProjectId,
     initialValues?.title,
     initialValues?.description,
+    initialValues?.project_id,
+    initialValues?.client_id,
+    initialValues?.assigned_to,
+    initialValues?.estimated_hours,
   ]);
 
   const handleAssigneeChange = (userId: string) => {

@@ -28,11 +28,19 @@ export const CAPACIDADES_RICAS_TAREFA: CapacidadesRichText = {
   blocoCodigo: true,
 };
 
+/**
+ * Valor de um campo estruturado, espelho do contrato da Edge Function: a forma
+ * depende do `tipo` declarado no perfil, e `null` só ocorre em campo anulável.
+ */
+export type ValorEnriquecidoApi =
+  | { tipo: 'texto'; texto: string | null }
+  | { tipo: 'numero'; numero: number | null };
+
 export type RespostaEnriquecimentoApi =
   | { estruturado: false; texto: string; destino: DestinoEnriquecimento; error?: string }
   | {
       estruturado: true;
-      campos: Record<string, { texto: string; destino: DestinoEnriquecimento }>;
+      campos: Record<string, { valor: ValorEnriquecidoApi; destino: DestinoEnriquecimento }>;
       error?: string;
     };
 
@@ -131,16 +139,26 @@ export function markdownEnriquecidoParaDoc(
 }
 
 function converterCampo(
-  campo: { texto: string; destino: DestinoEnriquecimento },
+  campo: { valor: ValorEnriquecidoApi; destino: DestinoEnriquecimento },
   capacidades: CapacidadesRichText,
 ): CampoEnriquecido {
+  // O rich text só consome texto: número vira o seu literal e null vira vazio —
+  // hoje nenhum perfil de editor declara campo numérico, e a coerção evita que
+  // um apareça no futuro sem quebrar a sugestão inteira.
+  const texto =
+    campo.valor.tipo === 'numero'
+      ? campo.valor.numero === null
+        ? ''
+        : String(campo.valor.numero)
+      : (campo.valor.texto ?? '');
+
   if (campo.destino === 'simples') {
-    return { destino: 'simples', texto: campo.texto, conteudo: campo.texto };
+    return { destino: 'simples', texto, conteudo: texto };
   }
   return {
     destino: 'rico',
-    texto: campo.texto,
-    conteudo: markdownEnriquecidoParaDoc(campo.texto, capacidades),
+    texto,
+    conteudo: markdownEnriquecidoParaDoc(texto, capacidades),
   };
 }
 
@@ -153,7 +171,10 @@ export function converterRespostaEnriquecimento(
     return {
       estruturado: false,
       origem,
-      resultado: converterCampo(resposta, capacidades),
+      resultado: converterCampo(
+        { valor: { tipo: 'texto', texto: resposta.texto }, destino: resposta.destino },
+        capacidades,
+      ),
     };
   }
   return {

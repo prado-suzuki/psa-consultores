@@ -48,6 +48,10 @@ describe('BotaoDitado', () => {
           tipo: 'abrir_tarefa',
           titulo: 'Revisar relatório',
           descricao: 'Revise o relatório antes do envio.',
+          responsavel_mencionado: 'Ana',
+          cliente_mencionado: null,
+          projeto_mencionado: null,
+          horas_estimadas: 4,
           classificacao: {
             nome: 'intencao-ditado',
             versao: 1,
@@ -62,6 +66,10 @@ describe('BotaoDitado', () => {
     expect(onTarefaSugerida).toHaveBeenCalledWith({
       titulo: 'Revisar relatório',
       descricao: 'Revise o relatório antes do envio.',
+      responsavel_mencionado: 'Ana',
+      cliente_mencionado: null,
+      projeto_mencionado: null,
+      horas_estimadas: 4,
       transcricaoOriginal: 'Preciso revisar o relatório.',
       classificacao: {
         nome: 'intencao-ditado',
@@ -83,6 +91,10 @@ describe('BotaoDitado', () => {
           tipo: 'abrir_tarefa',
           titulo: 'Revisar relatório',
           descricao: 'Revise o relatório.',
+          responsavel_mencionado: null,
+          cliente_mencionado: null,
+          projeto_mencionado: null,
+          horas_estimadas: null,
           classificacao: {
             nome: 'intencao-ditado',
             versao: 1,

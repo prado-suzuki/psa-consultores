@@ -14,6 +14,7 @@ import {
   prepararEnriquecimento,
   validarPedidoEnriquecimento,
 } from '../_shared/enriquecimentoTexto.ts';
+import { montarAcaoTarefa } from '../_shared/ditadoTarefa.ts';
 import { classificarComFallback } from '../_shared/classificacao/classificar.ts';
 import { obterClassificador } from '../_shared/classificacao/classificadores/index.ts';
 import { classificacaoPedeTarefa } from '../_shared/classificacao/classificadores/intencaoDitado.ts';
@@ -182,7 +183,7 @@ serve(async (req) => {
 
     if (perfilForcado || classificacaoPedeTarefa(classificacao)) {
       try {
-        const tarefa = await medir('tarefa', async () => {
+        return await medir('tarefa', async () => {
           const perfilTarefa = await carregarPerfil('comentario-para-tarefa');
           const pedidoTarefa = validarPedidoEnriquecimento(
             perfilTarefa,
@@ -191,6 +192,10 @@ serve(async (req) => {
             {
               titulo: 'simples',
               descricao: 'rico',
+              responsavel_mencionado: 'simples',
+              cliente_mencionado: 'simples',
+              projeto_mencionado: 'simples',
+              horas_estimadas: 'simples',
             },
           );
           const chamadaTarefa = prepararEnriquecimento(perfilTarefa, pedidoTarefa);
@@ -207,28 +212,14 @@ serve(async (req) => {
           if (!enriquecida.estruturado) {
             throw new Error('O perfil de tarefa devolveu texto simples.');
           }
-          return enriquecida;
+          const acao = montarAcaoTarefa(enriquecida.campos, {
+            nome: classificacao.classificador,
+            versao: classificacao.versao,
+            classe: classificacao.classe,
+            certeza: classificacao.certeza,
+          });
+          return json({ texto: resultado.texto, acao }, 200, cors, headersDeTiming());
         });
-
-        return json(
-          {
-            texto: resultado.texto,
-            acao: {
-              tipo: 'abrir_tarefa',
-              titulo: tarefa.campos.titulo.texto,
-              descricao: tarefa.campos.descricao.texto,
-              classificacao: {
-                nome: classificacao.classificador,
-                versao: classificacao.versao,
-                classe: classificacao.classe,
-                certeza: classificacao.certeza,
-              },
-            },
-          },
-          200,
-          cors,
-          headersDeTiming(),
-        );
       } catch (erro) {
         console.warn(
           'ditar task enrichment failed, returning transcription:',

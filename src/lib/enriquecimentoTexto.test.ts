@@ -46,8 +46,14 @@ describe('converterRespostaEnriquecimento', () => {
     const sugestao = converterRespostaEnriquecimento('comentário original', {
       estruturado: true,
       campos: {
-        titulo: { texto: 'Revisar contrato', destino: 'simples' },
-        descricao: { texto: '**Contexto:** contrato.', destino: 'rico' },
+        titulo: {
+          valor: { tipo: 'texto', texto: 'Revisar contrato' },
+          destino: 'simples',
+        },
+        descricao: {
+          valor: { tipo: 'texto', texto: '**Contexto:** contrato.' },
+          destino: 'rico',
+        },
       },
     });
 
@@ -59,6 +65,26 @@ describe('converterRespostaEnriquecimento', () => {
         descricao: { conteudo: { type: 'doc' } },
       },
     });
+  });
+
+  it('campo anulável vira texto vazio e campo numérico vira o literal', () => {
+    const sugestao = converterRespostaEnriquecimento('origem', {
+      estruturado: true,
+      campos: {
+        responsavel_mencionado: {
+          valor: { tipo: 'texto', texto: null },
+          destino: 'simples',
+        },
+        horas_estimadas: {
+          valor: { tipo: 'numero', numero: 4 },
+          destino: 'simples',
+        },
+      },
+    });
+
+    if (!sugestao.estruturado) throw new Error('esperava sugestão estruturada');
+    expect(sugestao.campos.responsavel_mencionado.conteudo).toBe('');
+    expect(sugestao.campos.horas_estimadas.conteudo).toBe('4');
   });
 
   it('só permite aplicar a sugestão enquanto a origem continua igual', () => {

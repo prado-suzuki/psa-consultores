@@ -4,9 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type EstadoDitado = 'ocioso' | 'gravando' | 'transcrevendo' | 'erro';
 
+/**
+ * Tarefa extraída pela Edge Function. Os campos *_mencionado carregam NOMES como
+ * ditados — nunca IDs: quem resolve contra os cadastros permitidos é o frontend
+ * (`src/lib/resolverTarefaDitada.ts`).
+ */
 export interface TarefaSugeridaDoDitado {
   titulo: string;
   descricao: string;
+  responsavel_mencionado: string | null;
+  cliente_mencionado: string | null;
+  projeto_mencionado: string | null;
+  horas_estimadas: number | null;
   transcricaoOriginal: string;
   classificacao: {
     nome: string;
@@ -24,6 +33,10 @@ export type ResultadoDitado =
         tipo: 'abrir_tarefa';
         titulo: string;
         descricao: string;
+        responsavel_mencionado: string | null;
+        cliente_mencionado: string | null;
+        projeto_mencionado: string | null;
+        horas_estimadas: number | null;
         classificacao: TarefaSugeridaDoDitado['classificacao'];
       };
     };

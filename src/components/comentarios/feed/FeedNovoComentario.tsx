@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
@@ -9,6 +10,7 @@ import {
   type MotivoDoDestino,
 } from '@/components/comentarios/feed/EscolherDestinoDaFala';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { feedComentariosQueryKeyPrefix } from '@/hooks/useDomainFeedComentarios';
 import {
   mentionCandidatesQueryOptions,
@@ -16,13 +18,16 @@ import {
 } from '@/hooks/useDomainMentionCandidates';
 import { useDomainOrgComments } from '@/hooks/useDomainOrgComments';
 import { useOrgTasks } from '@/hooks/useOrgTasks';
+import { useTarefaDitadaResolvida } from '@/hooks/useTarefaDitadaResolvida';
+import type { TarefaSugeridaDoDitado } from '@/hooks/useDitado';
 import {
   useClusterIdByPageCategory,
   useExternalClients,
   useOrgProjectsForFilter,
   useTeamMembersForTasks,
 } from '@/hooks/useTaxReferenceData';
-import { markdownEnriquecidoParaDoc } from '@/lib/enriquecimentoTexto';
+import type { CampoNaoResolvido } from '@/lib/resolverTarefaDitada';
+import { mensagemCampoNaoResolvido } from '@/lib/resolverTarefaDitada';
 import type { AreaDeProjetos } from '@/lib/feedComentarios';
 import {
   alvoDoDestino,
@@ -35,7 +40,6 @@ import {
 import type { FeedFiltros } from '@/lib/feedFiltros';
 import { expandirMencaoTodos } from '@/lib/orgCommentMentions';
 import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
-import { serializeTarefaRichText } from '@/lib/tarefaRichText';
 
 interface FeedNovoComentarioProps {
   area: AreaDeProjetos;
@@ -48,8 +52,13 @@ interface FeedNovoComentarioProps {
 /** Desistir da escolha de destino não é erro: só interrompe o envio. */
 class EnvioDesfeito extends Error {}
 
+/**
+ * A sugestão ditada é guardada INTEIRA (menções e transcrição original) e o
+ * projeto do contexto da tela é anotado à parte: quem resolve os nomes em IDs é
+ * `useTarefaDitadaResolvida`, dentro do modal, com as listas que a tela já usa.
+ */
 interface TarefaDoDitado {
-  valores: TaskModalInitialValues;
+  sugestao: TarefaSugeridaDoDitado;
   projetoId: string | null;
 }
 
@@ -228,10 +237,7 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
           restaurarDitadoComoComentarioRef.current = usarComoComentario;
           tarefaDoDitadoCriadaRef.current = false;
           setTarefaDoDitado({
-            valores: {
-              title: sugestao.titulo,
-              description: serializeTarefaRichText(markdownEnriquecidoParaDoc(sugestao.descricao)),
-            },
+            sugestao,
             projetoId: alvo?.projectId ?? filtros.projetoId ?? null,
           });
         }}
@@ -359,13 +365,61 @@ function ModalTarefaDoDitado({
 }) {
   const { data: clusterId } = useClusterIdByPageCategory(area);
   const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
+  const { carregando, valores, camposNaoResolvidos, conflitos } = useTarefaDitadaResolvida({
+    sugestao: tarefa.sugestao,
+    projetoDaTela: tarefa.projetoId,
+    membrosDaArea: teamMembers,
+  });
 
-  if (tarefa.projetoId) {
+  /*
+    Aviso não bloqueante (um por abertura, quando a resolução fica pronta): a
+    menção que não se resolveu não preenche campo nenhum, e quem decide é a
+    revisão no modal — os obrigatórios continuam barrando o salvamento como
+    sempre fizeram. Conflitos (ex.: cliente incompatível com o projeto) entram
+    no mesmo toast. Sem diálogo novo: não é o ciclo desta frente.
+  */
+  const avisosExibidosRef = useRef(false);
+  useEffect(() => {
+    if (carregando || avisosExibidosRef.current) return;
+    avisosExibidosRef.current = true;
+    const mencaoDe = (campo: CampoNaoResolvido): string | null =>
+      campo === 'responsavel'
+        ? tarefa.sugestao.responsavel_mencionado
+        : campo === 'cliente'
+          ? tarefa.sugestao.cliente_mencionado
+          : tarefa.sugestao.projeto_mencionado;
+    const avisos = camposNaoResolvidos.flatMap((campo) => {
+      const mencao = mencaoDe(campo);
+      return mencao?.trim() ? [mensagemCampoNaoResolvido(campo, mencao)] : [];
+    });
+    avisos.push(...conflitos);
+    if (avisos.length > 0) {
+      toast.info('Confira a tarefa sugerida', { description: avisos.join(' ') });
+    }
+  }, [carregando, camposNaoResolvidos, conflitos, tarefa.sugestao]);
+
+  // A resolução depende de listas de cadastro chegarem do banco; o modal da
+  // tarefa só abre com os valores definidos — sem abrir pela metade.
+  if (carregando || !valores) {
+    return (
+      <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
+        <DialogContent className="max-w-sm">
+          <div className="flex items-center justify-center gap-3 py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+            <span className="text-sm text-muted-foreground">Resolvendo a tarefa ditada…</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (valores.project_id) {
     return (
       <ModalTarefaDoDitadoComProjeto
         area={area}
-        tarefa={tarefa}
+        projectId={valores.project_id}
         teamMembers={teamMembers}
+        valores={valores}
         onCreated={onCreated}
         onFechar={onFechar}
       />
@@ -378,7 +432,7 @@ function ModalTarefaDoDitado({
       onOpenChange={(aberto) => !aberto && onFechar()}
       area={area}
       teamMembers={teamMembers}
-      initialValues={tarefa.valores}
+      initialValues={valores}
       onCreated={onCreated}
     />
   );
@@ -386,18 +440,20 @@ function ModalTarefaDoDitado({
 
 function ModalTarefaDoDitadoComProjeto({
   area,
-  tarefa,
+  projectId,
   teamMembers,
+  valores,
   onCreated,
   onFechar,
 }: {
   area: AreaDeProjetos;
-  tarefa: TarefaDoDitado;
+  projectId: string;
   teamMembers: { id: string; name: string }[];
+  valores: TaskModalInitialValues;
   onCreated: () => void;
   onFechar: () => void;
 }) {
-  const { data: tarefas = [] } = useOrgTasks({ projectId: tarefa.projetoId! });
+  const { data: tarefas = [] } = useOrgTasks({ projectId });
   const tarefasMae = tarefas.filter((item) => !item.parent_task_id);
 
   return (
@@ -407,8 +463,7 @@ function ModalTarefaDoDitadoComProjeto({
       area={area}
       teamMembers={teamMembers}
       parentTasks={tarefasMae}
-      defaultProjectId={tarefa.projetoId}
-      initialValues={tarefa.valores}
+      initialValues={valores}
       onCreated={onCreated}
     />
   );

@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ import {
   type ErrosDoRascunho,
   type PerfilEnriquecimento,
   type RascunhoDePerfil,
+  type TipoDeCampoSaida,
   type TipoDeSaida,
   type ValoresDoPerfil,
 } from '@/lib/enriquecimentoPerfis';
@@ -89,7 +91,10 @@ export function PerfilEnriquecimentoForm({
     setErros((atual) => ({ ...atual, campos: undefined }));
   };
 
-  const mudarCampoDeSaida = (indice: number, mudanca: Partial<{ nome: string; descricao: string }>) => {
+  const mudarCampoDeSaida = (
+    indice: number,
+    mudanca: Partial<{ nome: string; descricao: string; tipo: TipoDeCampoSaida; nullable: boolean }>,
+  ) => {
     setRascunho((atual) => ({
       ...atual,
       campos: atual.campos.map((c, i) => (i === indice ? { ...c, ...mudanca } : c)),
@@ -102,7 +107,10 @@ export function PerfilEnriquecimentoForm({
   };
 
   const adicionarCampo = () =>
-    setRascunho((atual) => ({ ...atual, campos: [...atual.campos, { nome: '', descricao: '' }] }));
+    setRascunho((atual) => ({
+      ...atual,
+      campos: [...atual.campos, { nome: '', descricao: '', tipo: 'texto', nullable: false }],
+    }));
 
   const removerCampo = (indice: number) =>
     setRascunho((atual) => ({ ...atual, campos: atual.campos.filter((_, i) => i !== indice) }));
@@ -274,37 +282,70 @@ export function PerfilEnriquecimentoForm({
               {rascunho.campos.map((campoDeSaida, indice) => {
                 const erro = erroDeCampo(indice);
                 return (
-                  <div key={indice} className="grid gap-2 md:grid-cols-[minmax(0,10rem)_1fr_auto]">
-                    <div className="grid content-start gap-1">
-                      <Input
-                        value={campoDeSaida.nome}
-                        onChange={(e) => mudarCampoDeSaida(indice, { nome: e.target.value })}
-                        placeholder="nome_tecnico"
-                        aria-label={`Nome técnico do campo ${indice + 1}`}
-                        autoComplete="off"
-                      />
-                      {erro?.nome && <p className="text-xs text-destructive">{erro.nome}</p>}
+                  <div key={indice} className="grid gap-2">
+                    <div className="grid gap-2 md:grid-cols-[minmax(0,10rem)_1fr_auto]">
+                      <div className="grid content-start gap-1">
+                        <Input
+                          value={campoDeSaida.nome}
+                          onChange={(e) => mudarCampoDeSaida(indice, { nome: e.target.value })}
+                          placeholder="nome_tecnico"
+                          aria-label={`Nome técnico do campo ${indice + 1}`}
+                          autoComplete="off"
+                        />
+                        {erro?.nome && <p className="text-xs text-destructive">{erro.nome}</p>}
+                      </div>
+                      <div className="grid content-start gap-1">
+                        <Input
+                          value={campoDeSaida.descricao}
+                          onChange={(e) => mudarCampoDeSaida(indice, { descricao: e.target.value })}
+                          placeholder="Descrição enviada ao modelo"
+                          aria-label={`Descrição do campo ${indice + 1}`}
+                          autoComplete="off"
+                        />
+                        {erro?.descricao && <p className="text-xs text-destructive">{erro.descricao}</p>}
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removerCampo(indice)}
+                        disabled={salvando}
+                        aria-label={`Remover campo ${indice + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="grid content-start gap-1">
-                      <Input
-                        value={campoDeSaida.descricao}
-                        onChange={(e) => mudarCampoDeSaida(indice, { descricao: e.target.value })}
-                        placeholder="Descrição enviada ao modelo"
-                        aria-label={`Descrição do campo ${indice + 1}`}
-                        autoComplete="off"
-                      />
-                      {erro?.descricao && <p className="text-xs text-destructive">{erro.descricao}</p>}
+                    {/* Metadados do contrato: sem estes controles, reabrir e salvar
+                        um perfil apagaria tipo e nullable em silêncio. */}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pl-0.5">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        Tipo
+                        <select
+                          value={campoDeSaida.tipo}
+                          onChange={(e) =>
+                            mudarCampoDeSaida(indice, { tipo: e.target.value as TipoDeCampoSaida })
+                          }
+                          aria-label={`Tipo do campo ${indice + 1}`}
+                          className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <option value="texto">Texto</option>
+                          <option value="numero">Número</option>
+                        </select>
+                      </label>
+                      <label
+                        htmlFor={`campo-${indice}-nullable`}
+                        className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <Checkbox
+                          id={`campo-${indice}-nullable`}
+                          checked={campoDeSaida.nullable}
+                          onCheckedChange={(valor) =>
+                            mudarCampoDeSaida(indice, { nullable: valor === true })
+                          }
+                        />
+                        Pode ficar vazio (a IA devolve null)
+                      </label>
                     </div>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removerCampo(indice)}
-                      disabled={salvando}
-                      aria-label={`Remover campo ${indice + 1}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 );
               })}

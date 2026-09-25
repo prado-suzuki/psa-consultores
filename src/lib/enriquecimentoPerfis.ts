@@ -18,17 +18,27 @@
 
 export type TipoDeSaida = 'texto' | 'estruturada';
 
+/** Tipo do valor de um campo estruturado — o mesmo vocabulário do contrato da Edge Function. */
+export type TipoDeCampoSaida = 'texto' | 'numero';
+
 export interface CampoDeSaida {
   /** Nome técnico do campo: a chave com que o consumidor lê a resposta. */
   nome: string;
   /** Instrução enviada ao modelo sobre o que colocar no campo. */
   descricao: string;
+  /** 'texto' (padrão) ou 'numero' — vira o type do schema enviado ao modelo. */
+  tipo: TipoDeCampoSaida;
+  /** Campo anulável aceita null na resposta quando a informação não existir na fala. */
+  nullable: boolean;
 }
 
 export type ContratoSaidaTexto = { tipo: 'texto' };
 export type ContratoSaidaEstruturada = {
   tipo: 'estruturada';
-  campos: Record<string, { descricao: string }>;
+  campos: Record<
+    string,
+    { descricao: string; tipo?: TipoDeCampoSaida; nullable?: boolean }
+  >;
 };
 export type ContratoSaida = ContratoSaidaTexto | ContratoSaidaEstruturada;
 
@@ -90,6 +100,10 @@ export function rascunhoVazio(): RascunhoDePerfil {
  * Monta o jsonb que vai para a coluna `contrato_saida`. A lista de campos vira
  * objeto — é a forma que a edge function lê — e a ordem do array é preservada
  * como ordem de inserção do objeto.
+ *
+ * `tipo` e `nullable` só entram no jsonb quando fogem do default ('texto' /
+ * false): um perfil antigo, editado sem tocar nesses metadados, continua
+ * byte a byte igual — e o diff de auditoria não registra mudança fantasma.
  */
 export function contratoSaidaDe(
   rascunho: Pick<RascunhoDePerfil, 'tipoDeSaida' | 'campos'>,
@@ -98,7 +112,14 @@ export function contratoSaidaDe(
   return {
     tipo: 'estruturada',
     campos: Object.fromEntries(
-      rascunho.campos.map((campo) => [campo.nome, { descricao: campo.descricao }]),
+      rascunho.campos.map((campo) => {
+        const definicao: ContratoSaidaEstruturada['campos'][string] = {
+          descricao: campo.descricao,
+        };
+        if (campo.tipo !== 'texto') definicao.tipo = campo.tipo;
+        if (campo.nullable) definicao.nullable = true;
+        return [campo.nome, definicao];
+      }),
     ),
   };
 }
@@ -107,7 +128,8 @@ export function contratoSaidaDe(
  * Lê o jsonb do banco sem confiar na forma dele. Qualquer desvio (objeto
  * estruturado sem campos, tipo desconhecido, não-objeto) cai em "texto" com
  * lista vazia — o formulário continua editável em vez de estourar numa tela que
- * o admin não consegue consertar.
+ * o admin não consegue consertar. Campos no formato antigo (sem tipo/nullable)
+ * são interpretados como texto obrigatório, os defaults do contrato.
  */
 export function lerContratoSaida(valor: unknown): {
   tipoDeSaida: TipoDeSaida;
@@ -122,13 +144,18 @@ export function lerContratoSaida(valor: unknown): {
   const brutos = registro.campos;
   const campos: CampoDeSaida[] =
     brutos && typeof brutos === 'object' && !Array.isArray(brutos)
-      ? Object.entries(brutos as Record<string, unknown>).map(([nome, definicao]) => ({
-          nome,
-          descricao:
-            definicao && typeof definicao === 'object'
-              ? String((definicao as Record<string, unknown>).descricao ?? '')
-              : '',
-        }))
+      ? Object.entries(brutos as Record<string, unknown>).map(([nome, definicao]) => {
+          const configuracao =
+            definicao && typeof definicao === 'object' && !Array.isArray(definicao)
+              ? (definicao as Record<string, unknown>)
+              : {};
+          return {
+            nome,
+            descricao: String(configuracao.descricao ?? ''),
+            tipo: configuracao.tipo === 'numero' ? 'numero' : 'texto',
+            nullable: configuracao.nullable === true,
+          };
+        })
       : [];
   return { tipoDeSaida: 'estruturada', campos };
 }

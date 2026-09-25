@@ -48,13 +48,13 @@ describe('montagem de contrato_saida', () => {
     expect(contratoSaidaDe(rascunhoValido())).toEqual({ tipo: 'texto' });
   });
 
-  it('saída estruturada converte a lista de campos em objeto', () => {
+  it('saída estruturada converte a lista de campos em objeto, omitindo os defaults', () => {
     const contrato = contratoSaidaDe(
       rascunhoValido({
         tipoDeSaida: 'estruturada',
         campos: [
-          { nome: 'titulo', descricao: 'Título curto da tarefa.' },
-          { nome: 'descricao', descricao: 'Descrição completa da tarefa.' },
+          { nome: 'titulo', descricao: 'Título curto da tarefa.', tipo: 'texto', nullable: false },
+          { nome: 'descricao', descricao: 'Descrição completa da tarefa.', tipo: 'texto', nullable: false },
         ],
       }),
     );
@@ -68,12 +68,58 @@ describe('montagem de contrato_saida', () => {
     });
   });
 
+  it('campo numérico e anulável levam os metadados para o contrato', () => {
+    const contrato = contratoSaidaDe(
+      rascunhoValido({
+        tipoDeSaida: 'estruturada',
+        campos: [
+          { nome: 'horas_estimadas', descricao: 'Horas faladas.', tipo: 'numero', nullable: true },
+          { nome: 'titulo', descricao: 'Título.', tipo: 'texto', nullable: false },
+        ],
+      }),
+    );
+
+    expect(contrato).toEqual({
+      tipo: 'estruturada',
+      campos: {
+        horas_estimadas: { descricao: 'Horas faladas.', tipo: 'numero', nullable: true },
+        // Defaults não viram chave: editar um perfil antigo não o reescreve.
+        titulo: { descricao: 'Título.' },
+      },
+    });
+  });
+
   it('a leitura devolve o contrato para o formulário sem perder campos', () => {
     const lido = lerContratoSaida(PERFIL_ESTRUTURADO.contrato_saida);
 
     expect(lido.tipoDeSaida).toBe('estruturada');
     expect(lido.campos.map((c) => c.nome)).toEqual(['titulo', 'descricao']);
     expect(lido.campos[0].descricao).toBe('Título curto da tarefa.');
+    // Formato antigo: defaults preenchidos, para o formulário editar explicitamente.
+    expect(lido.campos[0]).toEqual({
+      nome: 'titulo',
+      descricao: 'Título curto da tarefa.',
+      tipo: 'texto',
+      nullable: false,
+    });
+  });
+
+  it('a leitura preserva tipo e nullable declarados no jsonb', () => {
+    const lido = lerContratoSaida({
+      tipo: 'estruturada',
+      campos: {
+        horas_estimadas: { descricao: 'Horas.', tipo: 'numero', nullable: true },
+        responsavel_mencionado: { descricao: 'Nome.', nullable: true },
+      },
+    });
+
+    expect(lido.campos[0]).toEqual({
+      nome: 'horas_estimadas',
+      descricao: 'Horas.',
+      tipo: 'numero',
+      nullable: true,
+    });
+    expect(lido.campos[1]).toMatchObject({ tipo: 'texto', nullable: true });
   });
 
   it('a ida e volta linha → rascunho → valores reproduz a linha original', () => {
@@ -88,6 +134,29 @@ describe('montagem de contrato_saida', () => {
     expect(valores.ativo).toBe(true);
   });
 
+  it('editar um perfil no formato antigo sem tocar nos campos não muda o contrato', () => {
+    // A tela salva o contrato inteiro: se a leitura não preservasse o formato,
+    // um ajuste só de instruções apareceria como mudança de contrato no audit.
+    const rascunho = rascunhoDe(PERFIL_ESTRUTURADO);
+    const valores = valoresDoRascunho({ ...rascunho, instrucoes: 'Outras instruções.' });
+
+    expect(valores.contrato_saida).toEqual(PERFIL_ESTRUTURADO.contrato_saida);
+  });
+
+  it('a ida e volta preserva tipo e nullable dos campos novos', () => {
+    const contratoNovo = {
+      tipo: 'estruturada' as const,
+      campos: {
+        horas_estimadas: { descricao: 'Horas.', tipo: 'numero' as const, nullable: true },
+      },
+    };
+    const valores = valoresDoRascunho(
+      rascunhoDe({ ...PERFIL_ESTRUTURADO, contrato_saida: contratoNovo }),
+    );
+
+    expect(valores.contrato_saida).toEqual(contratoNovo);
+  });
+
   it('jsonb com forma inesperada não estoura: cai em texto com lista vazia', () => {
     // O banco só aceita o que a função valida, mas uma leitura defensiva custa
     // nada e evita tela quebrada caso a forma evolua.
@@ -99,7 +168,7 @@ describe('montagem de contrato_saida', () => {
     });
     expect(lerContratoSaida({ tipo: 'estruturada', campos: { a: 'sem objeto' } })).toEqual({
       tipoDeSaida: 'estruturada',
-      campos: [{ nome: 'a', descricao: '' }],
+      campos: [{ nome: 'a', descricao: '', tipo: 'texto', nullable: false }],
     });
   });
 });
@@ -147,7 +216,7 @@ describe('validação antes de salvar', () => {
   });
 
   it('nome de campo segue o padrão de chave do contrato', () => {
-    const campos = (nome: string) => [{ nome, descricao: 'ok' }];
+    const campos = (nome: string) => [{ nome, descricao: 'ok', tipo: 'texto' as const, nullable: false }];
     const errosDe = (nome: string) =>
       validarRascunho(rascunhoValido({ tipoDeSaida: 'estruturada', campos: campos(nome) }));
 
@@ -164,8 +233,8 @@ describe('validação antes de salvar', () => {
       rascunhoValido({
         tipoDeSaida: 'estruturada',
         campos: [
-          { nome: 'titulo', descricao: 'um' },
-          { nome: 'titulo', descricao: 'dois' },
+          { nome: 'titulo', descricao: 'um', tipo: 'texto' as const, nullable: false },
+          { nome: 'titulo', descricao: 'dois', tipo: 'texto' as const, nullable: false },
         ],
       }),
     );
@@ -179,8 +248,8 @@ describe('validação antes de salvar', () => {
       rascunhoValido({
         tipoDeSaida: 'estruturada',
         campos: [
-          { nome: 'titulo', descricao: 'ok' },
-          { nome: 'descricao', descricao: '' },
+          { nome: 'titulo', descricao: 'ok', tipo: 'texto' as const, nullable: false },
+          { nome: 'descricao', descricao: '', tipo: 'texto' as const, nullable: false },
         ],
       }),
     );
