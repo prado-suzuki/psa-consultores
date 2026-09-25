@@ -4,6 +4,7 @@ import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -172,20 +173,33 @@ const DiagnosticoPatrimonial = () => {
                   <Landmark className="h-4 w-4 text-muted-foreground" />
                   Bens ({bensFiltrados.length}{bens.length !== bensFiltrados.length ? ` de ${bens.length}` : ''})
                 </CardTitle>
-                <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>
-                  <Plus className="h-3.5 w-3.5" /> Novo bem
-                </Button>
+                {bensFiltrados.length > 0 && (
+                  <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>
+                    <Plus className="h-3.5 w-3.5" /> Novo bem
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {erroBens ? (
                   <EstadoDeFalha oQue="os bens deste cliente" erro={erroBens}
                                  aoTentarDeNovo={() => recarregarBens()} />
                 ) : bensFiltrados.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-6 text-center">
-                    {buscaAtiva
-                      ? 'Nenhum bem encontrado com os filtros aplicados.'
-                      : 'Nenhum bem cadastrado para este cliente.'}
-                  </p>
+                  buscaAtiva ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      Nenhum bem encontrado com os filtros aplicados.
+                    </p>
+                  ) : (
+                    <EstadoVazio
+                      titulo="Nenhum bem cadastrado para este cliente."
+                      descricao="O patrimônio daqui alimenta o quadro societário, a calculadora de ITCMD e os documentos gerados para o cliente."
+                      icone={<Landmark className="h-10 w-10 text-muted-foreground opacity-50" />}
+                      acao={
+                        <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>
+                          <Plus className="h-4 w-4" /> Novo bem
+                        </Button>
+                      }
+                    />
+                  )
                 ) : (
                   <div className="rounded-md border overflow-hidden">
                     <Table>

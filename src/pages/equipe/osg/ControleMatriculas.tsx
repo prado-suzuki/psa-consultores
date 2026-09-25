@@ -4,6 +4,7 @@ import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EstadoDeFalha } from '@/components/shared/EstadoDeFalha';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -151,9 +152,11 @@ const ControleMatriculas = () => {
                 </Badge>
               )}
             </CardTitle>
-            <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, matricula: null })}>
-              <Plus className="h-3.5 w-3.5" /> Nova matrícula
-            </Button>
+            {matriculasFiltradas.length > 0 && (
+              <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, matricula: null })}>
+                <Plus className="h-3.5 w-3.5" /> Nova matrícula
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -161,11 +164,22 @@ const ControleMatriculas = () => {
             ) : error ? (
               <EstadoDeFalha oQue="as matrículas" erro={error} aoTentarDeNovo={() => refetch()} />
             ) : matriculasFiltradas.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                {buscaAtiva
-                  ? 'Nenhuma matrícula encontrada com os filtros aplicados.'
-                  : 'Nenhuma matrícula cadastrada para este cliente.'}
-              </p>
+              buscaAtiva ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  Nenhuma matrícula encontrada com os filtros aplicados.
+                </p>
+              ) : (
+                <EstadoVazio
+                  titulo="Nenhuma matrícula cadastrada para este cliente."
+                  descricao="As matrículas ancoram os bens do cadastro patrimonial e as explorações rurais do cliente."
+                  icone={<FileText className="h-10 w-10 text-muted-foreground opacity-50" />}
+                  acao={
+                    <Button size="sm" className="gap-1.5" onClick={() => setModal({ open: true, matricula: null })}>
+                      <Plus className="h-4 w-4" /> Nova matrícula
+                    </Button>
+                  }
+                />
+              )
             ) : (
               <div className="rounded-md border overflow-hidden">
                 <Table>

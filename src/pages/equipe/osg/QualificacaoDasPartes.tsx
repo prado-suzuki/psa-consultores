@@ -24,6 +24,7 @@ import {
   type TipoPessoa,
 } from '@/hooks/useQualificacaoDasPartes';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
+import { EstadoVazio } from '@/components/shared/EstadoVazio';
 
 // Rótulos de tipo_empresa; PR e CN ganham destaque em verde na coluna "Papel".
 const TIPO_EMPRESA_LABELS: Record<string, string> = {
@@ -88,15 +89,33 @@ const PessoasTable = ({
         {icone}
         {titulo} ({pessoas.length})
       </CardTitle>
-      <Button size="sm" className="gap-1.5" onClick={onNovo}>
-        <Plus className="h-3.5 w-3.5" /> Nova {tipo}
-      </Button>
+      {/* O botão só fica no cabeçalho quando a lista tem conteúdo; vazia, a
+          caixa de baixo é quem o oferece, e a mesma ação não aparece duas
+          vezes no mesmo card. */}
+      {pessoas.length > 0 && (
+        <Button size="sm" className="gap-1.5" onClick={onNovo}>
+          <Plus className="h-3.5 w-3.5" /> Nova {tipo}
+        </Button>
+      )}
     </CardHeader>
     <CardContent>
       {pessoas.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">
-          {buscaAtiva ? 'Nenhuma pessoa encontrada.' : `Nenhuma ${tipo} cadastrada para este cliente.`}
-        </p>
+        buscaAtiva ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Nenhuma pessoa encontrada.
+          </p>
+        ) : (
+          <EstadoVazio
+            titulo={`Nenhuma ${tipo === 'PJ' ? 'pessoa jurídica' : 'pessoa física'} cadastrada para este cliente.`}
+            descricao="As partes daqui alimentam o checklist de documentos, a calculadora de ITCMD, o quadro societário e a geração de contratos."
+            icone={icone}
+            acao={
+              <Button size="sm" className="gap-1.5" onClick={onNovo}>
+                <Plus className="h-4 w-4" /> Nova {tipo}
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="rounded-md border overflow-hidden">
           <Table className="table-fixed">
