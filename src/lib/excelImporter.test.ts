@@ -68,3 +68,46 @@ describe('processExcelData — descrição em markdown', () => {
     expect(primeiraDescricao('   \n  ')).toBe('');
   });
 });
+
+describe('processExcelData — descrição da tarefa pai', () => {
+  function grupo(rows: Partial<ExcelRow>[]) {
+    return processExcelData(
+      rows.map((row) => ({ ...linha(''), ...row })) as ExcelRow[],
+      [],
+      [],
+      [],
+    ).taskGroups[0];
+  }
+
+  it('lê a coluna própria e a converte em documento do editor', () => {
+    const { description } = grupo([
+      { 'Descrição da Tarefa Pai': '## O QUE É\n\nLigar o cadastro ao vínculo.' },
+      { Subtarefa: 'Outra subtarefa' },
+    ]);
+
+    expect(hasTarefaRichTextMarker(description)).toBe(true);
+    expect(parseTarefaRichText(description)).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'O QUE É', marks: [{ type: 'bold' }] }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Ligar o cadastro ao vínculo.' }] },
+      ],
+    });
+  });
+
+  it('cai na Descrição da linha sem Subtarefa, que é onde a exportação grava o pai', () => {
+    const { description } = grupo([
+      { Subtarefa: '', Descrição: 'Descrição do pai exportada' },
+      { Subtarefa: 'Filha', Descrição: 'Descrição da filha' },
+    ]);
+
+    expect(parseTarefaRichText(description)).toEqual({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Descrição do pai exportada' }] }],
+    });
+  });
+
+  it('não empresta a descrição de uma subtarefa para o pai', () => {
+    expect(grupo([{ Subtarefa: 'Filha', Descrição: 'Só da filha' }]).description).toBe('');
+  });
+});

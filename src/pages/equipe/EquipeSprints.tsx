@@ -18,8 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
- import { Plus, Calendar, Pencil, Trash2 } from 'lucide-react';
+ import { Plus, Calendar, Download, Pencil, Trash2 } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { baixarModeloDeSprint } from '@/lib/modeloImportacaoSprint';
 
 const EquipeSprints = () => {
   const { user } = useAuth();
@@ -182,6 +183,23 @@ const EquipeSprints = () => {
   const toggleSprintExpanded = (sprintId: string) => {
   };
 
+  const handleBaixarModelo = () => {
+    try {
+      baixarModeloDeSprint();
+      toast({
+        title: 'Modelo baixado!',
+        description: 'Preencha a planilha e importe pela tela de detalhes da sprint.',
+      });
+    } catch (error) {
+      console.error('Error downloading sprint template:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível baixar o modelo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const config = sprintStatus(status);
     if (!config) return <Badge variant="outline">{status}</Badge>;
@@ -252,6 +270,11 @@ const EquipeSprints = () => {
       title="Gestão de Sprints" 
       subtitle={projectFilter ? `Sprints do projeto: ${getProjectName(projectFilter) || 'Carregando...'}` :"Sprints semanais do time"}
       headerActions={
+        <>
+        <Button variant="outline" onClick={handleBaixarModelo}>
+          <Download className="h-4 w-4 mr-2" />
+          Baixar Modelo
+        </Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90">
@@ -350,6 +373,7 @@ const EquipeSprints = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </>
       }
     >
       {/* Lista de Sprints */}

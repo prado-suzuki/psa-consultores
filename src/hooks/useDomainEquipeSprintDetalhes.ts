@@ -1040,7 +1040,8 @@ export function useDomainEquipeSprintDetalhes(
           .insert({
             sprint_id: sprint.id,
             title: group.title,
-            description: `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
+            description:
+              group.description || `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
             assigned_to: responsibleId,
             start_date: group.minDate || sprint.start_date,
             due_date: group.maxDate || sprint.end_date,

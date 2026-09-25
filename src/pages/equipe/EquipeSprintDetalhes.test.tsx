@@ -639,6 +639,7 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
         minDate: '2026-07-22',
         maxDate: '2026-07-23',
         totalHours: 2,
+        description: 'Descrição do Grupo 1',
         projectName: null,
         processName: null,
         subtasks: [
@@ -657,6 +658,7 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
       },
       {
         title: 'Grupo 2',
+        description: '',
         responsible: '',
         minDate: null,
         maxDate: null,
@@ -676,7 +678,12 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
       }),
     ).rejects.toMatchObject({ message: 'falha no segundo grupo' });
     expect(inserts).toHaveLength(3);
-    expect(inserts[0]).toMatchObject({ title: 'Grupo 1', assigned_to: 'user-1', parent_id: null });
+    expect(inserts[0]).toMatchObject({
+      title: 'Grupo 1',
+      description: 'Descrição do Grupo 1',
+      assigned_to: 'user-1',
+      parent_id: null,
+    });
     expect(inserts[1]).toEqual([
       expect.objectContaining({
         title: 'Sub 1',
@@ -995,7 +1002,7 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     await user.click(screen.getByRole('button', { name: 'Importar Excel' }));
     expect(
       screen.getByText(
-        /O arquivo deve conter colunas: Sprint, ID, Título, Subtarefa, Responsável, Descrição, Estimativa \(h\), Data de Entrega/,
+        /O arquivo deve conter colunas: Sprint, ID, Título, Descrição da Tarefa Pai, Subtarefa, Responsável, Descrição, Estimativa \(h\), Data de Entrega/,
       ),
     ).toBeInTheDocument();
     const input = container.querySelector('input[type="file"]');

@@ -21,6 +21,7 @@ export interface ExcelRow {
   Subtarefa: string;
   Responsável: string;
   Descrição: string;
+  'Descrição da Tarefa Pai'?: string;
   'Estimativa (h)': number;
   'Data de Entrega': string;
   Projeto?: string;
@@ -41,6 +42,7 @@ export interface ParsedTask {
 
 export interface TaskGroup {
   title: string;
+  description: string;
   responsible: string;
   subtasks: ParsedTask[];
   totalHours: number;
@@ -217,6 +219,17 @@ function descricaoParaRichText(valor: string | undefined): string {
   return serializeTarefaRichText({ type: 'doc', content: markdownParaConteudo(valor) });
 }
 
+/**
+ * Descrição da tarefa pai de uma linha. A coluna própria vence; sem ela, vale a
+ * `Descrição` de uma linha sem `Subtarefa`, que é onde a exportação da sprint grava a
+ * descrição do pai — assim a planilha exportada volta inteira na reimportação.
+ */
+function descricaoDoPaiNaLinha(row: ExcelRow): string {
+  const propria = row['Descrição da Tarefa Pai'];
+  if (propria?.trim()) return propria;
+  return row.Subtarefa?.trim() ? '' : row.Descrição || '';
+}
+
 export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects: Project[], processes: Process[]): ImportPreview {
   const taskGroups: Map<string, TaskGroup> = new Map();
   const allResponsibles: Set<string> = new Set();
@@ -249,6 +262,7 @@ export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects
     if (!taskGroups.has(groupKey)) {
       taskGroups.set(groupKey, {
         title: groupKey,
+        description: '',
         responsible: responsible,
         subtasks: [],
         totalHours: 0,
@@ -260,6 +274,9 @@ export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects
     }
     
     const group = taskGroups.get(groupKey)!;
+    if (!group.description) {
+      group.description = descricaoParaRichText(descricaoDoPaiNaLinha(row));
+    }
     group.subtasks.push(parsedTask);
     group.totalHours += parsedTask.estimatedHours;
     
@@ -335,7 +352,7 @@ export function convertToDeliverables(
     const parentDeliverable: CreateDeliverableData = {
       sprint_id: sprintId,
       title: group.title,
-      description: `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
+      description: group.description || `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
       assigned_to: parentResponsible,
       start_date: group.minDate || sprintStartDate,
       due_date: group.maxDate || sprintStartDate,

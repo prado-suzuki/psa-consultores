@@ -38,8 +38,8 @@ export function ImportDialog({ controller: c }: { controller: EquipeSprintDetalh
                 Selecionar Arquivo
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                O arquivo deve conter colunas: Sprint, ID, Título, Subtarefa, Responsável,
-                Descrição, Estimativa (h), Data de Entrega
+                O arquivo deve conter colunas: Sprint, ID, Título, Descrição da Tarefa Pai,
+                Subtarefa, Responsável, Descrição, Estimativa (h), Data de Entrega
               </p>
             </div>
           ) : (
@@ -105,6 +105,9 @@ export function ImportDialog({ controller: c }: { controller: EquipeSprintDetalh
                       </div>
                       <div className="text-xs">
                         {group.responsible || 'Sem responsável'} • {group.minDate} - {group.maxDate}
+                        {group.description
+                          ? ' • com descrição da tarefa pai'
+                          : ' • sem descrição da tarefa pai'}
                       </div>
                       <div className="flex gap-3 text-xs">
                         {group.projectName && (
