@@ -203,7 +203,6 @@ const MontagemDocumentos = () => {
               <Button
                 onClick={handleSalvarModelo}
                 disabled={!modeloDialog.form.nome.trim() || salvarModelo.isPending}
-                className="bg-osg-600 hover:bg-osg-700"
               >
                 {salvarModelo.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 {modeloDialog.form.id ? 'Salvar' : 'Criar'}

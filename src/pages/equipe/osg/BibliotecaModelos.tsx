@@ -231,7 +231,7 @@ const BibliotecaModelos = () => {
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
+          <Button size="sm" onClick={abrirNovo}>
             <Plus className="h-4 w-4 mr-1.5" />
             Novo bloco
           </Button>
@@ -362,7 +362,7 @@ const BibliotecaModelos = () => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Crie o primeiro bloco de texto — ele vira peça dos documentos gerados.
                 </p>
-                <Button size="sm" onClick={abrirNovo} className="mt-4 bg-osg-600 hover:bg-osg-700">
+                <Button size="sm" onClick={abrirNovo} className="mt-4">
                   <Plus className="h-4 w-4 mr-1.5" />
                   Criar primeiro bloco
                 </Button>

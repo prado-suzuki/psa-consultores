@@ -240,6 +240,32 @@ tom — que é o que se quer de um estado apagado.
 Onde a função não for evidente pelo JSX, **não adivinhe**: deixe como está e registre a linha.
 Um cinza que virou o token errado é pior que um cinza cru, porque passa a mudar de cor sozinho.
 
+### A hierarquia do botão — primário é ação principal (EX-52, decidido em 24/09)
+
+Medido no OSG Work em 24/09: quatro cores de botão primário convivendo no módulo — o verde do
+token (`Nova PJ`, `Novo bem`), o verde-musgo escrito à mão (`Registrar movimento`, o CD-18), o
+`bg-osg-600` que na OSG é um **marrom** (`Novo bloco`, `Novo modelo`, o "Salvar" dos diálogos de
+bloco) e o `outline` (`Acrescentar atividade`). A cor deixou de dizer hierarquia: preenchido,
+marrom preenchido e contorno davam o mesmo peso a ações de importância diferente.
+
+A regra, aplicada em 25/09:
+
+| Papel do botão | Forma |
+|---|---|
+| **Ação principal** da região, no máximo **um por região** (cabeçalho de página, cabeçalho de card, rodapé de modal) | variant padrão do `Button` (preenchido, `bg-primary`), **sem cor escrita à mão** |
+| **Ação secundária** | `variant="outline"` |
+| **Destrutiva** | `variant="destructive"`, e vermelho só aqui |
+
+"Sem cor escrita à mão" é o mesmo critério do CD-18: se a cor precisa ser nomeada no
+`className`, não é hierarquia, é exceção. Ação de criação segue a regra do EX-31 (cabeçalho do
+card da lista) e o botão que a carrega é o primário daquela região; se duas ações competem pelo
+primário na mesma região, uma delas está no lugar errado — e isso é bug de layout, não de cor.
+
+> **Corrigido nesta decisão:** "Novo bloco" e "Criar primeiro bloco" (Biblioteca), o
+> "Salvar/Criar" do diálogo de modelo (Montagem), o "Salvar ajuste" do `OverrideBlocoDialog` e o
+> "Acrescentar atividade" da Matriz, que era `outline` apesar de ser a ação principal da tela.
+> O chip de `BlocoMontadoCard` (`bg-osg-600 text-white`) fica: é etiqueta de tipo, não botão.
+
 ## 3. As premissas — condição de validade, não "limitação conhecida"
 
 ### A paleta de área vale enquanto o nome acompanhar o ponto

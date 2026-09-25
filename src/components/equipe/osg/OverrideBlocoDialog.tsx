@@ -201,7 +201,7 @@ export function OverrideBlocoDialog({
                 <Button variant="outline" onClick={() => onOpenChange(false)} disabled={ocupado}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSalvar} disabled={!podeSalvar} className="bg-osg-600 hover:bg-osg-700">
+                <Button onClick={handleSalvar} disabled={!podeSalvar}>
                   {salvar.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                   Salvar ajuste deste documento
                 </Button>

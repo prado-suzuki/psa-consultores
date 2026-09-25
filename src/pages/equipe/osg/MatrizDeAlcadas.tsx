@@ -185,7 +185,7 @@ const MatrizDeAlcadas = () => {
                 </div>
               </div>
               {matriz && (
-                <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
+                <Button size="sm" onClick={() => setAcrescentando(true)}>
                   <Plus className="mr-2 h-4 w-4" /> Acrescentar atividade
                 </Button>
               )}
