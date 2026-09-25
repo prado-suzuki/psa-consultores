@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
   toggle: vi.fn(),
   lote: vi.fn(),
   remover: vi.fn(),
+  removerProduto: vi.fn(),
   sucesso: vi.fn(),
 }));
 
@@ -52,6 +53,7 @@ vi.mock('@/hooks/useCategorias', () => ({
   useProdutoServicoToggle: () => ({ mutateAsync: mocks.toggle }),
   useProdutoServicoLote: () => ({ mutateAsync: mocks.lote }),
   useServicosPrestadosDelete: () => ({ remove: mocks.remover }),
+  useProdutoSegmentoDelete: () => ({ remove: mocks.removerProduto }),
 }));
 
 // Dublês dos formulários: revelam em texto o que a bancada passou na prop.
@@ -92,6 +94,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.toggle.mockResolvedValue({ action: 'created', id: 'novo-vinculo' });
   mocks.lote.mockResolvedValue({ acao: 'vincular', criados: [] });
+  mocks.removerProduto.mockResolvedValue(undefined);
 
   dados.produtos = [
     produto('p-cha', 'CHA', CHA, CLUSTER_TAX, 'TAX'),
@@ -374,6 +377,19 @@ describe('vincular e desvincular', () => {
 });
 
 describe('editar o que a tela mostra', () => {
+  it('permite excluir o produto aberto após confirmação', async () => {
+    const user = userEvent.setup();
+    render(<ProdutosServicosTab />);
+    await abrirProduto(user, CHA);
+
+    await user.click(screen.getByRole('button', { name: 'Excluir produto' }));
+    expect(screen.getByText(/será excluído e seus vínculos com serviços serão removidos/)).toBeInTheDocument();
+    expect(mocks.removerProduto).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Excluir', hidden: false }));
+    expect(mocks.removerProduto).toHaveBeenCalledWith(expect.objectContaining({ id: 'p-cha' }));
+  });
+
   // O defeito: `ProdutoFormDialog` sempre soube editar, mas nada na tela lhe
   // passava um produto — só existia o caminho de criar.
   it('o lápis abre o formulário DO produto aberto', async () => {

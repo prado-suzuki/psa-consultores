@@ -26,7 +26,7 @@ import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
 } from '@/lib/produtoServicoNomes';
 import {
-  useProdutoSegmentoList, useProdutoServicoList, useServicosPrestadosDelete,
+  useProdutoSegmentoDelete, useProdutoSegmentoList, useProdutoServicoList, useServicosPrestadosDelete,
   useServicosPrestadosList,
   type ProdutoSegmento, type ServicoPrestado,
 } from '@/hooks/useCategorias';
@@ -87,6 +87,7 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   });
   const [mostrarOutrosClusters, setMostrarOutrosClusters] = useState(false);
   const [formProduto, setFormProduto] = useState<EstadoFormulario<ProdutoSegmento>>(FORM_FECHADO);
+  const [produtoParaExcluir, setProdutoParaExcluir] = useState<ProdutoSegmento | null>(null);
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
   const [servicoParaExcluir, setServicoParaExcluir] = useState<ServicoPrestado | null>(null);
   const [copiarAberto, setCopiarAberto] = useState(false);
@@ -110,6 +111,7 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const { data: servicos = [] } = useServicosPrestadosList();
 
   const { remove: removerServico } = useServicosPrestadosDelete();
+  const { remove: removerProduto } = useProdutoSegmentoDelete();
 
   // ── Produtos ────────────────────────────────────────────────────────
   const contagemPorProduto = useMemo(() => contarVinculosPorProduto(vinculos), [vinculos]);
@@ -316,39 +318,10 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
   return (
-    /*
-      Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
-      produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
-      dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
-      abaixo, fora da tela — a bancada parecia vazia à direita.
-
-      LARGURA COM TETO, e o número sai do dado, não do gosto: o maior nome de
-      serviço do catálogo tem 77 caracteres e a média 36 (produção, 16/09/2026),
-      ou seja ~490px no pior caso a 13px. Numa janela de 1900px a coluna do meio
-      chegava a ~1300px — o dobro do que qualquer nome pede, e nenhum deles
-      truncava nem perto disso. Com 1100 no teto ela fica em ~800px, que ainda
-      segura o pior caso com folga, e o que sobra vira margem em vez de linha
-      esticada. Abaixo de 1100 nada muda: aqui é teto, não largura.
-
-      Não centralizada de propósito: o título da página é alinhado à esquerda, e
-      um cartão centrado embaixo dele ficaria fora de prumo com a própria página.
-    */
+    /* Altura fixa mantém as colunas alinhadas; largura limitada evita linhas de serviço excessivamente largas. */
     <div className="flex h-[72vh] min-h-[480px] max-w-[1100px] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        {/*
-          O texto anterior — "define quais serviços aparecem ao cadastrar
-          projetos" — descrevia a premissa de 09/08/2026, em que `produto_servico`
-          era taxonomia de escopo e nada mais. A sprint reverteu isso em
-          18/08/2026: `gerar_tarefas_projeto` passou a ler esta tabela, e agora
-          marcar aqui decide se um projeto NOVO nasce com aquela tarefa.
-
-          A última oração não é conforto, é o que destrava a tela: sem ela a
-          pessoa fica na dúvida se desmarcar mexe no que já existe, e não mexe em
-          nada. Tela de curadoria que ninguém ousa editar não serve para nada.
-          Verificado no banco: a geração não insere quando o projeto já tem
-          tarefa de nível superior para o serviço, e desvincular não apaga tarefa
-          já gerada.
-        */}
+        {/* Os vínculos geram tarefas apenas em projetos novos; projetos existentes não mudam. */}
         <p className="text-xs text-muted-foreground">
           O vínculo define os serviços do produto. Cada serviço vinculado vira uma tarefa em
           projetos novos desse produto — projetos já criados não mudam.
@@ -472,6 +445,9 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
           onEditarProduto={() => {
             if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
           }}
+          onExcluirProduto={() => {
+            if (produtoSelecionado) setProdutoParaExcluir(produtoSelecionado);
+          }}
           /*
             Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
             nem âmbar, nem alarme.
@@ -514,18 +490,7 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
         />
       </ListaMestreDetalhe>
 
-      {/*
-        O detalhe do serviço vive SOBRE a tela, e não ao lado dela — e do TAMANHO
-        do que tem para dizer.
-
-        Era uma terceira coluna de 320px, sempre montada, que na maior parte do
-        tempo mostrava "Selecione um serviço". Virou painel lateral de altura
-        inteira, o que resolveu o vazio permanente mas manteve o exagero de
-        escala: 384px pela altura da janela para um nome, um cluster, um número e
-        uma lista que em produção tem no máximo 3 linhas. Agora é um diálogo de
-        `max-w-md` com altura automática. O conteúdo é o mesmo e o gesto que abre
-        também: clicar no nome do serviço.
-      */}
+      {/* Detalhe do serviço em diálogo compacto, aberto pelo nome na lista. */}
       <Dialog
         open={!!servicoAberto}
         onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
@@ -591,6 +556,23 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
         candidatos={candidatosParaCopiar}
         onFechar={() => setCopiarAberto(false)}
         onConfirmar={copiarDe}
+      />
+
+      <ConfirmarExclusaoDialog
+        aberto={!!produtoParaExcluir}
+        titulo="Excluir produto?"
+        descricao={`"${produtoParaExcluir?.codigo ?? ''} — ${produtoParaExcluir?.nome ?? ''}" será excluído e seus vínculos com serviços serão removidos. Produtos usados em projetos ou contratos não podem ser excluídos.`}
+        onCancelar={() => setProdutoParaExcluir(null)}
+        onConfirmar={async () => {
+          if (!produtoParaExcluir) return;
+          try {
+            await removerProduto(produtoParaExcluir);
+            if (produtoEscolhidoId === produtoParaExcluir.id) setProdutoEscolhidoId(null);
+            setProdutoParaExcluir(null);
+          } catch {
+            // O hook já exibe a causa e não remove o produto da lista.
+          }
+        }}
       />
 
       <ConfirmarExclusaoDialog

@@ -105,10 +105,15 @@ export const useProdutoSegmentoDelete = () => {
         const { error } = await supabase.from('produto_segmento').delete().eq('id', item.id);
         if (error) throw error;
         qc.invalidateQueries({ queryKey: ['produto_segmento'] });
+        qc.invalidateQueries({ queryKey: ['produto_servico'] });
+        qc.invalidateQueries({ queryKey: ['project-servicos-by-produto'] });
         toast.success('Item excluído');
-        logAction({ area: 'cadastros', entity_type: 'produto_segmento', entity_id: item.id, entity_name: item.codigo, action: 'deleted' });
-      } catch {
-        toast.error('Erro ao excluir');
+        logAction({ area: 'cadastros', entity_type: 'produto_segmento', entity_id: item.id, entity_name: item.codigo, action: 'deleted', changed_fields: { codigo: { old: item.codigo, new: null }, nome: { old: item.nome, new: null } } });
+      } catch (erro: unknown) {
+        const detalhe = erroSupabase(erro);
+        if (detalhe.code === '23503') toast.error('Produto em uso em projetos ou contratos. Não é possível excluí-lo.');
+        else toast.error(detalhe.message || 'Erro ao excluir produto');
+        throw erro;
       }
     },
   };

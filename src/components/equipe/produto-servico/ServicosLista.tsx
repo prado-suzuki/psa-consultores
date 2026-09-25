@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Copy, Layers, Link2, Pencil, Plus, Search, Unlink } from 'lucide-react';
+import { Copy, Layers, Link2, Pencil, Plus, Search, Trash2, Unlink } from 'lucide-react';
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -84,6 +84,7 @@ interface Props {
   podeCopiar: boolean;
   /** Abre o formulário do PRODUTO aberto — é o único lugar que edita o nome dele. */
   onEditarProduto: () => void;
+  onExcluirProduto: () => void;
   /** Faixa de aviso logo abaixo do cabeçalho (produto sem vínculo nenhum). */
   aviso?: ReactNode;
   carregando: boolean;
@@ -131,7 +132,7 @@ export default function ServicosLista({
   idsVisiveis, resumo, filtro, onFiltroChange,
   marcados, onMarcar, onLimparMarcados, servicoAbertoId, onAbrirServico,
   onLote, onAlternarVinculo, onNovo, onCopiarDeOutro, podeCopiar,
-  onEditarProduto, aviso, carregando,
+  onEditarProduto, onExcluirProduto, aviso, carregando,
 }: Props) {
   const [ancora, setAncora] = useState<string | null>(null);
   const [confirmarDesvincular, setConfirmarDesvincular] = useState(false);
@@ -353,6 +354,16 @@ export default function ServicosLista({
             aria-label="Editar produto"
           >
             <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+            onClick={onExcluirProduto}
+            title="Excluir produto"
+            aria-label="Excluir produto"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
 
           <span className="ml-auto text-xs text-muted-foreground">

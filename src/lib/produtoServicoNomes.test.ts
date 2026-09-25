@@ -8,6 +8,7 @@ import {
   montarNomeServico,
   ordenarPorCodigoDeServico,
   proximoCodigoLivre,
+  proximoNumeroServico,
   servicosComCodigo,
   servicosComMesmoNome,
 } from '@/lib/produtoServicoNomes';
@@ -211,6 +212,22 @@ describe('proximoCodigoLivre', () => {
 
   it('cluster vazio não trava', () => {
     expect(proximoCodigoLivre([], null, '1')).toBe('1.1');
+  });
+});
+
+describe('proximoNumeroServico', () => {
+  it('continua depois do maior número do cluster, sem usar os de outro cluster', () => {
+    expect(proximoNumeroServico(CATALOGO, TAX)).toBe('3');
+    expect(proximoNumeroServico(CATALOGO, OSG)).toBe('3');
+  });
+
+  it('considera números de um nível e começa em 1 num cluster vazio', () => {
+    expect(proximoNumeroServico([
+      servico('a', '1.Constituição', TAX),
+      servico('b', '3.2.Revisão', TAX),
+      servico('c', 'Outros', TAX),
+    ], TAX)).toBe('4');
+    expect(proximoNumeroServico(CATALOGO, 'novo')).toBe('1');
   });
 });
 

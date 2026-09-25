@@ -3,13 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { RequiredMark } from '@/components/ui/required-mark';
 import ClusterSelect from '@/components/equipe/produto-servico/ClusterSelect';
 import {
-  dividirNomeServico, gruposDeCodigo, montarNomeServico, proximoCodigoLivre,
+  dividirNomeServico, montarNomeServico, proximoNumeroServico,
   servicosComCodigo, servicosComMesmoNome,
 } from '@/lib/produtoServicoNomes';
 import {
@@ -57,53 +54,30 @@ function Aviso({ tom, children }: { tom: 'atencao' | 'ok'; children: ReactNode }
  * `servicos_prestados` ganhar coluna de código, só as três leituras trocam de
  * fonte — os campos, os avisos e a validação ficam como estão.
  *
- * O número chega PRONTO: `proximoCodigoLivre` olha o que já existe no cluster,
- * inclusive o zero à esquerda que a OSG usa e a Tax não, e propõe o primeiro
- * vago. Continua editável — quem cadastra decide, e código repetido ainda pode
- * ser gravado. A tela só se recusa a deixar isso acontecer em silêncio.
+ * Ao criar, o próximo número principal do cluster é sugerido automaticamente.
+ * Em edição, o número gravado é preservado; ambos continuam editáveis.
  */
 export default function ServicoFormDialog({
   aberto, servico, clusterPadrao, onFechar, onCriado,
 }: ServicoFormDialogProps) {
   const { save } = useServicosPrestadosSave();
-  const { data: catalogo = [] } = useServicosPrestadosList();
+  const { data: catalogo = [], isLoading: carregandoCatalogo } = useServicosPrestadosList();
 
-  const [codigo, setCodigo] = useState('');
+  const [codigoEditado, setCodigoEditado] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
   const [clusterId, setClusterId] = useState('');
   const [salvando, setSalvando] = useState(false);
-  /** Já propus um número para este cluster? Sem isto, apagar o campo o repõe. */
-  const [jaPropos, setJaPropos] = useState(false);
-
   const cluster = clusterId || null;
-  const grupos = useMemo(() => gruposDeCodigo(catalogo, cluster), [catalogo, cluster]);
-  const raiz = codigo.trim().split('.')[0] || null;
+  const codigo = codigoEditado ?? proximoNumeroServico(catalogo, cluster);
 
   // Recarrega o formulário a cada abertura — o diálogo é reaproveitado entre itens.
   useEffect(() => {
     if (!aberto) return;
     const partido = dividirNomeServico(servico?.nome);
     setTitulo(servico ? partido.nome : '');
-    setCodigo(servico ? (partido.codigo ?? '') : '');
+    setCodigoEditado(servico ? (partido.codigo ?? '') : null);
     setClusterId(servico?.cluster_id || (servico ? '' : clusterPadrao || ''));
-    setJaPropos(!!servico);
   }, [aberto, servico, clusterPadrao]);
-
-  /*
-   * Ao CRIAR, o número acompanha o cluster escolhido: trocar de cluster troca
-   * de catálogo, e um número livre na Tax pode estar ocupado na OSG. Em edição
-   * o número é o que está gravado e não se mexe sozinho.
-   */
-  useEffect(() => {
-    if (!aberto || servico || jaPropos || catalogo.length === 0) return;
-    const primeiro = gruposDeCodigo(catalogo, clusterId || null)[0];
-    if (primeiro) setCodigo(proximoCodigoLivre(catalogo, clusterId || null, primeiro.raiz));
-    setJaPropos(true);
-  }, [aberto, servico, clusterId, catalogo, jaPropos]);
-
-  const trocarGrupo = (novaRaiz: string) => {
-    setCodigo(proximoCodigoLivre(catalogo, cluster, novaRaiz));
-  };
 
   /*
    * Colar "1.1.Apoio no fechamento contábil" no nome separa sozinho. É o gesto
@@ -113,7 +87,7 @@ export default function ServicoFormDialog({
   const digitarTitulo = (valor: string) => {
     const partido = dividirNomeServico(valor);
     if (partido.codigo) {
-      setCodigo(partido.codigo);
+      setCodigoEditado(partido.codigo);
       setTitulo(partido.nome);
       return;
     }
@@ -144,17 +118,6 @@ export default function ServicoFormDialog({
     }
   };
 
-  // O grupo digitado à mão entra na lista: o seletor não pode ficar em branco
-  // mostrando um número que está ali no campo ao lado.
-  const opcoesDeGrupo = useMemo(() => {
-    const lista = grupos.map((g) => ({ raiz: g.raiz, rotulo: `${g.raiz} — ${g.exemplo}` }));
-    if (raiz && !grupos.some((g) => g.raiz === raiz)) {
-      lista.push({ raiz, rotulo: `${raiz} — grupo novo` });
-      lista.sort((a, b) => Number(a.raiz) - Number(b.raiz));
-    }
-    return lista;
-  }, [grupos, raiz]);
-
   return (
     <Dialog open={aberto} onOpenChange={valor => { if (!valor) onFechar(); }}>
       <DialogContent className="max-w-md">
@@ -167,33 +130,20 @@ export default function ServicoFormDialog({
             <Label>Cluster</Label>
             <ClusterSelect
               value={clusterId}
-              onChange={(valor) => { setClusterId(valor); if (!servico) setJaPropos(false); }}
+              onChange={(valor) => {
+                setClusterId(valor);
+                if (!servico) setCodigoEditado(null);
+              }}
             />
           </div>
 
-          {opcoesDeGrupo.length > 0 && (
-            <div>
-              <Label htmlFor="servico-grupo">Grupo</Label>
-              <Select value={raiz ?? ''} onValueChange={trocarGrupo}>
-                <SelectTrigger id="servico-grupo">
-                  <SelectValue placeholder="Selecione um grupo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {opcoesDeGrupo.map((g) => (
-                    <SelectItem key={g.raiz} value={g.raiz}>{g.rotulo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           <div className="grid grid-cols-[7rem_1fr] gap-3">
             <div>
-              <Label htmlFor="servico-numero">Número</Label>
+              <Label htmlFor="servico-numero">Número{!servico && ' (automático)'}</Label>
               <Input
                 id="servico-numero"
                 value={codigo}
-                onChange={e => setCodigo(e.target.value)}
+                onChange={e => setCodigoEditado(e.target.value)}
                 placeholder="Ex: 1.10"
                 className="font-mono"
               />
@@ -240,7 +190,7 @@ export default function ServicoFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onFechar}>Cancelar</Button>
-          <Button onClick={handleSalvar} disabled={salvando}>Salvar</Button>
+          <Button onClick={handleSalvar} disabled={salvando || carregandoCatalogo}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -222,6 +222,18 @@ export function proximoCodigoLivre(
   return `${raiz}.${String(n).padStart(largura, '0')}`;
 }
 
+/** Novo serviço avulso: usa o próximo número principal do cluster, sem pedir grupo. */
+export function proximoNumeroServico(
+  servicos: readonly ServicoDoCatalogo[],
+  clusterId: string | null,
+): string {
+  const raizes = doCluster(servicos, clusterId)
+    .map((s) => dividirNomeServico(s.nome).codigo?.split('.')[0])
+    .filter((raiz): raiz is string => !!raiz)
+    .map(Number);
+  return String(Math.max(0, ...raizes) + 1);
+}
+
 /**
  * Quem já usa este código no cluster.
  *
