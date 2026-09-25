@@ -111,6 +111,9 @@ const ExploracaoRural = () => {
           />
         ) : (
           <>
+            {/* Sem instrumento nenhum, filtrar é procurar no vazio: o card de
+                Filtros só aparece a partir do primeiro registro (EX-37). */}
+            {exploracoes.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Filtros</CardTitle>
@@ -145,6 +148,7 @@ const ExploracaoRural = () => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             <Card variant="tabela">
               <CardHeader className="flex-row items-center justify-between pb-3">

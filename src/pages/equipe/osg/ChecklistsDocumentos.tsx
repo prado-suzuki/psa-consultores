@@ -61,9 +61,7 @@ const ChecklistsDocumentos = () => {
           icone={<ListChecks className="h-10 w-10 text-muted-foreground opacity-50" />}
         />
       ) : (
-        <div className="mx-auto max-w-7xl space-y-6">
-          <ChecklistPendentes clienteId={clienteId} />
-        </div>
+        <ChecklistPendentes clienteId={clienteId} />
       )}
     </OsgLayout>
   );

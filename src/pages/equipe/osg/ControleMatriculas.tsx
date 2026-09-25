@@ -105,12 +105,15 @@ const ControleMatriculas = () => {
       subtitle={TELAS_OSG_WORK.controleMatriculas.descricao}
     >
       <div className="space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-3 md:items-end">
+        {/* Sem matrícula nenhuma, filtrar é procurar no vazio: o card de
+            Filtros só aparece a partir do primeiro registro (EX-37). */}
+        {matriculasDoCliente.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Filtros</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-3 md:items-end">
               <div className="flex-1 space-y-1.5">
                 <Label htmlFor="busca-matriculas" className="text-xs font-semibold text-muted-foreground">Buscar</Label>
                 <div className="relative">
@@ -138,6 +141,7 @@ const ControleMatriculas = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
         <Card variant="tabela">
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">

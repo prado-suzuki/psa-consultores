@@ -114,6 +114,9 @@ const DiagnosticoPatrimonial = () => {
           </Card>
         ) : (
           <>
+            {/* Sem bem nenhum, filtrar é procurar no vazio: o card de
+                Filtros só aparece a partir do primeiro registro (EX-37). */}
+            {bens.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Filtros</CardTitle>
@@ -164,6 +167,7 @@ const DiagnosticoPatrimonial = () => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             <Card variant="tabela">
               <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">

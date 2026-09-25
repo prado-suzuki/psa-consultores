@@ -83,9 +83,14 @@ export function HistoricoDeSimulacoes({
           </span>
         </h2>
 
-        {/* FILTRO DE STATUS da lista: é como se pergunta "quais estão aprovadas". */}
+        {/* FILTRO DE STATUS da lista: é como se pergunta "quais estão aprovadas".
+            Com a lista vazia não há o que filtrar, e o seletor só aparece a
+            partir da primeira simulação (EX-37). O botão de criar fica sempre:
+            é ele que tira o zero. */}
         <div className="flex items-center gap-2">
           {acoes}
+          {simulacoes.length > 0 && (
+          <>
           <span className={rotuloCls}>
             <ComDica dica="Filtra a lista. Trocar o status de uma simulação é na tela dela.">
               Status
@@ -105,6 +110,8 @@ export function HistoricoDeSimulacoes({
               ))}
             </SelectContent>
           </Select>
+          </>
+        )}
         </div>
       </header>
 
