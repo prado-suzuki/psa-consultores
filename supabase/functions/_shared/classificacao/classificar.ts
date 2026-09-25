@@ -52,7 +52,6 @@ async function classificarComSystemOne<Classes extends Record<string, DefinicaoC
       classificacao: {
         type: 'choice',
         instructions: {
-          regras: REGRAS_BASE_PROMPT,
           tarefa: definicao.instrucoes,
           orientacao:
             'Escolha exatamente uma classe. Quando faltar informação, use a classe de abstenção indicada nas instruções.',
