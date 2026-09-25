@@ -2,8 +2,8 @@ import { definirClassificador } from '../definirClassificador.ts';
 
 export const classificadorIntencaoDitado = definirClassificador({
   nome: 'intencao-ditado',
-  versao: 1,
-  modelo: 'google/gemini-3-flash-preview',
+  versao: 2,
+  modelo: 'typesafe/jev-latest',
   instrucoes: [
     'Classifique qual ação o sistema deve tomar depois de um ditado no compositor de comentários.',
     'Use criar_tarefa apenas quando a pessoa pedir, assumir ou registrar uma ação futura concreta.',
